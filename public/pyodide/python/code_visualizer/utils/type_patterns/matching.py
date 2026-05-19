@@ -4,7 +4,7 @@ from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any
 
-from ...view_types import ViewKind
+from ...shared.view_kinds import ViewKind
 from ..detection.linked import _collect_linked_list_labels
 from ..detection.tree import _tree_children
 from ..image_sources import _looks_like_image_candidate
@@ -52,13 +52,17 @@ def _matches_type_pattern(value: Any, pattern: _TypePattern) -> bool:
         "object": lambda current: True,
         "none": lambda current: current is None,
         "bool": lambda current: isinstance(current, bool),
-        "int": lambda current: isinstance(current, int) and not isinstance(current, bool),
+        "int": lambda current: (
+            isinstance(current, int) and not isinstance(current, bool)
+        ),
         "float": lambda current: isinstance(current, float),
         "number": _is_number,
         "str": lambda current: isinstance(current, str),
         "bytes": lambda current: isinstance(current, (bytes, bytearray)),
         "path": lambda current: isinstance(current, Path),
-        "linked_list": lambda current: _collect_linked_list_labels(current, max_nodes=2) is not None,
+        "linked_list": lambda current: (
+            _collect_linked_list_labels(current, max_nodes=2) is not None
+        ),
         "tree": lambda current: _tree_children(current) is not None,
     }
     if kind in scalar_matchers:
@@ -70,7 +74,9 @@ def _matches_type_pattern(value: Any, pattern: _TypePattern) -> bool:
     if kind == "set":
         return isinstance(value, set) and _matches_sequence_args(value, pattern.args)
     if kind == "frozenset":
-        return isinstance(value, frozenset) and _matches_sequence_args(value, pattern.args)
+        return isinstance(value, frozenset) and _matches_sequence_args(
+            value, pattern.args
+        )
     if kind == "dict":
         return isinstance(value, dict) and _matches_dict_args(value, pattern.args)
     return False
@@ -80,16 +86,25 @@ def _matches_sequence_args(value: Any, args: tuple[_TypePattern, ...]) -> bool:
     if not args:
         return True
     child = args[0]
-    return all(_matches_type_pattern(item, child) for item in _sample_iterable(value, _TYPE_PATTERN_SAMPLE))
+    return all(
+        _matches_type_pattern(item, child)
+        for item in _sample_iterable(value, _TYPE_PATTERN_SAMPLE)
+    )
 
 
 def _matches_tuple_args(value: tuple[Any, ...], args: tuple[_TypePattern, ...]) -> bool:
     if not args:
         return True
     if len(args) == len(value) and len(args) > 1:
-        return all(_matches_type_pattern(item, sub) for item, sub in zip(value, args, strict=False))
+        return all(
+            _matches_type_pattern(item, sub)
+            for item, sub in zip(value, args, strict=False)
+        )
     child = args[0]
-    return all(_matches_type_pattern(item, child) for item in _sample_iterable(value, _TYPE_PATTERN_SAMPLE))
+    return all(
+        _matches_type_pattern(item, child)
+        for item in _sample_iterable(value, _TYPE_PATTERN_SAMPLE)
+    )
 
 
 def _matches_dict_args(value: dict[Any, Any], args: tuple[_TypePattern, ...]) -> bool:
@@ -97,19 +112,30 @@ def _matches_dict_args(value: dict[Any, Any], args: tuple[_TypePattern, ...]) ->
         return True
     sampled_items = _sample_iterable(value.items(), _TYPE_PATTERN_SAMPLE)
     if len(args) == 1:
-        return all(_matches_type_pattern(item_value, args[0]) for _, item_value in sampled_items)
+        return all(
+            _matches_type_pattern(item_value, args[0])
+            for _, item_value in sampled_items
+        )
     key_pattern, value_pattern = args[0], args[1]
-    return all(_matches_type_pattern(key, key_pattern) and _matches_type_pattern(item_value, value_pattern) for key, item_value in sampled_items)
+    return all(
+        _matches_type_pattern(key, key_pattern)
+        and _matches_type_pattern(item_value, value_pattern)
+        for key, item_value in sampled_items
+    )
 
 
-def _match_type_pattern_override(value: Any, mapping: Mapping[str, ViewKind] | None) -> ViewKind | None:
+def _match_type_pattern_override(
+    value: Any, mapping: Mapping[str, ViewKind] | None
+) -> ViewKind | None:
     if not mapping or _looks_like_image_candidate(value):
         return None
     for pattern_text, view in mapping.items():
         try:
             pattern = _compile_type_pattern(pattern_text)
         except ValueError as exc:
-            raise ValueError(f"Invalid DEFAULT_VIEW_TYPE_MAP entry '{pattern_text}': {exc}") from exc
+            raise ValueError(
+                f"Invalid DEFAULT_VIEW_TYPE_MAP entry '{pattern_text}': {exc}"
+            ) from exc
         if _matches_type_pattern(value, pattern):
             return view
     return None

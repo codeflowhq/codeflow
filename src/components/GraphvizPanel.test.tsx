@@ -3,11 +3,11 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import GraphvizPanel from "./GraphvizPanel";
+import GraphvizPanel from "../features/visualization/renderers/GraphvizPanel";
 
 const loadGraphvizRuntime = vi.fn();
 
-vi.mock("../lib/loadGraphvizRuntime", () => ({
+vi.mock("../shared/lib/graphviz-runtime", () => ({
   loadGraphvizRuntime: () => loadGraphvizRuntime(),
 }));
 

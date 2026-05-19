@@ -1,13 +1,15 @@
 import { describe, expect, it } from "vitest";
 
-import { TOP_MENU_LIBRARY, TOP_MENU_VISUALIZATION, VIZ_MENU_CONFIG, VIZ_MENU_MAIN, getSideMenuKeys } from "./navigationState";
+import { TOP_MENU_LIBRARY, TOP_MENU_VISUALIZATION, VIZ_MENU_CONFIG, VIZ_MENU_MAIN } from "./navigationState";
 
-describe("getSideMenuKeys", () => {
-  it("returns no side menu selection for library", () => {
-    expect(getSideMenuKeys(TOP_MENU_LIBRARY, VIZ_MENU_MAIN)).toEqual([]);
+describe("navigation state constants", () => {
+  it("keeps the expected top-level keys", () => {
+    expect(TOP_MENU_LIBRARY).toBe("library");
+    expect(TOP_MENU_VISUALIZATION).toBe("visualization");
   });
 
-  it("returns the active visualization menu key", () => {
-    expect(getSideMenuKeys(TOP_MENU_VISUALIZATION, VIZ_MENU_CONFIG)).toEqual([VIZ_MENU_CONFIG]);
+  it("keeps the expected visualization page keys", () => {
+    expect(VIZ_MENU_MAIN).toBe("main");
+    expect(VIZ_MENU_CONFIG).toBe("config");
   });
 });

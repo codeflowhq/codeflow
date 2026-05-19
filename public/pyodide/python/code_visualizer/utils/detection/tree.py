@@ -54,4 +54,8 @@ def _mapping_tree(value: Mapping[str, Any]) -> tuple[Any, list[Any]]:
 
 
 def _tree_label(value: Any) -> Any:
-    return getattr(value, "val", None) or getattr(value, "value", None) or type(value).__name__
+    return (
+        getattr(value, "val", None)
+        or getattr(value, "value", None)
+        or type(value).__name__
+    )

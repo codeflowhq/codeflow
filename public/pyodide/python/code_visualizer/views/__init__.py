@@ -1,1 +1,1 @@
-"""Structured view builder modules."""
+"""View-layer modules for semantic data structure visualization."""

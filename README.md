@@ -20,5 +20,5 @@ npm run dev
 ## Notes
 
 - Browser mode is the default execution path.
-- The app consumes the public manifest API from `code_visualizer`.
-- Local wheel install is used for `code_visualizer`; vendored sources are only for browser-only dependencies.
+- The app consumes the public manifest API from `codeflow-py`.
+- Local wheel install is used for `codeflow-py`; vendored sources are only for browser-only dependencies.

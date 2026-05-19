@@ -46,7 +46,9 @@ def identity_converter(value: Any) -> ConverterResult:
     return False, value
 
 
-def apply_converter_pipeline(value: Any, converters: Sequence[ValueConverter]) -> tuple[Any, bool]:
+def apply_converter_pipeline(
+    value: Any, converters: Sequence[ValueConverter]
+) -> tuple[Any, bool]:
     return ConverterPipeline(tuple(converters)).coerce(value)
 
 

@@ -8,7 +8,20 @@ import subprocess
 import tempfile
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-LIB_ROOT = REPO_ROOT.parents[1] / "code-visualizer" / "src" / "code_visualizer"
+
+
+def _resolve_library_root() -> Path:
+    candidates = (
+        REPO_ROOT.parents[1] / "codeflow-py" / "src" / "code_visualizer",
+        REPO_ROOT.parents[1] / "code-visualizer" / "src" / "code_visualizer",
+    )
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    return candidates[0]
+
+
+LIB_ROOT = _resolve_library_root()
 PYODIDE_ROOT = REPO_ROOT / "public" / "pyodide"
 PYODIDE_PYTHON_ROOT = PYODIDE_ROOT / "python"
 PYODIDE_WHEEL_ROOT = PYODIDE_ROOT / "wheels"
@@ -66,10 +79,10 @@ def _clean_wheels(prefixes: tuple[str, ...]) -> None:
 
 
 def _build_code_visualizer_wheel() -> str:
-    _clean_wheels(("code_visualizer",))
+    _clean_wheels(("codeflow_py",))
 
     repo_root = LIB_ROOT.parents[1]
-    with tempfile.TemporaryDirectory(prefix="code_visualizer_browser_build_") as tmp_dir:
+    with tempfile.TemporaryDirectory(prefix="codeflow_py_browser_build_") as tmp_dir:
         tmp_root = Path(tmp_dir)
         shutil.copytree(repo_root / "src", tmp_root / "src")
         shutil.copyfile(repo_root / "README.md", tmp_root / "README.md")
@@ -87,9 +100,9 @@ def _build_code_visualizer_wheel() -> str:
             cwd=tmp_root,
             check=True,
         )
-    wheels = sorted(PYODIDE_WHEEL_ROOT.glob("code_visualizer-*.whl"))
+    wheels = sorted(PYODIDE_WHEEL_ROOT.glob("codeflow_py-*.whl"))
     if not wheels:
-        raise SystemExit("Failed to build code_visualizer wheel")
+        raise SystemExit("Failed to build codeflow-py wheel")
     return wheels[-1].name
 
 

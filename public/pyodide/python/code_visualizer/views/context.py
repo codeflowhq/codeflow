@@ -4,8 +4,8 @@ from collections.abc import Callable, Iterator
 from dataclasses import dataclass, replace
 from typing import Any
 
-from ..models import VisualGraph
-from ..view_types import ViewKind
+from ..shared.models import VisualGraph
+from ..shared.view_kinds import ViewKind
 
 ViewResolver = Callable[[str, Any, Any], tuple[ViewKind, bool]]
 ValueCoercer = Callable[[Any], Any]
@@ -23,4 +23,3 @@ class ViewBuildContext:
 
     def with_resolver(self, resolver: ViewResolver | None) -> ViewBuildContext:
         return replace(self, resolver=resolver)
-

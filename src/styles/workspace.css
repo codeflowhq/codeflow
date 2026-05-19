@@ -1,0 +1,84 @@
+.graphviz-panel,
+.svg-panel {
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+}
+
+.graphviz-panel svg,
+.svg-panel svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.editor-current-line {
+  background: rgba(37, 99, 235, 0.18);
+}
+
+.editor-current-line-glyph {
+  background: #2563eb;
+  width: 6px;
+  margin-left: 3px;
+  border-radius: 999px;
+}
+
+.editor-lockable-identifier {
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0) 22%,
+    rgba(250, 204, 21, 0.62) 22%,
+    rgba(250, 204, 21, 0.48) 52%,
+    rgba(250, 204, 21, 0.62) 82%,
+    rgba(0, 0, 0, 0) 82%
+  );
+  color: #f8fafc;
+  border-radius: 2px;
+  box-shadow:
+    inset 0 -1px 0 rgba(161, 98, 7, 0.45),
+    0 0 0 1px rgba(250, 204, 21, 0.1);
+  cursor: pointer;
+}
+
+.editor-lockable-identifier-draft {
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0) 18%,
+    rgba(59, 130, 246, 0.72) 18%,
+    rgba(59, 130, 246, 0.48) 52%,
+    rgba(59, 130, 246, 0.72) 84%,
+    rgba(0, 0, 0, 0) 84%
+  );
+  box-shadow:
+    inset 0 -1px 0 rgba(191, 219, 254, 0.75),
+    0 0 0 1px rgba(96, 165, 250, 0.2);
+}
+
+.clickable-tag {
+  cursor: pointer;
+}
+
+.editor-loading,
+.panel-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 160px;
+  color: #64748b;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+}
+
+
+@media (max-width: 1200px) {
+  .workspace-reference-grid,
+  .config-page-grid,
+  .config-page-grid-wide,
+  .collection-card-grid,
+  .library-grid,
+  .visual-canvas-masonry,
+  .inline-variable-browser-detail,
+  .compact-form-grid {
+    grid-template-columns: 1fr;
+  }
+}

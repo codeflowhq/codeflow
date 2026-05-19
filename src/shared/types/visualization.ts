@@ -130,5 +130,6 @@ export type ExampleRecord = {
   watchVariables?: string[];
   globalConfig?: Partial<GlobalConfig>;
   variableConfigs?: Record<string, VariableConfig>;
+  savedManifest?: ManifestEntry[];
   tags?: string[];
 };

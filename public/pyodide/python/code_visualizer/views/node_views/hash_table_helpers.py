@@ -3,15 +3,14 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from ...models import NodeKind, VisualNode
-from ...rendering.html_labels import (
+from ...renderers.html.labels import (
     html_bold_text,
     html_cell,
     html_font,
     html_row,
     html_table,
 )
-from ...rendering.theme import (
+from ...renderers.shared.theme import (
     BG_FOCUS,
     BG_FOCUS_SOFT,
     BG_SURFACE,
@@ -22,6 +21,7 @@ from ...rendering.theme import (
     TEXT_INDEX,
     TEXT_PRIMARY,
 )
+from ...shared.models import NodeKind, VisualNode
 from ...utils.value_formatting import stable_svg_id as _stable_svg_id
 from ..graph_layout import init_graph_attrs, safe_dot_token
 
@@ -32,7 +32,7 @@ def hash_table_focus_indices(
 ) -> tuple[int | None, int | None]:
     if not focus_path or not focus_path.startswith(logical_name):
         return None, None
-    suffix = focus_path[len(logical_name):]
+    suffix = focus_path[len(logical_name) :]
     matches = re.findall(r"\[(\d+)\]", suffix)
     if not matches:
         return None, None
@@ -53,14 +53,18 @@ def configure_hash_table_graph(graph: Any, name: str, *, show_titles: bool) -> N
     )
 
 
-def hash_bucket_head_node(logical_name: str, idx: int, *, is_focused: bool) -> VisualNode:
+def hash_bucket_head_node(
+    logical_name: str, idx: int, *, is_focused: bool
+) -> VisualNode:
     head_fill = BG_FOCUS if is_focused else BG_SURFACE
     head_border = BORDER_FOCUS if is_focused else BORDER_DARK
     head_penwidth = "1.7" if is_focused else "1.2"
     bucket_label = html_table(
         html_row(
             html_cell(
-                html_font(html_bold_text("H"), {"point-size": 14, "color": TEXT_PRIMARY}),
+                html_font(
+                    html_bold_text("H"), {"point-size": 14, "color": TEXT_PRIMARY}
+                ),
                 align="center",
                 bgcolor=head_fill,
                 cellpadding="6",
@@ -68,7 +72,9 @@ def hash_bucket_head_node(logical_name: str, idx: int, *, is_focused: bool) -> V
         ),
         html_row(
             html_cell(
-                html_font(str(idx), {"point-size": BODY_FONT_SIZE, "color": TEXT_INDEX}),
+                html_font(
+                    str(idx), {"point-size": BODY_FONT_SIZE, "color": TEXT_INDEX}
+                ),
                 align="center",
                 bgcolor=head_fill,
                 cellpadding="3",

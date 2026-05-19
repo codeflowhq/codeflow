@@ -18,8 +18,10 @@ def _is_scalar_value(value: Any) -> bool:
 
 
 def _is_matrix_value(value: Any) -> bool:
-    return isinstance(value, (list, tuple)) and len(value) > 0 and all(
-        isinstance(row, (list, tuple)) for row in value
+    return (
+        isinstance(value, (list, tuple))
+        and len(value) > 0
+        and all(isinstance(row, (list, tuple)) for row in value)
     )
 
 

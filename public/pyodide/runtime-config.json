@@ -10,7 +10,7 @@
   "wheelUrls": [
     "pyodide/wheels/step_tracer-0.1.0-py3-none-any.whl",
     "pyodide/wheels/query_engine-0.1.0-py3-none-any.whl",
-    "pyodide/wheels/code_visualizer-0.1.0-py3-none-any.whl"
+    "pyodide/wheels/codeflow_py-0.1.0-py3-none-any.whl"
   ],
   "pythonSources": [],
   "micropipPackages": [

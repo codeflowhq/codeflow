@@ -20,14 +20,18 @@ class ConverterPipeline:
                 return converted, True
         return value, False
 
-    def with_converters(self, *extra: ValueConverter, prepend: bool = False) -> ConverterPipeline:
+    def with_converters(
+        self, *extra: ValueConverter, prepend: bool = False
+    ) -> ConverterPipeline:
         if not extra:
             return self
         if prepend:
             return ConverterPipeline(tuple(extra) + self.converters)
         return ConverterPipeline(self.converters + tuple(extra))
 
-    def extend(self, converters: Iterable[ValueConverter], *, prepend: bool = False) -> ConverterPipeline:
+    def extend(
+        self, converters: Iterable[ValueConverter], *, prepend: bool = False
+    ) -> ConverterPipeline:
         additions = tuple(converters)
         if not additions:
             return self

@@ -2,7 +2,7 @@ import { Alert } from "antd";
 import { Component } from "react";
 import type { ReactNode } from "react";
 
-import { normalizeUnexpectedAppError } from "../shared/errors/runtimeErrors";
+import { normalizeUnexpectedAppError } from "../runtime/runtime-errors";
 
 type AppErrorBoundaryProps = {
   children: ReactNode;

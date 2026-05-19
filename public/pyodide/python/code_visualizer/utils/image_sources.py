@@ -11,7 +11,7 @@ from uuid import uuid4
 
 from graphviz import Source  # type: ignore[import-untyped]
 
-from ..rendering.html_labels import html_img, html_single_cell_table
+from ..renderers.html.labels import html_img, html_single_cell_table
 
 _IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp"}
 _DATA_URI_SUFFIX = {
@@ -47,7 +47,9 @@ def _looks_like_image_candidate(value: Any) -> bool:
         lower = candidate.lower()
         if lower.startswith("data:image/"):
             return True
-        if (lower.startswith("http://") or lower.startswith("https://")) and _is_image_path(candidate):
+        if (
+            lower.startswith("http://") or lower.startswith("https://")
+        ) and _is_image_path(candidate):
             return True
         if _is_image_path(candidate):
             return True
@@ -78,7 +80,9 @@ def _remote_url_suffix(url: str) -> str:
 def _assert_ascii_path(path: Path) -> None:
     path_str = str(path)
     if any(ord(ch) > 127 for ch in path_str):
-        raise ValueError(f"Graphviz image paths must be ASCII-only; got non-ASCII path: {path_str}")
+        raise ValueError(
+            f"Graphviz image paths must be ASCII-only; got non-ASCII path: {path_str}"
+        )
 
 
 def _write_cached_image(data: bytes, suffix: str) -> str:
@@ -109,7 +113,9 @@ def _download_remote_image(url: str) -> tuple[str | None, str | None]:
         request = Request(url, headers={"User-Agent": "CodeFlow/0.1 image visualizer"})  # noqa: S310
         with urlopen(request, timeout=5) as resp:  # noqa: S310
             data = resp.read()
-            content_type = resp.headers.get("Content-Type", "").split(";", 1)[0].strip().lower()
+            content_type = (
+                resp.headers.get("Content-Type", "").split(";", 1)[0].strip().lower()
+            )
     except Exception as exc:
         return None, f"{type(exc).__name__}: {exc}"
     suffix = _remote_url_suffix(url)
@@ -243,7 +249,12 @@ def _detect_image_source(value: Any, *, strict: bool = False) -> str | None:  # 
 def _image_html(src: str) -> str:
     return html_single_cell_table(
         html_img(src, SCALE="true"),
-        table_attrs={"border": "0", "cellborder": "0", "cellspacing": "0", "cellpadding": "0"},
+        table_attrs={
+            "border": "0",
+            "cellborder": "0",
+            "cellspacing": "0",
+            "cellpadding": "0",
+        },
     )
 
 
@@ -257,7 +268,11 @@ def _render_dot_to_image(dot_source: str, fmt: str = "png") -> str | None:
         src = Source(dot_source)
         src.format = fmt_normalized
         base = _IMAGE_CACHE_DIR / f"inline_{uuid4().hex}"
-        rendered = Path(src.render(filename=base.name, directory=str(_IMAGE_CACHE_DIR), cleanup=True))
+        rendered = Path(
+            src.render(
+                filename=base.name, directory=str(_IMAGE_CACHE_DIR), cleanup=True
+            )
+        )
         return str(rendered.with_suffix(f".{fmt_normalized}"))
     except Exception:
         return None

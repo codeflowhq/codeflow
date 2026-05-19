@@ -6,7 +6,10 @@ from typing import Any
 
 def _try_networkx_edges_nodes(
     value: Any,
-) -> tuple[list[tuple[Any, dict[Any, Any]]], list[tuple[Any, Any, dict[Any, Any]]], bool] | None:
+) -> (
+    tuple[list[tuple[Any, dict[Any, Any]]], list[tuple[Any, Any, dict[Any, Any]]], bool]
+    | None
+):
     try:
         import networkx as nx  # type: ignore
     except Exception:
@@ -19,7 +22,11 @@ def _try_networkx_edges_nodes(
     return None
 
 
-def _networkx_snapshot(value: Any, *, directed: bool) -> tuple[list[tuple[Any, dict[Any, Any]]], list[tuple[Any, Any, dict[Any, Any]]], bool]:
+def _networkx_snapshot(
+    value: Any, *, directed: bool
+) -> tuple[
+    list[tuple[Any, dict[Any, Any]]], list[tuple[Any, Any, dict[Any, Any]]], bool
+]:
     nodes = [(node, dict(data)) for (node, data) in value.nodes(data=True)]
     edges = [(src, dst, dict(data)) for (src, dst, data) in value.edges(data=True)]
     return nodes, edges, directed
@@ -35,7 +42,9 @@ def _looks_like_graph_mapping(value: Any) -> bool:
     if isinstance(nodes, list):
         return True
     for entry in edges:
-        if isinstance(entry, Mapping) and any(key in entry for key in ("source", "target", "from", "to", "src", "dst")):
+        if isinstance(entry, Mapping) and any(
+            key in entry for key in ("source", "target", "from", "to", "src", "dst")
+        ):
             return True
         if isinstance(entry, (tuple, list)) and len(entry) >= 2:
             return True

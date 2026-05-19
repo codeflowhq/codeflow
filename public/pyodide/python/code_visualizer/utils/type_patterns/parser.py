@@ -50,11 +50,13 @@ class _TypePatternParser:
     def _parse_identifier(self) -> str:
         self._skip_ws()
         start = self.pos
-        while self.pos < self.length and (self.text[self.pos].isalnum() or self.text[self.pos] in {"_", "."}):
+        while self.pos < self.length and (
+            self.text[self.pos].isalnum() or self.text[self.pos] in {"_", "."}
+        ):
             self.pos += 1
         if start == self.pos:
             raise ValueError(f"expected identifier at position {self.pos}")
-        return self.text[start:self.pos].lower()
+        return self.text[start : self.pos].lower()
 
     def _skip_ws(self) -> None:
         while self.pos < self.length and self.text[self.pos].isspace():

@@ -11,7 +11,9 @@ def _extract_node_value(value: Any) -> Any:
     return value
 
 
-def _collect_linked_list_labels(value: Any, max_nodes: int) -> tuple[list[Any], bool] | None:
+def _collect_linked_list_labels(
+    value: Any, max_nodes: int
+) -> tuple[list[Any], bool] | None:
     if value is None:
         return [], False
     if not hasattr(value, "next"):
@@ -54,7 +56,9 @@ def _looks_like_hash_table(value: Any) -> bool:
                 saw_empty = True
                 continue
             has_pointer = any(hasattr(entry, "next") for entry in bucket)
-            has_pairs = any(isinstance(entry, (tuple, list)) and len(entry) == 2 for entry in bucket)
+            has_pairs = any(
+                isinstance(entry, (tuple, list)) and len(entry) == 2 for entry in bucket
+            )
             if has_pointer or has_pairs:
                 saw_bucket = True
     return saw_bucket and saw_empty

@@ -27,7 +27,8 @@ def _require_browser_dependencies():
 
 _require_browser_dependencies()
 
-from code_visualizer import ViewKind, default_visualizer_config, visualize_algorithm_manifest_payload
+from code_visualizer import visualize_algorithm
+from code_visualizer.shared import ViewKind, default_visualizer_config
 
 
 def _resolve_converter(spec: str):
@@ -93,10 +94,12 @@ def run_visualization(payload_json: str):
         if depth is not None:
             config.recursion_depth_map[variable_name] = depth
 
-    result = visualize_algorithm_manifest_payload(
+    result = visualize_algorithm(
         payload["snippet"],
         watch_variables=payload.get("watch"),
         config=config,
         max_steps=step_limit,
+        output="manifest",
+        payload=True,
     )
     return json.dumps(result)

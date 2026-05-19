@@ -1,0 +1,20 @@
+.config-page-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.config-page-grid-wide {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.compact-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 16px;
+}
+
+.variable-card-large .ant-card-body {
+  min-height: 180px;
+}
+

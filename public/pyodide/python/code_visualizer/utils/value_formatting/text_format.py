@@ -3,7 +3,7 @@ from __future__ import annotations
 from html import escape as html_escape
 from typing import Any
 
-from ...rendering.theme import TEXT_PRIMARY, TEXT_SECONDARY
+from ...renderers.shared.theme import TEXT_PRIMARY, TEXT_SECONDARY
 
 
 def table_cell_text(value: Any) -> str:

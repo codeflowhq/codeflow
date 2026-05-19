@@ -256,6 +256,51 @@ future changes:
 - Execution step limits must be applied at the tracing/runtime boundary first.
   Do not rely only on post-render trimming when a limit is meant to change the
   run itself.
+- Keep the header compact. Use it for brand and top-level destinations only; do
+  not turn it into a second toolbar.
+- App shell code belongs under `src/app/`. Do not leave page routing or shell
+  orchestration in root-level files once a dedicated shell exists.
+- Feature entry pages belong inside their feature directories rather than under
+  `src/components/`.
+- Feature-local panels, tests, and hooks belong inside their feature
+  directories. Do not keep editor/watch/visualization internals under
+  root-level `src/components/` or `src/hooks/` once a feature boundary is
+  established.
+- Workspace-level context, provider, and state composition belong under
+  `features/workspace/`, not under a narrower feature such as
+  `features/visualization/`.
+- Python/Pyodide browser boundary code belongs under `src/runtime/`. Do not
+  keep runtime bridges, runtime config builders, or runtime error mapping under
+  generic `lib/` or `shared/errors/`.
+- Pure cross-feature utilities belong under `src/shared/lib/`, not a root-level
+  `src/lib/`.
+- Feature-specific hooks should move into their owning feature directories once
+  the feature boundary exists. Keep root-level `src/hooks/` only for hooks that
+  have not yet been assigned to a stable feature or shared boundary.
+- Project-specific actions such as save, load, share, and settings belong in
+  the workspace page header, close to the editor/visualization workflow.
+- Keep the variables surface visible in the main workspace. Use one add-entry
+  point (for example a small add menu) to branch into identifier picking or
+  advanced expressions instead of duplicating those controls across the page.
+- When advanced expression entry exists in the editor surface, do not duplicate
+  the same input again inside the variables panel. The variables panel should
+  focus on watched-variable cards and actions.
+- Watched-variable configuration should keep a sidebar-style variable switcher
+  inside the modal so users can move between watched variables without closing
+  settings.
+- Save-to-collection flows should default to the active project name. Project
+  settings travel with the project and should be persisted together with code,
+  watch state, and rendered visuals.
+- Advanced watch expressions must validate against variables that actually exist
+  in the current source. Do not silently accept roots that the user cannot run.
+- If the workspace offers multiple layout modes, label them by interaction
+  difference (for example stacked panels vs floating windows), not by vague
+  internal terms alone.
+- Settings pages should expose a clear breadcrumb or clickable project name so
+  users can return to the main workspace without relying on hidden navigation.
+- Saved collections should surface a human-readable preview summary when
+  rendered visuals exist; do not collapse them back into raw tables unless a
+  dense admin workflow explicitly requires it.
 
 - All user-visible failures must either render an inline friendly error state or route through the app-level error owner; do not leave promise rejections or render crashes unhandled.
 - New browser-side async flows should register one clear escalation path for unexpected errors (for example: local friendly state first, then app-level modal fallback).

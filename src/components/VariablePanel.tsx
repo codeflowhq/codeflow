@@ -2,11 +2,11 @@ import { HolderOutlined, SettingOutlined } from "@ant-design/icons";
 import { Button, Card, Empty, Space, Tag, Typography } from "antd";
 import { Suspense, lazy, useMemo } from "react";
 
-import { buildTimelineKey, isTimelineStepAtOrBefore } from "../lib/timelineKeys";
+import { buildTimelineKey, isTimelineStepAtOrBefore } from "../shared/lib/timeline-keys";
 import type { ManifestEntry, ManifestStep, VariableConfig } from "../shared/types/visualization";
 
-const GraphvizPanel = lazy(() => import("./GraphvizPanel"));
-const SvgPanel = lazy(() => import("./SvgPanel"));
+const GraphvizPanel = lazy(() => import("../features/visualization/renderers/GraphvizPanel"));
+const SvgPanel = lazy(() => import("../features/visualization/renderers/SvgPanel"));
 
 const { Text } = Typography;
 
