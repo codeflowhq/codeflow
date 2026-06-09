@@ -90,7 +90,7 @@ describe("useExportState", () => {
       await result.current.handleExport();
     });
 
-    expect(createObjectURL).toHaveBeenCalledTimes(1);
+    expect(createObjectURL).toHaveBeenCalledTimes(2);
     expect(anchorClick).toHaveBeenCalledTimes(1);
     expect(fileMock).toHaveBeenCalledTimes(1);
     expect(generateAsyncMock).toHaveBeenCalledTimes(1);
