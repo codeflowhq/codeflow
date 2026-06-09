@@ -13,6 +13,8 @@ from ...renderers.shared.theme import (
     BORDER_FOCUS,
     SUBTITLE_FONT_SIZE,
     TEXT_MUTED,
+    blend_hex_colors,
+    normalize_hex_color,
 )
 from ...shared.models import EdgeKind, NodeKind, VisualEdge, VisualNode
 from ...utils.value_formatting import estimate_visual_height, estimate_visual_width
@@ -99,6 +101,7 @@ def build_array_view_node_cells(
         raise TypeError("array_cells_node view expects a list-like input")
 
     graph = runtime.graph
+    accent_color = normalize_hex_color(runtime.accent_color)
     init_graph_attrs(
         graph,
         rankdir="TB",
@@ -161,8 +164,18 @@ def build_array_view_node_cells(
         item = array[idx]
         slot_name = f"{name}[{idx}]"
         is_focused = focus_idx is not None and focus_idx == idx
-        value_fill = BG_FOCUS_SOFT if is_focused else BG_SURFACE
-        border_color = BORDER_FOCUS if is_focused else BORDER_DEFAULT
+        if accent_color is not None:
+            focused_fill = blend_hex_colors(accent_color, BG_SURFACE, 0.16)
+            resting_fill = blend_hex_colors(accent_color, BG_SURFACE, 0.06)
+            focused_border = accent_color
+            resting_border = blend_hex_colors(accent_color, BORDER_DEFAULT, 0.58)
+        else:
+            focused_fill = BG_FOCUS_SOFT
+            resting_fill = BG_SURFACE
+            focused_border = BORDER_FOCUS
+            resting_border = BORDER_DEFAULT
+        value_fill = focused_fill if is_focused else resting_fill
+        border_color = focused_border if is_focused else resting_border
         penwidth = "1.6" if is_focused else "1.1"
         if _is_scalar_value(item):
             scalar_key = str(item)

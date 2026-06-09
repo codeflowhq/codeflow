@@ -96,7 +96,7 @@ export const useEditorDecorations = ({
     }
 
     const decorations: unknown[] = [];
-    if (selectionEnabled) {
+    if (selectionEnabled || draftHighlightIdentifier) {
       const model = editor.getModel();
       const lineCount = model?.getLineCount() ?? 0;
       if (!model) {
@@ -105,14 +105,18 @@ export const useEditorDecorations = ({
       for (let lineNumber = 1; lineNumber <= lineCount; lineNumber += 1) {
         const line = model.getLineContent(lineNumber);
         for (const identifier of findLockableIdentifiers(line, (value) => isPythonIdentifier(value) && selectableIdentifierSet.has(value))) {
-          const highlightClassName = identifier.word === draftHighlightIdentifier
+          const isDraftMatch = identifier.word === draftHighlightIdentifier;
+          if (!selectionEnabled && !isDraftMatch) {
+            continue;
+          }
+          const highlightClassName = isDraftMatch
             ? "editor-lockable-identifier editor-lockable-identifier-draft"
             : "editor-lockable-identifier";
           decorations.push({
             range: new monaco.Range(lineNumber, identifier.startColumn, lineNumber, identifier.endColumn),
             options: {
               inlineClassName: highlightClassName,
-              hoverMessage: { value: identifier.word === draftHighlightIdentifier ? "Matches the current advanced selection root." : "Click to add this variable to watch." },
+              hoverMessage: { value: isDraftMatch ? "Matches the current advanced selection root." : "Click to add this variable to watch." },
             },
           });
         }

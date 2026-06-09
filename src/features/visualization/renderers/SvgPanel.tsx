@@ -1,7 +1,9 @@
 import { useEffect, useRef } from "react";
+import { createRoot, type Root } from "react-dom/client";
 
 import { buildSvgTransitionDeclaration, SVG_TRANSITION_TIMEOUT_MS, type SvgTransitionStyles } from "../../../shared/lib/svg-transitions";
 import { normalizeGraphRenderError } from "../../../runtime/runtime-errors";
+import ErrorState from "../../../shared/ui/ErrorState";
 
 type AnimatableSvgGroup = SVGGElement & { dataset: DOMStringMap & { animKey?: string } };
 
@@ -59,14 +61,21 @@ const animateElement = (element: SVGGElement, styles: SvgTransitionStyles) => {
 
 type SvgPanelProps = {
   svg: string;
+  onSvgChange?: (svg: string | null) => void;
 };
 
-const SvgPanel = ({ svg }: SvgPanelProps) => {
+const SvgPanel = ({ svg, onSvgChange }: SvgPanelProps) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const onSvgChangeRef = useRef(onSvgChange);
+
+  useEffect(() => {
+    onSvgChangeRef.current = onSvgChange;
+  }, [onSvgChange]);
 
   useEffect(() => {
     const container = containerRef.current;
     if (!container || !svg) {
+      onSvgChangeRef.current?.(null);
       return;
     }
 
@@ -90,8 +99,11 @@ const SvgPanel = ({ svg }: SvgPanelProps) => {
     container.innerHTML = nextSvg.outerHTML;
     const currentSvg = container.querySelector("svg");
     if (!(currentSvg instanceof SVGSVGElement)) {
+      onSvgChangeRef.current?.(null);
       return;
     }
+
+    onSvgChangeRef.current?.(currentSvg.outerHTML);
 
     collectElements(currentSvg).forEach((element) => {
       const newRect = element.getBoundingClientRect();
@@ -119,9 +131,17 @@ const SvgPanel = ({ svg }: SvgPanelProps) => {
       }
     });
     } catch (error) {
-      container.innerHTML = `<div class="panel-loading">${normalizeGraphRenderError(error)}</div>`;
+      container.innerHTML = "";
+      onSvgChangeRef.current?.(null);
+      const root: Root = createRoot(container);
+      root.render(<ErrorState title="SVG render failed" message={normalizeGraphRenderError(error)} />);
+      return () => root.unmount();
     }
   }, [svg]);
+
+  useEffect(() => () => {
+    onSvgChangeRef.current?.(null);
+  }, []);
 
   return <div className="svg-panel" ref={containerRef} />;
 };

@@ -29,7 +29,7 @@ export const buildVisualizationRuntimeConfig = ({
       {
         view_kind: config.viewKind,
         ...(config.depth != null ? { depth: config.depth } : {}),
-        view_options: config.viewOptions,
+        view_options: { ...config.viewOptions, barColor: config.viewOptions.color },
       },
     ]),
   ),

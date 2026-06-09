@@ -93,6 +93,10 @@ def run_visualization(payload_json: str):
         depth = variable_config.get("depth")
         if depth is not None:
             config.recursion_depth_map[variable_name] = depth
+        view_options = variable_config.get("view_options") or {}
+        accent_color = view_options.get("color") or view_options.get("barColor")
+        if accent_color:
+            config.view_color_map[variable_name] = accent_color
 
     result = visualize_algorithm(
         payload["snippet"],

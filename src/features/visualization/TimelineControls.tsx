@@ -6,23 +6,22 @@ import {
   StepBackwardOutlined,
   StepForwardOutlined,
 } from "@ant-design/icons";
-import { Button, Slider, Space, Tag, Tooltip, Typography } from "antd";
+import { Button, Slider, Space, Tooltip, Typography } from "antd";
 
-import { describeTimelineFrame } from "../../shared/lib/timeline";
 import type { TimelineState } from "../workspace/workspace-types";
+import type { VisualizationLayoutMode } from "../../shared/types/visualization";
 
 const { Text } = Typography;
 
 type TimelineControlsProps = {
   timelineState: TimelineState;
   panelCount: number;
-  layoutMode: "masonry" | "windows";
+  layoutMode: VisualizationLayoutMode;
 };
 
 const TimelineControls = ({ timelineState, panelCount, layoutMode }: TimelineControlsProps) => {
-  const activeLine = timelineState.activeTimelineFrame?.lineNumber;
-  const layoutLabel = layoutMode === "masonry" ? "Masonry" : "Windows";
-  const layoutHint = layoutMode === "masonry" ? "stacked panels" : "floating windows";
+  void panelCount;
+  void layoutMode;
 
   return (
     <>
@@ -33,7 +32,6 @@ const TimelineControls = ({ timelineState, panelCount, layoutMode }: TimelineCon
               ? `Step ${timelineState.activeTimelineIndex + 1} of ${timelineState.timelineFrames.length}`
               : "Execution timeline"}
           </Text>
-          <Text type="secondary">{describeTimelineFrame(timelineState.activeTimelineFrame)}</Text>
         </div>
         <Space wrap>
           <Tooltip title="First step"><Button aria-label="Jump to first timeline step" icon={<StepBackwardOutlined />} onClick={() => timelineState.setActiveTimelineKey(timelineState.timelineFrames[0]?.timelineKey ?? "")} /></Tooltip>
@@ -44,15 +42,7 @@ const TimelineControls = ({ timelineState, panelCount, layoutMode }: TimelineCon
         </Space>
       </div>
 
-      <div className="timeline-hud">
-        <Tag color="blue">{panelCount} panel(s)</Tag>
-        <Tag color="geekblue">layout: {layoutLabel}</Tag>
-        <Tag>{layoutHint}</Tag>
-        {activeLine != null ? <Tag color="purple">line {activeLine}</Tag> : <Tag>line —</Tag>}
-      </div>
-
       <div className="timeline-slider-block">
-        <Text type="secondary">{timelineState.activeTimelineFrame ? timelineState.activeTimelineFrame.stepId : "No steps"}</Text>
         <Slider
           min={0}
           max={Math.max(timelineState.timelineFrames.length - 1, 0)}

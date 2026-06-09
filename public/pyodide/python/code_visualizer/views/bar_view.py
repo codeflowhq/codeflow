@@ -18,6 +18,7 @@ from ..renderers.shared.theme import (
     SUBTITLE_FONT_SIZE,
     TEXT_MUTED,
     TEXT_PRIMARY,
+    normalize_hex_color,
 )
 from ..shared.models import EdgeKind, NodeKind, VisualEdge, VisualNode
 from ..utils.value_formatting import stable_svg_id as _stable_svg_id
@@ -101,6 +102,7 @@ def build_bar_view_node_columns(
         numeric.append(float(item))
 
     graph = runtime.graph
+    accent_color = normalize_hex_color(runtime.accent_color)
     init_graph_attrs(
         graph,
         rankdir="TB",
@@ -183,7 +185,11 @@ def build_bar_view_node_columns(
 
         bar_height = max(12, int((abs(numeric_value) / max_abs) * max_height))
         spacer_height = max_height - bar_height
-        fill = FILL_BAR_POSITIVE if numeric_value >= 0 else FILL_BAR_NEGATIVE
+        fill = (
+            accent_color
+            if accent_color is not None
+            else FILL_BAR_POSITIVE if numeric_value >= 0 else FILL_BAR_NEGATIVE
+        )
         value_label = _bar_entry_label(raw)
 
         bar_label = _bar_item_label(

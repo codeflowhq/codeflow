@@ -22,7 +22,7 @@ type VariableConfigState = {
   pendingWatchVariables: string[];
   openVariableConfig: (variableName: string, options?: OpenVariableConfigOptions) => void;
   closeConfigDrawer: () => void;
-  applyVariableConfig: (variableName: string, draft: VariableConfig) => void;
+  applyVariableConfigs: (drafts: Record<string, VariableConfig>) => void;
   markPendingWatchConfig: (variableName: string) => void;
   clearPendingWatchConfig: (variableName: string) => void;
 };
@@ -36,7 +36,12 @@ export const useVariableConfigState = ({ defaultVariableConfig, messageApi }: Us
   const ensureConfig = useCallback((variableName: string) => {
     setVariableConfigs((prev) => ({
       ...prev,
-      [variableName]: prev[variableName] ?? defaultVariableConfig,
+      [variableName]: prev[variableName] ?? {
+        ...defaultVariableConfig,
+        viewOptions: {
+          ...defaultVariableConfig.viewOptions,
+        },
+      },
     }));
   }, [defaultVariableConfig]);
 
@@ -62,25 +67,46 @@ export const useVariableConfigState = ({ defaultVariableConfig, messageApi }: Us
     setPendingWatchVariables((prev) => prev.filter((item) => item !== variableName));
   }, []);
 
-  const applyVariableConfig = useCallback((variableName: string, draft: VariableConfig) => {
-    setVariableConfigs((prev) => ({
-      ...prev,
-      [variableName]: {
-        ...defaultVariableConfig,
-        ...(prev[variableName] ?? {}),
-        ...draft,
-        viewOptions: {
-          ...(prev[variableName]?.viewOptions ?? defaultVariableConfig.viewOptions),
-          ...(draft.viewOptions ?? {}),
-        },
-      },
-    }));
-
-    const wasPending = pendingWatchVariables.includes(variableName);
-    if (wasPending) {
-      setPendingWatchVariables((prev) => prev.filter((item) => item !== variableName));
+  const applyVariableConfigs = useCallback((drafts: Record<string, VariableConfig>) => {
+    const draftEntries = Object.entries(drafts);
+    if (draftEntries.length === 0) {
+      setConfigDrawerOpen(false);
+      return;
     }
-    messageApi?.success(wasPending ? `Added ${variableName} to watch list.` : `Applied config for ${variableName}.`);
+
+    setVariableConfigs((prev) => {
+      const next = { ...prev };
+      for (const [variableName, draft] of draftEntries) {
+        next[variableName] = {
+          ...defaultVariableConfig,
+          ...(prev[variableName] ?? {}),
+          ...draft,
+          viewOptions: {
+            color:
+              draft.viewOptions?.color
+              ?? prev[variableName]?.viewOptions?.color
+              ?? (prev[variableName]?.viewOptions as { barColor?: string } | undefined)?.barColor
+              ?? (draft.viewOptions as { barColor?: string } | undefined)?.barColor
+              ?? defaultVariableConfig.viewOptions.color,
+          },
+        };
+      }
+      return next;
+    });
+
+    const appliedVariables = draftEntries.map(([variableName]) => variableName);
+    const pendingAppliedVariables = appliedVariables.filter((variableName) => pendingWatchVariables.includes(variableName));
+    if (pendingAppliedVariables.length > 0) {
+      setPendingWatchVariables((prev) => prev.filter((item) => !pendingAppliedVariables.includes(item)));
+    }
+
+    if (pendingAppliedVariables.length === appliedVariables.length) {
+      messageApi?.success(`Applied watch settings for ${appliedVariables.length} variable${appliedVariables.length === 1 ? '' : 's'}.`);
+    } else if (pendingAppliedVariables.length > 0) {
+      messageApi?.success(`Applied settings for ${appliedVariables.length} variable${appliedVariables.length === 1 ? '' : 's'} and added ${pendingAppliedVariables.length} to the watch list.`);
+    } else {
+      messageApi?.success(`Applied settings for ${appliedVariables.length} variable${appliedVariables.length === 1 ? '' : 's'}.`);
+    }
     setConfigDrawerOpen(false);
   }, [defaultVariableConfig, messageApi, pendingWatchVariables]);
 
@@ -92,7 +118,7 @@ export const useVariableConfigState = ({ defaultVariableConfig, messageApi }: Us
     pendingWatchVariables,
     openVariableConfig,
     closeConfigDrawer,
-    applyVariableConfig,
+    applyVariableConfigs,
     markPendingWatchConfig,
     clearPendingWatchConfig,
   };

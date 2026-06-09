@@ -71,6 +71,9 @@ def visualize_trace(
         base_override = cfg.view_name_map.get(trace.name)
         if base_override is not None and slot_name not in cfg.view_name_map:
             cfg.view_name_map[slot_name] = base_override
+        accent_color = cfg.view_color_map.get(trace.name)
+        if accent_color is not None and slot_name not in cfg.view_color_map:
+            cfg.view_color_map[slot_name] = accent_color
         focus_path = _focus_path_from_frame_meta(frame.meta)
         if focus_path:
             cfg.focus_path_map[slot_name] = focus_path

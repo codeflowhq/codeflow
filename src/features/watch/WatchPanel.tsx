@@ -1,18 +1,10 @@
 import { useMemo } from "react";
-import type { KeyboardEvent } from "react";
 import { Button, Card, Dropdown, Space, Tag, Typography } from "antd";
 import { CloseOutlined, DownOutlined, SettingOutlined } from "@ant-design/icons";
 
 import type { WatchState } from "../workspace/workspace-types";
 
 const { Text } = Typography;
-
-const handleKeyboardActivate = (event: KeyboardEvent, callback: () => void) => {
-  if (event.key === "Enter" || event.key === " ") {
-    event.preventDefault();
-    callback();
-  }
-};
 
 type WatchPanelProps = {
   watchState: WatchState;
@@ -22,8 +14,7 @@ const WatchPanel = ({ watchState }: WatchPanelProps) => {
   const watchCards = useMemo(() => watchState.watchVariables.map((variable) => ({
     variable,
     pending: watchState.pendingWatchVariables.includes(variable),
-    selected: watchState.selectedVariable === variable,
-  })), [watchState.pendingWatchVariables, watchState.selectedVariable, watchState.watchVariables]);
+  })), [watchState.pendingWatchVariables, watchState.watchVariables]);
 
   return (
     <Card
@@ -55,22 +46,15 @@ const WatchPanel = ({ watchState }: WatchPanelProps) => {
       )}
     >
       <Space orientation="vertical" size={18} style={{ width: "100%" }}>
-        <div className="variables-list-section compact-variables-section">
-          <Text strong>Watch list</Text>
-          <div className="watch-card-grid" style={{ marginTop: 10 }}>
-            {watchCards.length ? watchCards.map(({ variable, pending, selected }) => (
+        <div className="watch-card-grid">
+          {watchCards.length ? watchCards.map(({ variable, pending }) => (
               <div
                 key={variable}
-                className={`watch-card ${selected ? "watch-card-selected" : ""}`}
-                role="button"
-                tabIndex={0}
-                aria-label={`Select watched variable ${variable}`}
-                onClick={() => watchState.setSelectedVariable(variable)}
-                onKeyDown={(event) => handleKeyboardActivate(event, () => watchState.setSelectedVariable(variable))}
+                className="watch-card"
               >
                 <div className="watch-card-main">
                   <Text strong>{variable}</Text>
-                  <Text type="secondary">{pending ? "Needs config" : "Ready"}</Text>
+                  {pending ? <Text type="secondary">Needs config</Text> : null}
                 </div>
                 <Space size={4}>
                   {pending ? <Tag color="orange">pending</Tag> : null}
@@ -98,10 +82,7 @@ const WatchPanel = ({ watchState }: WatchPanelProps) => {
                 </Space>
               </div>
             )) : <Text type="secondary">No variables watched yet.</Text>}
-          </div>
         </div>
-
-        {watchState.selectionLocked ? <Text type="secondary">Picking mode is active. Click identifiers in the code editor to add them here.</Text> : null}
       </Space>
     </Card>
   );

@@ -17,7 +17,14 @@ export const VIEW_KIND_OPTIONS: ViewKind[] = [
   "image",
 ];
 
-export const OUTPUT_FORMAT_OPTIONS = ["dot", "svg", "png", "jpg"].map((value) => ({ label: value, value }));
+export const DEFAULT_TYPE_VIEW_DEFAULTS: GlobalConfig["typeViewDefaults"] = {
+  "list[any]": "array_cells",
+  "tuple[list]": "matrix",
+  "dict[str, any]": "hash_table",
+  linked_list: "linked_list",
+  tree: "tree",
+  graph: "graph",
+};
 
 export const defaultGlobalConfig: GlobalConfig = {
   stepLimit: 12,
@@ -30,14 +37,14 @@ export const defaultGlobalConfig: GlobalConfig = {
   customConverters: "",
   runtimePackages: "",
   runtimeWheels: "",
-  typeViewDefaults: {},
+  typeViewDefaults: DEFAULT_TYPE_VIEW_DEFAULTS,
 };
 
 export const defaultVariableConfig: VariableConfig = {
   viewKind: "auto",
   depth: null,
   viewOptions: {
-    barColor: "#2563eb",
+    color: "#64748b",
   },
 };
 

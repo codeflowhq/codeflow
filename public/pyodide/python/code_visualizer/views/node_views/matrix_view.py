@@ -10,13 +10,14 @@ from ...renderers.shared.theme import (
     BG_ROW_HEADER,
     BG_ROW_HEADER_FOCUS,
     BG_SURFACE,
-    BORDER_CELL_FOCUS,
     BORDER_DEFAULT,
     BORDER_FOCUS,
     BORDER_MUTED,
     BORDER_ROW_HEADER,
     TEXT_INDEX,
     TEXT_WARNING,
+    blend_hex_colors,
+    normalize_hex_color,
 )
 from ...shared.models import EdgeKind, NodeKind, VisualEdge, VisualNode
 from ...utils.value_formatting import format_container_stub as _format_container_stub
@@ -92,6 +93,14 @@ def build_matrix_view_node_cells(  # noqa: C901
         rows.append(list(row))
 
     graph = runtime.graph
+    accent_color = normalize_hex_color(runtime.accent_color)
+    focused_header_fill = blend_hex_colors(accent_color, BG_FOCUS, 0.35) if accent_color else BG_FOCUS
+    resting_header_fill = blend_hex_colors(accent_color, BG_HEADER_MUTED, 0.16) if accent_color else BG_HEADER_MUTED
+    focused_row_fill = blend_hex_colors(accent_color, BG_ROW_HEADER_FOCUS, 0.28) if accent_color else BG_ROW_HEADER_FOCUS
+    resting_row_fill = blend_hex_colors(accent_color, BG_ROW_HEADER, 0.18) if accent_color else BG_ROW_HEADER
+    focused_cell_fill = blend_hex_colors(accent_color, BG_CELL_FOCUS, 0.18) if accent_color else BG_CELL_FOCUS
+    resting_cell_border = blend_hex_colors(accent_color, BORDER_DEFAULT, 0.52) if accent_color else BORDER_DEFAULT
+    focused_border = accent_color if accent_color else BORDER_FOCUS
     init_graph_attrs(
         graph,
         rankdir="TB",
@@ -156,8 +165,8 @@ def build_matrix_view_node_cells(  # noqa: C901
         col_id = safe_dot_token("matrix_col", logical_name, c_idx)
         col_header_ids.append(col_id)
         is_focused_col = focus_coords is not None and focus_coords[1] == c_idx
-        col_fill = BG_FOCUS if is_focused_col else BG_HEADER_MUTED
-        col_border = BORDER_FOCUS if is_focused_col else BORDER_MUTED
+        col_fill = focused_header_fill if is_focused_col else resting_header_fill
+        col_border = focused_border if is_focused_col else blend_hex_colors(accent_color, BORDER_MUTED, 0.58) if accent_color else BORDER_MUTED
         col_label = _single_cell_table(
             html_font(str(c_idx), {"color": TEXT_INDEX, "point-size": 11}),
             width=cell_width,
@@ -199,8 +208,8 @@ def build_matrix_view_node_cells(  # noqa: C901
         row_header_id = safe_dot_token("matrix_row", logical_name, r_idx)
         row_header_ids.append(row_header_id)
         is_focused_row = focus_coords is not None and focus_coords[0] == r_idx
-        row_fill = BG_ROW_HEADER_FOCUS if is_focused_row else BG_ROW_HEADER
-        row_border = BORDER_FOCUS if is_focused_row else BORDER_ROW_HEADER
+        row_fill = focused_row_fill if is_focused_row else resting_row_fill
+        row_border = focused_border if is_focused_row else blend_hex_colors(accent_color, BORDER_ROW_HEADER, 0.58) if accent_color else BORDER_ROW_HEADER
         row_label = _single_cell_table(
             html_font(str(r_idx), {"color": TEXT_WARNING, "point-size": 11}),
             width=row_header_width,
@@ -240,8 +249,8 @@ def build_matrix_view_node_cells(  # noqa: C901
                 if not cell_content:
                     cell_content = _format_container_stub(val)
 
-            cell_fill = BG_CELL_FOCUS if cell_focus else BG_SURFACE
-            cell_border = BORDER_CELL_FOCUS if cell_focus else BORDER_DEFAULT
+            cell_fill = focused_cell_fill if cell_focus else BG_SURFACE
+            cell_border = focused_border if cell_focus else resting_cell_border
             cell_penwidth = "1.6" if cell_focus else "1.0"
             cell_label = html_table(
                 html_row(

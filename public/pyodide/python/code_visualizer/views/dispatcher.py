@@ -43,6 +43,7 @@ def build_graph_view(
     value_coercer: Callable[[Any], Any] | None = None,
     view_resolver: ViewResolver | None = None,
     focus_path: str | None = None,
+    accent_color: str | None = None,
     show_titles: bool = True,
 ) -> tuple[str, VisualGraph]:
     runtime = _create_runtime(
@@ -50,6 +51,7 @@ def build_graph_view(
         value_coercer,
         view_resolver,
         focus_path=focus_path,
+        accent_color=accent_color,
         show_titles=show_titles,
     )
     coerced_value = runtime.coerce(value)
@@ -63,6 +65,7 @@ def _create_runtime(
     view_resolver: ViewResolver | None,
     *,
     focus_path: str | None = None,
+    accent_color: str | None = None,
     show_titles: bool = True,
 ) -> ViewBuildContext:
     return ViewBuildContext(
@@ -71,6 +74,7 @@ def _create_runtime(
         coerce=value_coercer or (lambda x: x),
         resolver=view_resolver,
         focus_path=focus_path,
+        accent_color=accent_color,
         counter=count(1),
         show_titles=show_titles,
     )

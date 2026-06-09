@@ -11,13 +11,11 @@ export const useVisualizationRun = ({
   sourceCode,
   variableConfigs,
   watchVariables,
-  onError,
 }: {
   globalConfig: GlobalConfig;
   sourceCode: string;
   variableConfigs: Record<string, VariableConfig>;
   watchVariables: string[];
-  onError?: (title: string, content: string) => void;
 }) => {
   const [manifest, setManifest] = useState<ManifestEntry[]>([]);
   const [status, setStatus] = useState("idle");
@@ -40,9 +38,9 @@ export const useVisualizationRun = ({
       setManifest([]);
       setStatus("error");
       setStatusMessage(message);
-      onError?.("Visualization failed", message);
+      throw error;
     }
-  }, [globalConfig, onError, sourceCode, variableConfigs, watchVariables]);
+  }, [globalConfig, sourceCode, variableConfigs, watchVariables]);
 
   return { manifest, runVisualization, setManifest, setStatusMessage, status, statusMessage };
 };

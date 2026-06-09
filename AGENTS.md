@@ -305,3 +305,4 @@ future changes:
 - All user-visible failures must either render an inline friendly error state or route through the app-level error owner; do not leave promise rejections or render crashes unhandled.
 - New browser-side async flows should register one clear escalation path for unexpected errors (for example: local friendly state first, then app-level modal fallback).
 - When adding a new runtime, graph, or SVG rendering surface, include explicit error normalization and a visible fallback state.
+- Error boundaries should stay layered: app boundary at `src/components/AppErrorBoundary.tsx`, page boundaries in `src/app/`, feature boundaries around high-risk panels, and renderer-level inline fallbacks inside graph/SVG surfaces.

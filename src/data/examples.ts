@@ -7,9 +7,9 @@ for i in range(len(data)):
             data[j], data[j + 1] = data[j + 1], data[j]
 `;
 
-const barColor = "#2563eb";
+const color = "#64748b";
 const variable = (viewKind: ViewKind, depth: number | null): Record<string, VariableConfig> => ({
-  data: { viewKind, depth, viewOptions: { barColor } },
+  data: { viewKind, depth, viewOptions: { color } },
 });
 
 export const EXAMPLE_LIBRARY: ExampleRecord[] = [
@@ -40,9 +40,9 @@ while queue:
     watchVariables: ["queue", "visited", "node"],
     globalConfig: { outputFormat: "svg" },
     variableConfigs: {
-      queue: { viewKind: "array_cells", depth: 2, viewOptions: { barColor } },
-      visited: { viewKind: "array_cells", depth: 2, viewOptions: { barColor } },
-      node: { viewKind: "auto", depth: null, viewOptions: { barColor } },
+      queue: { viewKind: "array_cells", depth: 2, viewOptions: { color } },
+      visited: { viewKind: "array_cells", depth: 2, viewOptions: { color } },
+      node: { viewKind: "auto", depth: null, viewOptions: { color } },
     },
     tags: ["algorithm", "graph", "queue"],
   },

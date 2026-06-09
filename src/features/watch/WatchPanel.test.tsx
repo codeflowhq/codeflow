@@ -7,6 +7,7 @@ import WatchPanel from "./WatchPanel";
 import type { WatchState } from "../workspace/workspace-types";
 
 const buildWatchState = (overrides: Partial<WatchState> = {}): WatchState => ({
+  advancedSelectionState: { status: "idle", message: "" },
   candidateVariables: ["queue", "visited"],
   selectedVariable: "queue",
   selectionLocked: true,
@@ -30,16 +31,6 @@ afterEach(() => {
 });
 
 describe("WatchPanel", () => {
-  it("selects a watched variable card on keyboard activation", () => {
-    const watchState = buildWatchState();
-    render(<WatchPanel watchState={watchState} />);
-
-    const tag = screen.getByLabelText("Select watched variable queue");
-    fireEvent.keyDown(tag, { key: "Enter" });
-
-    expect(watchState.setSelectedVariable).toHaveBeenCalledWith("queue");
-  });
-
   it("opens config from a watched variable card", () => {
     const watchState = buildWatchState();
     render(<WatchPanel watchState={watchState} />);
@@ -58,13 +49,14 @@ describe("WatchPanel", () => {
     expect(watchState.removeWatchVariable).toHaveBeenCalledWith("queue");
   });
 
-  it("does not show detected variables detail when picking mode is on", () => {
+  it("only shows watched cards and no extra variable browser sections", () => {
     const watchState = buildWatchState({
       selectionLocked: true,
     });
     render(<WatchPanel watchState={watchState} />);
 
-    expect(screen.getByText("Watch list")).toBeTruthy();
+    expect(screen.getByText("queue")).toBeTruthy();
+    expect(screen.queryByText("Watch list")).toBeNull();
     expect(screen.queryByText("Detected variables")).toBeNull();
   });
 });

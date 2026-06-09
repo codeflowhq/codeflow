@@ -33,6 +33,7 @@ def visualize(
     view, configured_view = determine_view(name, original_value, coerced_value, cfg)
     recursion_budget = resolve_recursion_depth(name, original_value, cfg)
     focus_path = cfg.focus_path_map.get(name)
+    accent_color = cfg.view_color_map.get(name)
 
     artifact, handled = render_structured_view(
         view=view,
@@ -45,6 +46,7 @@ def visualize(
         value_coercer=value_coercer,
         view_resolver=resolver,
         focus_path=focus_path,
+        accent_color=accent_color,
         show_titles=cfg.show_titles,
     )
     if artifact is not None:

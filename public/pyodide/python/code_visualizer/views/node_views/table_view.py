@@ -20,6 +20,8 @@ from ...renderers.shared.theme import (
     BORDER_DEFAULT,
     BORDER_FOCUS,
     TEXT_PRIMARY,
+    blend_hex_colors,
+    normalize_hex_color,
 )
 from ...shared.models import EdgeKind, NodeKind, VisualEdge, VisualNode
 from ...utils.value_formatting import estimate_table_column_widths
@@ -132,6 +134,9 @@ def build_table_view_node_rows(
     )
 
     graph = runtime.graph
+    accent_color = normalize_hex_color(runtime.accent_color)
+    header_fill = blend_hex_colors(accent_color, BG_HEADER, 0.22) if accent_color else BG_HEADER
+    header_border = blend_hex_colors(accent_color, BORDER_DEFAULT, 0.62) if accent_color else BORDER_DEFAULT
     init_graph_attrs(
         graph,
         rankdir="TB",
@@ -166,8 +171,8 @@ def build_table_view_node_rows(
         html_font(html_bold_text("Value"), color=TEXT_PRIMARY),
         key_width=key_width,
         value_width=value_width,
-        key_fill=BG_HEADER,
-        value_fill=BG_HEADER,
+        key_fill=header_fill,
+        value_fill=header_fill,
     )
     header_label = _node_frame(header_inner, total_width)
     graph.add_node(
@@ -180,7 +185,7 @@ def build_table_view_node_rows(
                 "rank": "table_header",
                 "node_attrs": {
                     "shape": "plain",
-                    "color": BORDER_DEFAULT,
+                    "color": header_border,
                     "penwidth": "1.0",
                     "width": node_width_inches,
                 },
@@ -214,18 +219,32 @@ def build_table_view_node_rows(
             )
 
         is_focused = focused_key is not None and str(focused_key) == str(key_text)
+        if accent_color is not None:
+            focused_key_fill = blend_hex_colors(accent_color, BG_PANEL, 0.22)
+            focused_value_fill = blend_hex_colors(accent_color, BG_SURFACE, 0.12)
+            resting_key_fill = blend_hex_colors(accent_color, BG_PANEL, 0.10)
+            resting_value_fill = BG_SURFACE
+            focused_border = accent_color
+            resting_border = blend_hex_colors(accent_color, BORDER_DEFAULT, 0.54)
+        else:
+            focused_key_fill = BG_FOCUS
+            focused_value_fill = BG_FOCUS_SOFT
+            resting_key_fill = BG_PANEL
+            resting_value_fill = BG_SURFACE
+            focused_border = BORDER_FOCUS
+            resting_border = BORDER_DEFAULT
         if is_focused:
             key_fill, value_fill, border_color, penwidth = (
-                BG_FOCUS,
-                BG_FOCUS_SOFT,
-                BORDER_FOCUS,
+                focused_key_fill,
+                focused_value_fill,
+                focused_border,
                 "1.8",
             )
         else:
             key_fill, value_fill, border_color, penwidth = (
-                BG_PANEL,
-                BG_SURFACE,
-                BORDER_DEFAULT,
+                resting_key_fill,
+                resting_value_fill,
+                resting_border,
                 "1.0",
             )
 

@@ -55,6 +55,7 @@ def render_structured_artifact(
     value_coercer: Callable[[Any], Any],
     view_resolver: ViewResolver,
     focus_path: str | None = None,
+    accent_color: str | None = None,
     show_titles: bool = True,
 ) -> tuple[Artifact | None, bool]:
     if view not in STRUCTURED_VIEW_KINDS:
@@ -70,6 +71,7 @@ def render_structured_artifact(
             value_coercer=value_coercer,
             view_resolver=view_resolver,
             focus_path=focus_path,
+            accent_color=accent_color,
             show_titles=show_titles,
         )
     except (TypeError, VisualizationImageError):

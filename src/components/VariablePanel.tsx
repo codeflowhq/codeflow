@@ -1,6 +1,6 @@
-import { HolderOutlined, SettingOutlined } from "@ant-design/icons";
-import { Button, Card, Empty, Space, Tag, Typography } from "antd";
-import { Suspense, lazy, useMemo } from "react";
+import { DeleteOutlined, SettingOutlined } from "@ant-design/icons";
+import { Button, Card, Empty, Space, Typography } from "antd";
+import { Suspense, lazy, useEffect, useMemo, useRef } from "react";
 
 import { buildTimelineKey, isTimelineStepAtOrBefore } from "../shared/lib/timeline-keys";
 import type { ManifestEntry, ManifestStep, VariableConfig } from "../shared/types/visualization";
@@ -15,9 +15,48 @@ type VariablePanelProps = {
   panelConfig?: VariableConfig;
   activeTimelineKey: string;
   onOpenConfig: () => void;
+  onRemoveVariable?: () => void;
+  onContentSizeChange?: (size: { width: number; height: number }) => void;
+  onExportSourceChange?: (svg: string | null) => void;
 };
 
-const VariablePanel = ({ entry, panelConfig, activeTimelineKey, onOpenConfig }: VariablePanelProps) => {
+const getSvgContentSize = (svgElement: SVGSVGElement) => {
+  const viewBox = svgElement.viewBox?.baseVal;
+  if (viewBox && viewBox.width > 0 && viewBox.height > 0) {
+    return {
+      width: Math.ceil(viewBox.width),
+      height: Math.ceil(viewBox.height),
+    };
+  }
+
+  try {
+    const box = svgElement.getBBox();
+    if (box.width > 0 && box.height > 0) {
+      return {
+        width: Math.ceil(box.width),
+        height: Math.ceil(box.height),
+      };
+    }
+  } catch {
+    // Some SVGs do not support getBBox before layout; fall back to client rect below.
+  }
+
+  const rect = svgElement.getBoundingClientRect();
+  return {
+    width: Math.ceil(rect.width),
+    height: Math.ceil(rect.height),
+  };
+};
+
+const VariablePanel = ({
+  entry,
+  panelConfig,
+  activeTimelineKey,
+  onOpenConfig,
+  onRemoveVariable,
+  onContentSizeChange,
+  onExportSourceChange,
+}: VariablePanelProps) => {
   const currentStep = useMemo<ManifestStep | undefined>(() => {
     if (!entry.steps.length) {
       return undefined;
@@ -28,54 +67,83 @@ const VariablePanel = ({ entry, panelConfig, activeTimelineKey, onOpenConfig }: 
     }
     return [...entry.steps].reverse().find((step) => isTimelineStepAtOrBefore(step, activeTimelineKey)) ?? entry.steps[0];
   }, [activeTimelineKey, entry.steps]);
+  void panelConfig;
+  const bodyRef = useRef<HTMLDivElement | null>(null);
 
-  const meta = currentStep?.meta ?? {};
-  const configSummary = useMemo(() => {
-    const parts: string[] = [];
-    if (panelConfig?.viewKind && panelConfig.viewKind !== "auto") {
-      parts.push(`view=${panelConfig.viewKind}`);
+  useEffect(() => {
+    const body = bodyRef.current;
+    if (!body || !onContentSizeChange) {
+      return undefined;
     }
-    if (panelConfig?.depth != null) {
-      parts.push(`depth=${panelConfig.depth}`);
+
+    const reportSize = () => {
+      const svgElement = body.querySelector("svg");
+      const svgSize = svgElement instanceof SVGSVGElement ? getSvgContentSize(svgElement) : null;
+      const width = Math.ceil((svgSize?.width ?? body.scrollWidth) + 12);
+      const height = Math.ceil((svgSize?.height ?? body.scrollHeight) + 8);
+      onContentSizeChange({ width, height });
+    };
+
+    reportSize();
+
+    const resizeObserver = new ResizeObserver(reportSize);
+    resizeObserver.observe(body);
+
+    const mutationObserver = new MutationObserver(() => {
+      window.requestAnimationFrame(reportSize);
+    });
+    mutationObserver.observe(body, {
+      attributes: true,
+      childList: true,
+      subtree: true,
+    });
+
+    return () => {
+      resizeObserver.disconnect();
+      mutationObserver.disconnect();
+    };
+  }, [activeTimelineKey, currentStep?.dot, currentStep?.svg, onContentSizeChange]);
+
+  useEffect(() => {
+    if (!currentStep) {
+      onExportSourceChange?.(null);
     }
-    return parts;
-  }, [panelConfig]);
+  }, [currentStep, onExportSourceChange]);
 
   return (
     <Card
+      className="variable-panel-card"
       size="small"
-      title={<Text strong>{entry.variable}</Text>}
+      title={<div className="variable-window-drag-handle variable-window-title-handle"><Text strong>{entry.variable}</Text></div>}
       extra={(
         <Space size={4}>
-          <Button type="text" icon={<HolderOutlined />} className="variable-window-drag-handle" aria-label={`Move ${entry.variable}`} />
+          {onRemoveVariable ? (
+            <Button
+              type="text"
+              icon={<DeleteOutlined />}
+              onClick={onRemoveVariable}
+              aria-label={`Remove ${entry.variable}`}
+            />
+          ) : null}
           <Button type="text" icon={<SettingOutlined />} onClick={onOpenConfig} aria-label={`Configure ${entry.variable}`} />
         </Space>
       )}
-      styles={{ body: { minHeight: 220 } }}
+      styles={{ body: { minHeight: 0, padding: 8 } }}
       style={{ height: "100%" }}
     >
-      <Space orientation="vertical" size={12} style={{ width: "100%" }}>
-        <Space wrap>
-          {meta.line_number ? <Tag color="purple">line {meta.line_number}</Tag> : null}
-          {configSummary.map((item) => (
-            <Tag key={item}>{item}</Tag>
-          ))}
-        </Space>
-
-        <div className="visual-window-body">
+      <div ref={bodyRef} className="visual-window-body">
           {entry.kind === "dot" && currentStep?.dot ? (
             <Suspense fallback={<div className="panel-loading">Loading graph…</div>}>
-              <GraphvizPanel dot={currentStep.dot} debugName={entry.variable} animate />
+              <GraphvizPanel dot={currentStep.dot} debugName={entry.variable} animate onSvgChange={onExportSourceChange} />
             </Suspense>
           ) : null}
           {entry.kind === "svg" && currentStep?.svg ? (
             <Suspense fallback={<div className="panel-loading">Loading svg…</div>}>
-              <SvgPanel svg={currentStep.svg} />
+              <SvgPanel svg={currentStep.svg} onSvgChange={onExportSourceChange} />
             </Suspense>
           ) : null}
           {!currentStep ? <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No frame" /> : null}
-        </div>
-      </Space>
+      </div>
     </Card>
   );
 };

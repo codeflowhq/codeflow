@@ -41,3 +41,40 @@ BODY_FONT_SIZE = 11
 INDEX_FONT_SIZE = 12
 
 TEXT_NULL = "#9ca3af"
+
+
+def normalize_hex_color(value: str | None) -> str | None:
+    if not value:
+        return None
+    candidate = value.strip()
+    if not candidate.startswith("#"):
+        candidate = f"#{candidate}"
+    hex_part = candidate[1:]
+    if len(hex_part) == 3 and all(ch in "0123456789abcdefABCDEF" for ch in hex_part):
+        hex_part = "".join(ch * 2 for ch in hex_part)
+    if len(hex_part) != 6 or any(ch not in "0123456789abcdefABCDEF" for ch in hex_part):
+        return None
+    return f"#{hex_part.lower()}"
+
+
+def blend_hex_colors(color: str, base: str, ratio: float) -> str:
+    normalized_color = normalize_hex_color(color)
+    normalized_base = normalize_hex_color(base)
+    if normalized_color is None or normalized_base is None:
+        return normalized_base or normalized_color or base
+    clamped_ratio = max(0.0, min(1.0, ratio))
+
+    def _channels(hex_color: str) -> tuple[int, int, int]:
+        return (
+            int(hex_color[1:3], 16),
+            int(hex_color[3:5], 16),
+            int(hex_color[5:7], 16),
+        )
+
+    color_channels = _channels(normalized_color)
+    base_channels = _channels(normalized_base)
+    mixed = tuple(
+        round((channel * clamped_ratio) + (base_channel * (1.0 - clamped_ratio)))
+        for channel, base_channel in zip(color_channels, base_channels, strict=True)
+    )
+    return "#" + "".join(f"{channel:02x}" for channel in mixed)

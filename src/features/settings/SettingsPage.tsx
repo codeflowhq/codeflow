@@ -1,11 +1,63 @@
 import { Card, Form, Input, InputNumber, Select, Table, Typography } from "antd";
-import type { Dispatch, SetStateAction } from "react";
 import type { ColumnsType } from "antd/es/table";
+import type { Dispatch, SetStateAction } from "react";
 
 import { buildTypeDefaultRows, updateTypeViewDefault } from "./config-sections";
 import type { GlobalConfig, VariableConfig, ViewKind } from "../../shared/types/visualization";
 
 const { Paragraph, Text } = Typography;
+
+type DetailLevel = "simple" | "balanced" | "deep";
+
+const DETAIL_LEVEL_PRESETS: Record<Exclude<DetailLevel, "custom">, Pick<GlobalConfig, "maxDepth" | "recursionDepthDefault" | "autoRecursionDepthCap">> = {
+  simple: { maxDepth: 1, recursionDepthDefault: 1, autoRecursionDepthCap: 2 },
+  balanced: { maxDepth: 3, recursionDepthDefault: -1, autoRecursionDepthCap: 6 },
+  deep: { maxDepth: 5, recursionDepthDefault: 4, autoRecursionDepthCap: 10 },
+};
+
+const DETAIL_LEVEL_COPY: Record<DetailLevel, { title: string; description: string }> = {
+  simple: {
+    title: "Simple",
+    description: "Keep nested data shallow and compact.",
+  },
+  balanced: {
+    title: "Balanced",
+    description: "Show the usual amount of nested detail.",
+  },
+  deep: {
+    title: "Deep",
+    description: "Expand nested data more aggressively.",
+  },
+};
+
+const CUSTOM_DETAIL_LEVEL_COPY = {
+  title: "Custom",
+  description: "Advanced depth values were imported or adjusted manually.",
+};
+
+const DETAIL_LEVEL_NODES: Record<DetailLevel, number[]> = {
+  simple: [1],
+  balanced: [1, 2, 3],
+  deep: [1, 2, 3, 4, 5],
+};
+
+const getDetailLevel = (config: GlobalConfig): DetailLevel | null => {
+  for (const [level, preset] of Object.entries(DETAIL_LEVEL_PRESETS) as Array<[DetailLevel, (typeof DETAIL_LEVEL_PRESETS)[DetailLevel]]>) {
+    if (
+      config.maxDepth === preset.maxDepth &&
+      config.recursionDepthDefault === preset.recursionDepthDefault &&
+      config.autoRecursionDepthCap === preset.autoRecursionDepthCap
+    ) {
+      return level;
+    }
+  }
+  return null;
+};
+
+const applyDetailLevelPreset = (previous: GlobalConfig, level: DetailLevel): GlobalConfig => ({
+  ...previous,
+  ...DETAIL_LEVEL_PRESETS[level],
+});
 
 const booleanOptions = [
   { label: "Hidden", value: false },
@@ -20,27 +72,22 @@ type TypeDefaultRow = {
 };
 
 type SettingsPageProps = {
-  projectName: string;
-  setProjectName: Dispatch<SetStateAction<string>>;
   globalConfig: GlobalConfig;
   setGlobalConfig: Dispatch<SetStateAction<GlobalConfig>>;
   variableConfigRows: VariableConfigRow[];
   configTableColumns: ColumnsType<VariableConfigRow>;
-  outputFormatOptions: { label: string; value: string }[];
   viewKindOptions: ViewKind[];
 };
 
 const SettingsPage = ({
-  projectName,
-  setProjectName,
   globalConfig,
   setGlobalConfig,
   variableConfigRows,
   configTableColumns,
-  outputFormatOptions,
   viewKindOptions,
 }: SettingsPageProps) => {
   const typeDefaultRows = buildTypeDefaultRows(globalConfig.typeViewDefaults);
+  const detailLevel = getDetailLevel(globalConfig);
 
   const typeDefaultColumns: ColumnsType<TypeDefaultRow> = [
     { title: "Data type", dataIndex: "label", key: "label" },
@@ -61,6 +108,36 @@ const SettingsPage = ({
     },
   ];
 
+  const renderDetailLevelCard = (level: DetailLevel) => (
+    <button
+      key={level}
+      type="button"
+      className={`detail-level-card${detailLevel === level ? " is-active" : ""}`}
+      onClick={() => setGlobalConfig((prev) => applyDetailLevelPreset(prev, level))}
+    >
+      <span className="detail-level-card-title">{DETAIL_LEVEL_COPY[level].title}</span>
+      <span className="detail-level-card-preview" aria-hidden="true">
+        {DETAIL_LEVEL_NODES[level].map((node, index) => (
+          <span key={`${level}-${node}`} className="detail-level-node-group">
+            {index > 0 ? <span className="detail-level-connector" /> : null}
+            <span className="detail-level-node">{node}</span>
+          </span>
+        ))}
+      </span>
+      <span className="detail-level-card-description">{DETAIL_LEVEL_COPY[level].description}</span>
+    </button>
+  );
+
+  const renderCustomDetailLevelCard = () => (
+    <div className="detail-level-card detail-level-card-static is-active" aria-label="Custom detail level">
+      <span className="detail-level-card-title">{CUSTOM_DETAIL_LEVEL_COPY.title}</span>
+      <span className="detail-level-card-preview" aria-hidden="true">
+        <span className="detail-level-node detail-level-node-custom">?</span>
+      </span>
+      <span className="detail-level-card-description">{CUSTOM_DETAIL_LEVEL_COPY.description}</span>
+    </div>
+  );
+
   return (
     <div className="config-page-grid config-page-grid-wide">
       <Card className="surface-card" title="Run limits and default rendering">
@@ -68,20 +145,6 @@ const SettingsPage = ({
           These settings apply before the browser run starts. Use them to control how much execution is traced and how uncategorized values are rendered by default.
         </Paragraph>
         <Form layout="vertical" className="compact-form-grid">
-          <Form.Item label="Project name">
-            <Input
-              value={projectName}
-              placeholder="Untitled project"
-              onChange={(event) => setProjectName(event.target.value)}
-            />
-          </Form.Item>
-          <Form.Item label="Output format">
-            <Select
-              value={globalConfig.outputFormat}
-              options={outputFormatOptions}
-              onChange={(value: GlobalConfig["outputFormat"]) => setGlobalConfig((prev) => ({ ...prev, outputFormat: value }))}
-            />
-          </Form.Item>
           <Form.Item label="Titles">
             <Select
               value={globalConfig.showTitles}
@@ -92,24 +155,26 @@ const SettingsPage = ({
           <Form.Item label="Execution step limit">
             <InputNumber min={1} max={500} value={globalConfig.stepLimit} onChange={(value) => setGlobalConfig((prev) => ({ ...prev, stepLimit: value ?? 12 }))} />
           </Form.Item>
-          <Form.Item label="Nested view depth cap">
-            <InputNumber min={0} max={20} value={globalConfig.maxDepth} onChange={(value) => setGlobalConfig((prev) => ({ ...prev, maxDepth: value ?? 3 }))} />
-          </Form.Item>
-          <Form.Item label="Default recursion depth">
-            <InputNumber min={-1} max={20} value={globalConfig.recursionDepthDefault} onChange={(value) => setGlobalConfig((prev) => ({ ...prev, recursionDepthDefault: value ?? -1 }))} />
-          </Form.Item>
-          <Form.Item label="Automatic depth cap">
-            <InputNumber min={0} max={20} value={globalConfig.autoRecursionDepthCap} onChange={(value) => setGlobalConfig((prev) => ({ ...prev, autoRecursionDepthCap: value ?? 6 }))} />
-          </Form.Item>
-          <Form.Item label="Max visible items per view">
+          <Form.Item label="Max visible items per variable">
             <InputNumber min={1} max={200} value={globalConfig.maxItemsPerView} onChange={(value) => setGlobalConfig((prev) => ({ ...prev, maxItemsPerView: value ?? 50 }))} />
+          </Form.Item>
+          <Form.Item label="Detail level">
+            <div className="detail-level-grid">
+              {renderDetailLevelCard("simple")}
+              {renderDetailLevelCard("balanced")}
+              {renderDetailLevelCard("deep")}
+              {detailLevel === null ? renderCustomDetailLevelCard() : null}
+            </div>
+            <Text type="secondary" className="detail-level-help">
+              Controls how much nested data is expanded by default.
+            </Text>
           </Form.Item>
         </Form>
       </Card>
 
       <Card className="surface-card" title="Browser packages and converters">
         <Paragraph type="secondary">
-          Use this section only when the browser runtime needs extra Python packages. Custom converters accept comma-separated Python callables in the form <Text code>package.module:function_name</Text>.
+          Use this section only when the browser runtime needs extra Python packages. Custom converters accept comma-separated Python callables in the form package.module:function_name.
         </Paragraph>
         <Form layout="vertical">
           <Form.Item label="Custom converters">

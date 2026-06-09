@@ -1,5 +1,6 @@
-import { Suspense, lazy } from "react";
-import { Button, Tag, Typography } from "antd";
+import { LeftOutlined, RightOutlined } from "@ant-design/icons";
+import { Suspense, lazy, useState } from "react";
+import { Button, Typography } from "antd";
 
 import { getCollectionPreviewEntries } from "../collectionPreview";
 import type { ManifestEntry } from "../../../shared/types/visualization";
@@ -11,74 +12,64 @@ const { Text } = Typography;
 
 type CollectionPreviewSurfaceProps = {
   savedManifest?: ManifestEntry[];
-  expanded: boolean;
-  onToggle: () => void;
 };
 
-const CollectionPreviewSurface = ({ savedManifest, expanded, onToggle }: CollectionPreviewSurfaceProps) => {
+const CollectionPreviewSurface = ({ savedManifest }: CollectionPreviewSurfaceProps) => {
   const previewEntries = getCollectionPreviewEntries(savedManifest);
+  const [activeIndex, setActiveIndex] = useState(0);
 
   if (!previewEntries.length) {
     return (
       <div className="collection-preview-card collection-preview-empty">
-        <Text strong>Preview</Text>
         <Text type="secondary">No visualization was saved with this project yet.</Text>
       </div>
     );
   }
 
+  const activeEntry = previewEntries[activeIndex] ?? previewEntries[0];
+  const canGoPrevious = activeIndex > 0;
+  const canGoNext = activeIndex < previewEntries.length - 1;
+
   return (
     <div className="collection-preview-card">
-      <div className="collection-preview-head">
-        <div>
-          <Text strong>Preview</Text>
-          <div><Text type="secondary">{savedManifest?.length ?? 0} panel(s)</Text></div>
-        </div>
-        <Button size="small" onClick={onToggle}>
-          {expanded ? "Hide preview" : "Show preview"}
-        </Button>
-      </div>
-      {expanded ? (
-        <div className="collection-preview-grid">
-          {previewEntries.map((entry) => (
-            <div key={entry.variable} className="collection-preview-panel">
-              <div className="collection-preview-panel-head">
-                <Text strong>{entry.variable}</Text>
-                <Tag>{entry.kind}</Tag>
-              </div>
-              <div className="collection-preview-panel-body">
-                {entry.kind === "svg" && entry.previewStep?.svg ? (
-                  <Suspense fallback={<div className="collection-preview-thumbnail collection-preview-thumbnail-placeholder"><Text type="secondary">Loading preview…</Text></div>}>
-                    <div className="collection-preview-thumbnail" aria-label={`${entry.variable} preview`}>
-                      <SvgPanel svg={entry.previewStep.svg} />
-                    </div>
-                  </Suspense>
-                ) : null}
-                {entry.kind === "dot" && entry.previewStep?.dot ? (
-                  <Suspense fallback={<div className="collection-preview-thumbnail collection-preview-thumbnail-placeholder"><Text type="secondary">Loading preview…</Text></div>}>
-                    <div className="collection-preview-thumbnail" aria-label={`${entry.variable} preview`}>
-                      <GraphvizPanel dot={entry.previewStep.dot} debugName={`collection-preview-${entry.variable}`} animate={false} />
-                    </div>
-                  </Suspense>
-                ) : null}
-                <Text type="secondary">{entry.frameCount} saved frame(s)</Text>
-                <div className="watch-chip-row">
-                  {entry.compatibleViewKinds.slice(0, 2).map((viewKind) => (
-                    <Tag key={`${entry.variable}-${viewKind}`}>{viewKind}</Tag>
-                  ))}
-                </div>
-              </div>
+      <div className="collection-preview-stage">
+        {previewEntries.length > 1 ? (
+          <>
+            <Button
+              className="collection-preview-arrow collection-preview-arrow-left"
+              size="small"
+              shape="circle"
+              icon={<LeftOutlined />}
+              disabled={!canGoPrevious}
+              onClick={() => setActiveIndex((prev) => Math.max(0, prev - 1))}
+              aria-label="Previous preview"
+            />
+            <Button
+              className="collection-preview-arrow collection-preview-arrow-right"
+              size="small"
+              shape="circle"
+              icon={<RightOutlined />}
+              disabled={!canGoNext}
+              onClick={() => setActiveIndex((prev) => Math.min(previewEntries.length - 1, prev + 1))}
+              aria-label="Next preview"
+            />
+          </>
+        ) : null}
+        {activeEntry.kind === "svg" && activeEntry.previewStep?.svg ? (
+          <Suspense fallback={<div className="collection-preview-thumbnail collection-preview-thumbnail-placeholder"><Text type="secondary">Loading preview…</Text></div>}>
+            <div className="collection-preview-thumbnail" aria-label={`${activeEntry.variable} preview`}>
+              <SvgPanel svg={activeEntry.previewStep.svg} />
             </div>
-          ))}
-        </div>
-      ) : (
-        <div className="collection-preview-collapsed">
-          {previewEntries.map((entry) => (
-            <Tag key={entry.variable}>{entry.variable}</Tag>
-          ))}
-          <Text type="secondary">Expand to load visual thumbnails.</Text>
-        </div>
-      )}
+          </Suspense>
+        ) : null}
+        {activeEntry.kind === "dot" && activeEntry.previewStep?.dot ? (
+          <Suspense fallback={<div className="collection-preview-thumbnail collection-preview-thumbnail-placeholder"><Text type="secondary">Loading preview…</Text></div>}>
+            <div className="collection-preview-thumbnail" aria-label={`${activeEntry.variable} preview`}>
+              <GraphvizPanel dot={activeEntry.previewStep.dot} debugName={`collection-preview-${activeEntry.variable}`} animate={false} />
+            </div>
+          </Suspense>
+        ) : null}
+      </div>
     </div>
   );
 };

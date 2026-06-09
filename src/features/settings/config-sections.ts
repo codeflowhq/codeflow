@@ -1,4 +1,4 @@
-import { TYPE_VIEW_DEFAULT_ROWS } from "../../configDefaults";
+import { DEFAULT_TYPE_VIEW_DEFAULTS, TYPE_VIEW_DEFAULT_ROWS } from "../../configDefaults";
 import type { GlobalConfig, VariableConfig, ViewKind } from "../../shared/types/visualization";
 
 type VariableConfigRow = VariableConfig & { variable: string };
@@ -24,7 +24,7 @@ export const buildTypeDefaultRows = (
 ): TypeDefaultRow[] => (
   TYPE_VIEW_DEFAULT_ROWS.map((row) => ({
     ...row,
-    viewKind: typeViewDefaults?.[row.key] ?? "auto",
+    viewKind: typeViewDefaults?.[row.key] ?? DEFAULT_TYPE_VIEW_DEFAULTS[row.key] ?? "auto",
   }))
 );
 

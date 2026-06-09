@@ -23,6 +23,49 @@ const statusColor = (status: string) => {
   return "processing";
 };
 
+const statusLabel = (status: string) => {
+  if (status === "ready") {
+    return "Runtime ready";
+  }
+  return status;
+};
+
+const advancedInputStatus = (status: WatchState["advancedSelectionState"]["status"]) => {
+  if (status === "error") {
+    return "error" as const;
+  }
+  if (status === "warning") {
+    return "warning" as const;
+  }
+  return undefined;
+};
+
+const advancedHelperClassName = (status: WatchState["advancedSelectionState"]["status"]) => {
+  if (status === "match") {
+    return "advanced-selection-helper advanced-selection-helper-match";
+  }
+  if (status === "warning") {
+    return "advanced-selection-helper advanced-selection-helper-warning";
+  }
+  if (status === "error") {
+    return "advanced-selection-helper advanced-selection-helper-error";
+  }
+  return "advanced-selection-helper";
+};
+
+const canSubmitAdvancedSelection = (status: WatchState["advancedSelectionState"]["status"]) =>
+  status !== "error" && status !== "warning";
+
+const handleAdvancedSelectionEnter = (
+  status: WatchState["advancedSelectionState"]["status"],
+  submit: () => void,
+) => {
+  if (!canSubmitAdvancedSelection(status)) {
+    return;
+  }
+  submit();
+};
+
 const EditorPanel = ({
   editorState,
   watchState,
@@ -32,7 +75,7 @@ const EditorPanel = ({
   <Card
     className="surface-card surface-card-subtle"
     title="Code"
-    extra={<Tag color={statusColor(editorState.status)}>{editorState.status}</Tag>}
+    extra={<Tag color={statusColor(editorState.status)}>{statusLabel(editorState.status)}</Tag>}
   >
     <Space orientation="vertical" size={12} style={{ width: "100%" }}>
       {watchState.selectionLocked ? (
@@ -47,13 +90,31 @@ const EditorPanel = ({
 
       {watchState.advancedSelectionOpen ? (
         <div className="advanced-selection-bar">
-          <Input
-            value={watchState.watchDraft}
-            placeholder={'data["indomie"]'}
-            onChange={(event) => watchState.setWatchDraft(event.target.value)}
-            onPressEnter={watchState.handleSubmitWatchExpression}
+          <div className="advanced-selection-input-group">
+            <Input
+              className={watchState.advancedSelectionState.status === "match" ? "advanced-selection-input advanced-selection-input-match" : "advanced-selection-input"}
+              status={advancedInputStatus(watchState.advancedSelectionState.status)}
+              value={watchState.watchDraft}
+              placeholder={'data["indomie"]'}
+              onChange={(event) => watchState.setWatchDraft(event.target.value)}
+              onPressEnter={() => handleAdvancedSelectionEnter(
+                watchState.advancedSelectionState.status,
+                watchState.handleSubmitWatchExpression,
+              )}
+            />
+            {watchState.advancedSelectionState.message ? (
+              <Text className={advancedHelperClassName(watchState.advancedSelectionState.status)}>
+                {watchState.advancedSelectionState.message}
+              </Text>
+            ) : null}
+          </div>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={watchState.handleSubmitWatchExpression}
+            aria-label="Add custom watch expression"
+            disabled={!canSubmitAdvancedSelection(watchState.advancedSelectionState.status)}
           />
-          <Button type="primary" icon={<PlusOutlined />} onClick={watchState.handleSubmitWatchExpression} aria-label="Add custom watch expression" />
           <Button danger icon={<CloseOutlined />} onClick={onCloseAdvancedSelection} aria-label="Close advanced selection" />
         </div>
       ) : null}

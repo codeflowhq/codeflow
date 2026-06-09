@@ -2,11 +2,21 @@ import { createContext } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import type { editor } from "monaco-editor";
 
-import type { ManifestEntry, VariableConfig } from "../../shared/types/visualization";
+import type {
+  ManifestEntry,
+  VariableConfig,
+  VisualizationLayoutMode,
+  VisualizationLayoutState,
+  VisualizationWindowLayout,
+} from "../../shared/types/visualization";
 import type { EditorMountHandler } from "../editor/useEditorDecorations";
 import type { TimelineFrame } from "../../shared/lib/timeline";
 
 export type WatchState = {
+  advancedSelectionState: {
+    status: "idle" | "match" | "warning" | "error";
+    message: string;
+  };
   candidateVariables: string[];
   selectedVariable: string | null;
   selectionLocked: boolean;
@@ -50,7 +60,19 @@ export type PageActions = {
   openSettings: () => void;
   openCollections: () => void;
   openSaveModal: () => void;
-  shareProject: () => void;
+  exportProject: () => Promise<void>;
+  shareProject: () => Promise<void>;
+};
+
+export type VisualState = {
+  manifest: ManifestEntry[];
+  exportSources: Record<string, string>;
+  layoutState: VisualizationLayoutState;
+  setLayoutMode: (mode: VisualizationLayoutMode) => void;
+  setMasonryOrder: (order: string[]) => void;
+  setExportSource: (variable: string, svg: string | null) => void;
+  setWindowLayout: (variable: string, layout: VisualizationWindowLayout) => void;
+  setWindowZIndex: (variable: string, zIndex: number) => void;
 };
 
 export type WorkspaceValue = {
@@ -58,7 +80,7 @@ export type WorkspaceValue = {
   pageActions: PageActions;
   timelineState: TimelineState;
   variableConfigs: Record<string, VariableConfig>;
-  visualState: { manifest: ManifestEntry[] };
+  visualState: VisualState;
   watchState: WatchState;
 };
 

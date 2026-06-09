@@ -44,6 +44,7 @@ class VisualizerConfig:
     trace_step_limit_default: int | None = None
     trace_step_limit_map: dict[str, int] = field(default_factory=dict)
     focus_path_map: dict[str, str] = field(default_factory=dict)
+    view_color_map: dict[str, str] = field(default_factory=dict)
 
     def ensure_output_format(self, fmt: str | None) -> str:
         """Clamp requested output formats to the allowed list."""
@@ -82,6 +83,7 @@ class VisualizerConfig:
             converter_pipeline=ConverterPipeline(self.converter_pipeline.converters),
             trace_step_limit_map=dict(self.trace_step_limit_map),
             focus_path_map=dict(self.focus_path_map),
+            view_color_map=dict(self.view_color_map),
         )
 
     def step_limit_for(

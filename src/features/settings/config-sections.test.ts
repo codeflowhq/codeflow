@@ -6,13 +6,13 @@ describe("buildVariableConfigRows", () => {
   it("fills missing variables with the default config", () => {
     const rows = buildVariableConfigRows(
       ["data", "queue"],
-      { data: { viewKind: "bar", depth: 2, viewOptions: { barColor: "#2563eb" } } },
-      { viewKind: "auto", depth: null, viewOptions: { barColor: "#2563eb" } },
+      { data: { viewKind: "bar", depth: 2, viewOptions: { color: "#64748b" } } },
+      { viewKind: "auto", depth: null, viewOptions: { color: "#64748b" } },
     );
 
     expect(rows).toEqual([
-      { variable: "data", viewKind: "bar", depth: 2, viewOptions: { barColor: "#2563eb" } },
-      { variable: "queue", viewKind: "auto", depth: null, viewOptions: { barColor: "#2563eb" } },
+      { variable: "data", viewKind: "bar", depth: 2, viewOptions: { color: "#64748b" } },
+      { variable: "queue", viewKind: "auto", depth: null, viewOptions: { color: "#64748b" } },
     ]);
   });
 });
@@ -26,7 +26,7 @@ describe("buildTypeDefaultRows", () => {
 
     expect(rows.find((row) => row.key === "list[any]")?.viewKind).toBe("array_cells");
     expect(rows.find((row) => row.key === "tree")?.viewKind).toBe("tree");
-    expect(rows.find((row) => row.key === "graph")?.viewKind).toBe("auto");
+    expect(rows.find((row) => row.key === "graph")?.viewKind).toBe("graph");
   });
 });
 

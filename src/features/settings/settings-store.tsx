@@ -5,7 +5,6 @@ import type { ColumnsType } from "antd/es/table";
 import { SettingOutlined } from "@ant-design/icons";
 
 import {
-  OUTPUT_FORMAT_OPTIONS,
   VIEW_KIND_OPTIONS,
   defaultVariableConfig,
 } from "../../configDefaults";
@@ -16,30 +15,31 @@ type VariableConfigRow = VariableConfig & { variable: string };
 
 type LibraryState = {
   activeProjectName: string;
+  activeProjectDescription: string;
+  activeProjectLabels: string[];
   collections: CollectionRecord[];
-  handleLoadCollection: (record: CollectionRecord) => void;
-  handleDeleteCollection: (record: CollectionRecord) => void;
-  handleLoadExample: (example: ExampleRecord) => void;
+  handleLoadCollection: (record: CollectionRecord) => Promise<void>;
+  handleDeleteCollection: (record: CollectionRecord) => Promise<void>;
+  handleLoadExample: (example: ExampleRecord) => Promise<void>;
   setActiveProjectName: Dispatch<SetStateAction<string>>;
+  setActiveProjectDescription: Dispatch<SetStateAction<string>>;
+  setActiveProjectLabels: Dispatch<SetStateAction<string[]>>;
 };
 
 export type ConfigPageProps = {
-  projectName: string;
-  setProjectName: Dispatch<SetStateAction<string>>;
   globalConfig: GlobalConfig;
   setGlobalConfig: Dispatch<SetStateAction<GlobalConfig>>;
   variableConfigRows: VariableConfigRow[];
   configTableColumns: ColumnsType<VariableConfigRow>;
-  outputFormatOptions: { label: string; value: string }[];
   viewKindOptions: ViewKind[];
 };
 
 export type LibraryPageProps = {
   collections: CollectionRecord[];
   examples: ExampleRecord[];
-  onDeleteCollection: (record: CollectionRecord) => void;
-  onLoadCollection: (record: CollectionRecord) => void;
-  onLoadExample: (example: ExampleRecord) => void;
+  onDeleteCollection: (record: CollectionRecord) => Promise<void>;
+  onLoadCollection: (record: CollectionRecord) => Promise<void>;
+  onLoadExample: (example: ExampleRecord) => Promise<void>;
 };
 
 type UseSettingsStoreOptions = {
@@ -76,7 +76,7 @@ export const useSettingsStore = ({
           <Space wrap>
             <Tag>{record.viewKind}</Tag>
             <Tag>{record.depth == null ? "depth: inherit" : `depth: ${record.depth}`}</Tag>
-            <Tag>{`color: ${record.viewOptions.barColor}`}</Tag>
+            <Tag>{`color: ${record.viewOptions.color}`}</Tag>
           </Space>
         ),
       },
@@ -94,15 +94,12 @@ export const useSettingsStore = ({
   );
 
   const configPageProps = useMemo<ConfigPageProps>(() => ({
-    projectName: libraryState.activeProjectName,
-    setProjectName: libraryState.setActiveProjectName,
     globalConfig,
     setGlobalConfig,
     variableConfigRows,
     configTableColumns,
-    outputFormatOptions: OUTPUT_FORMAT_OPTIONS,
     viewKindOptions: VIEW_KIND_OPTIONS,
-  }), [configTableColumns, globalConfig, libraryState.activeProjectName, libraryState.setActiveProjectName, setGlobalConfig, variableConfigRows]);
+  }), [configTableColumns, globalConfig, setGlobalConfig, variableConfigRows]);
 
   const libraryPageProps = useMemo<LibraryPageProps>(() => ({
     collections: libraryState.collections,

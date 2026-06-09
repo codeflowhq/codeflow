@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { loadGraphvizRuntime } from "../../../shared/lib/graphviz-runtime";
 import { normalizeGraphRenderError } from "../../../runtime/runtime-errors";
+import ErrorState from "../../../shared/ui/ErrorState";
 
 const GRAPHVIZ_DURATION_MS = 300;
 
@@ -15,14 +16,20 @@ type GraphvizPanelProps = {
   dot: string;
   debugName?: string;
   animate?: boolean;
+  onSvgChange?: (svg: string | null) => void;
 };
 
-const GraphvizPanel = ({ dot, debugName, animate = true }: GraphvizPanelProps) => {
+const GraphvizPanel = ({ dot, debugName, animate = true, onSvgChange }: GraphvizPanelProps) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const onSvgChangeRef = useRef(onSvgChange);
   const vizRef = useRef<GraphvizInstance | null>(null);
   const renderQueueRef = useRef<Promise<unknown>>(Promise.resolve());
   const renderSeqRef = useRef(0);
   const [renderError, setRenderError] = useState<string | null>(null);
+
+  useEffect(() => {
+    onSvgChangeRef.current = onSvgChange;
+  }, [onSvgChange]);
 
   useEffect(() => {
     if (!containerRef.current || !dot) {
@@ -51,10 +58,15 @@ const GraphvizPanel = ({ dot, debugName, animate = true }: GraphvizPanelProps) =
           return undefined;
         }
         setRenderError(null);
-        return Promise.resolve(vizRef.current.renderDot(dot));
+        return Promise.resolve(vizRef.current.renderDot(dot)).then((value) => {
+          const svg = containerRef.current?.querySelector("svg");
+          onSvgChangeRef.current?.(svg instanceof SVGSVGElement ? svg.outerHTML : null);
+          return value;
+        });
       })
       .catch((error: unknown) => {
         const nextError = error instanceof Error ? error : new Error(String(error ?? "Graph render failed"));
+        onSvgChangeRef.current?.(null);
         setRenderError(normalizeGraphRenderError(nextError));
       });
 
@@ -67,10 +79,11 @@ const GraphvizPanel = ({ dot, debugName, animate = true }: GraphvizPanelProps) =
     renderSeqRef.current += 1;
     renderQueueRef.current = Promise.resolve();
     vizRef.current = null;
+    onSvgChangeRef.current?.(null);
   }, []);
 
   if (renderError) {
-    return <div className="panel-loading">{renderError}</div>;
+    return <ErrorState title="Graph render failed" message={renderError} />;
   }
 
   return <div className="graphviz-panel" ref={containerRef} />;

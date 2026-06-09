@@ -12,7 +12,7 @@ export type ViewKind =
   | "image";
 
 export type VariableViewOptions = {
-  barColor: string;
+  color: string;
 };
 
 export type VariableConfig = {
@@ -89,6 +89,24 @@ export type RawManifestPayload = {
   manifest?: RawManifestEntry[];
 };
 
+export type VisualizationLayoutMode = "masonry" | "windows";
+
+export type VisualizationWindowLayout = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
+export type VisualizationLayoutState = {
+  mode: VisualizationLayoutMode;
+  masonryOrder: string[];
+  windows: {
+    layouts: Record<string, VisualizationWindowLayout>;
+    zIndices: Record<string, number>;
+  };
+};
+
 export type RuntimeVisualizationConfig = {
   step_limit: number;
   output_format: "dot" | "svg" | "png" | "jpg";
@@ -104,7 +122,7 @@ export type RuntimeVisualizationConfig = {
   variable_configs: Record<string, {
     view_kind: ViewKind | "auto";
     depth?: number;
-    view_options: VariableViewOptions;
+    view_options: VariableViewOptions & { barColor?: string };
   }>;
 };
 
@@ -114,12 +132,15 @@ export type VizMenuKey = "main" | "config";
 export type CollectionRecord = {
   id: string;
   name: string;
+  description?: string;
+  labels?: string[];
   savedAt: string;
   sourceCode: string;
   watchVariables: string[];
   globalConfig: GlobalConfig;
   variableConfigs: Record<string, VariableConfig>;
   savedManifest?: ManifestEntry[];
+  layoutState?: VisualizationLayoutState;
 };
 
 export type ExampleRecord = {

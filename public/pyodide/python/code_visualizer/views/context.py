@@ -18,6 +18,7 @@ class ViewBuildContext:
     coerce: ValueCoercer
     resolver: ViewResolver | None
     focus_path: str | None
+    accent_color: str | None
     counter: Iterator[int]
     show_titles: bool
 

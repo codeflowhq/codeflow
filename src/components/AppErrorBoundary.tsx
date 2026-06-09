@@ -1,8 +1,8 @@
-import { Alert } from "antd";
 import { Component } from "react";
 import type { ReactNode } from "react";
 
 import { normalizeUnexpectedAppError } from "../runtime/runtime-errors";
+import ErrorState from "../shared/ui/ErrorState";
 
 type AppErrorBoundaryProps = {
   children: ReactNode;
@@ -27,7 +27,7 @@ export class AppErrorBoundary extends Component<AppErrorBoundaryProps, AppErrorB
 
   render() {
     if (this.state.message) {
-      return <Alert type="error" showIcon message="Application error" description={this.state.message} />;
+      return <ErrorState title="Application error" message={this.state.message} actionLabel="Reload page" onAction={() => window.location.reload()} />;
     }
     return this.props.children;
   }

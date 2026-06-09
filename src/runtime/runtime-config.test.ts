@@ -41,7 +41,10 @@ describe("buildVisualizationRuntimeConfig", () => {
     });
     expect(config.variable_configs.item).toEqual({
       view_kind: "auto",
-      view_options: defaultVariableConfig.viewOptions,
+      view_options: {
+        ...defaultVariableConfig.viewOptions,
+        barColor: defaultVariableConfig.viewOptions.color,
+      },
     });
   });
 });
