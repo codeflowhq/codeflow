@@ -5,14 +5,18 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useExportState } from "./useExportState";
 
-const fileMock = vi.fn();
-const generateAsyncMock = vi.fn(async () => new Blob(["zip"]));
+const { fileMock, generateAsyncMock } = vi.hoisted(() => ({
+  fileMock: vi.fn(),
+  generateAsyncMock: vi.fn(async () => new Blob(["zip"])),
+}));
 
 vi.mock("jszip", () => ({
-  default: vi.fn().mockImplementation(() => ({
-    file: fileMock,
-    generateAsync: generateAsyncMock,
-  })),
+  default: vi.fn().mockImplementation(function () {
+    return {
+      file: fileMock,
+      generateAsync: generateAsyncMock,
+    };
+  }),
 }));
 
 const exportSources = {
@@ -37,26 +41,31 @@ describe("useExportState", () => {
       createObjectURL,
       revokeObjectURL,
     });
-    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(anchorClick);
-    vi.stubGlobal("Image", class {
-      onload: null | (() => void) = null;
-      onerror: null | (() => void) = null;
-      naturalWidth = 10;
-      naturalHeight = 10;
-      width = 10;
-      height = 10;
 
-      set src(_value: string) {
-        queueMicrotask(() => {
-          this.onload?.();
-        });
-      }
-    });
-    HTMLCanvasElement.prototype.getContext = (
-      vi.fn(() => ({
-        drawImage: vi.fn(),
-      })) as unknown as typeof HTMLCanvasElement.prototype.getContext
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(anchorClick);
+
+    vi.stubGlobal(
+      "Image",
+      class {
+        onload: null | (() => void) = null;
+        onerror: null | (() => void) = null;
+        naturalWidth = 10;
+        naturalHeight = 10;
+        width = 10;
+        height = 10;
+
+        set src(_value: string) {
+          queueMicrotask(() => {
+            this.onload?.();
+          });
+        }
+      },
     );
+
+    HTMLCanvasElement.prototype.getContext = vi.fn(() => ({
+      drawImage: vi.fn(),
+    })) as unknown as typeof HTMLCanvasElement.prototype.getContext;
+
     HTMLCanvasElement.prototype.toBlob = vi.fn((callback) => {
       callback?.(new Blob(["png"]));
     }) as typeof HTMLCanvasElement.prototype.toBlob;
@@ -68,12 +77,14 @@ describe("useExportState", () => {
   });
 
   it("exports current svg panels and reports success", async () => {
-    const { result } = renderHook(() => useExportState({
-      activeTimelineKey: "frame-1",
-      exportSources,
-      messageApi,
-      projectName: "Demo Project",
-    }));
+    const { result } = renderHook(() =>
+      useExportState({
+        activeTimelineKey: "frame-1",
+        exportSources,
+        messageApi,
+        projectName: "Demo Project",
+      }),
+    );
 
     await act(async () => {
       await result.current.handleExport();
@@ -87,14 +98,19 @@ describe("useExportState", () => {
   });
 
   it("throws a clear error when no panels are available", async () => {
-    const { result } = renderHook(() => useExportState({
-      activeTimelineKey: "frame-1",
-      exportSources: {},
-      messageApi,
-      projectName: "Demo Project",
-    }));
+    const { result } = renderHook(() =>
+      useExportState({
+        activeTimelineKey: "frame-1",
+        exportSources: {},
+        messageApi,
+        projectName: "Demo Project",
+      }),
+    );
 
-    await expect(result.current.handleExport()).rejects.toThrow("Nothing exportable is visible right now.");
+    await expect(result.current.handleExport()).rejects.toThrow(
+      "Nothing exportable is visible right now.",
+    );
+
     expect(messageApi.success).not.toHaveBeenCalled();
   });
 });
