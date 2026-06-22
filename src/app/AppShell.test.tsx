@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import type { ReactNode } from "react";
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 
 const modalConfirmMock = vi.fn();
@@ -161,11 +162,11 @@ vi.mock("./routes", () => ({
 }));
 
 vi.mock("../components/AppErrorBoundary", () => ({
-  AppErrorBoundary: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  AppErrorBoundary: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));
 
 vi.mock("../shared/ui/FeatureBoundary", () => ({
-  default: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  default: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));
 
 vi.mock("../features/watch/components/VariableConfigDrawer", () => ({

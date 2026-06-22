@@ -35,13 +35,6 @@ export const useTimelinePlayback = (manifest: ManifestEntry[]) => {
   const activeTimelineFrame = timelineFrames[activeTimelineIndex] as TimelineFrame | undefined;
 
   useEffect(() => {
-    if (!isPlaying || timelineFrames.length === 0 || requestedTimelineKey) {
-      return;
-    }
-    setActiveTimelineKey(timelineFrames[0]?.timelineKey ?? "");
-  }, [isPlaying, requestedTimelineKey, timelineFrames]);
-
-  useEffect(() => {
     if (!isPlaying || timelineFrames.length === 0) {
       return undefined;
     }

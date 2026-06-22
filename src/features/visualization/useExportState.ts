@@ -69,7 +69,8 @@ const getCurrentExportSources = (exportSources: Record<string, string>) =>
     .map(([variable, svg]) => ({ variable, svg }));
 
 export const useExportState = ({ exportSources, messageApi, projectName }: UseExportStateOptions) => {
-  const handleExport = useCallback(async (_scope: ExportScope = "current") => {
+  const handleExport = useCallback(async (scope: ExportScope = "current") => {
+    void scope;
     const exportable = getCurrentExportSources(exportSources);
 
     if (!exportable.length) {

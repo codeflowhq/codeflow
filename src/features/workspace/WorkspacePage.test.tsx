@@ -40,7 +40,7 @@ const workspaceValue: WorkspaceValue = {
     openSettings: vi.fn(),
     openCollections: vi.fn(),
     openSaveModal: vi.fn(),
-    exportProject: vi.fn(async (_scope?: "current") => undefined),
+    exportProject: vi.fn(async () => undefined),
     shareProject: vi.fn(async () => undefined),
   },
   timelineState: {
