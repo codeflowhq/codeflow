@@ -20,6 +20,25 @@ def _default_allowed_formats() -> set[str]:
     return {"dot", "svg", "png", "jpg"}
 
 
+def _clamp_int(value: int, minimum: int, maximum: int) -> int:
+    return min(max(int(value), minimum), maximum)
+
+
+def _normalize_output_format_literal(fmt: str | None) -> str | None:
+    if not fmt:
+        return None
+    normalized = fmt.lower()
+    if normalized == "jpeg":
+        return "jpg"
+    return normalized
+
+
+def _normalize_name_view_map(
+    updates: Mapping[str, ViewKind | str],
+) -> dict[str, ViewKind]:
+    return {key: ensure_view_kind(view) for key, view in updates.items()}
+
+
 @dataclass(slots=True)
 class VisualizerConfig:
     """Runtime configuration bundle for all visualization helpers."""
@@ -49,14 +68,66 @@ class VisualizerConfig:
     def ensure_output_format(self, fmt: str | None) -> str:
         """Clamp requested output formats to the allowed list."""
 
-        if not fmt:
+        normalized = _normalize_output_format_literal(fmt)
+        if not normalized:
             return self.output_format
-        normalized = fmt.lower()
-        if normalized == "jpeg":
-            normalized = "jpg"
         if normalized not in self.allowed_output_formats:
             return self.output_format
         return normalized
+
+    def normalized(self) -> VisualizerConfig:
+        """Return a copy with public config values normalized for runtime use."""
+
+        allowed_output_formats = {
+            normalized
+            for fmt in self.allowed_output_formats
+            if isinstance(fmt, str)
+            for normalized in [_normalize_output_format_literal(fmt)]
+            if normalized in _default_allowed_formats()
+        } or _default_allowed_formats()
+        output_format = _normalize_output_format_literal(self.output_format)
+
+        return replace(
+            self,
+            view_map=merge_override_map({}, self.view_map),
+            view_name_map=_normalize_name_view_map(self.view_name_map),
+            view_type_map=_normalize_name_view_map(self.view_type_map),
+            recursion_depth_default=_clamp_int(self.recursion_depth_default, -1, 20),
+            recursion_depth_map={
+                key: _clamp_int(depth, 0, 20)
+                for key, depth in self.recursion_depth_map.items()
+            },
+            auto_recursion_depth_cap=_clamp_int(self.auto_recursion_depth_cap, 1, 20),
+            max_depth=_clamp_int(self.max_depth, 1, 20),
+            max_items_per_view=_clamp_int(self.max_items_per_view, 1, 200),
+            output_format=(
+                output_format
+                if output_format in allowed_output_formats
+                else default_visualizer_config().output_format
+            ),
+            show_titles=bool(self.show_titles),
+            allowed_output_formats=allowed_output_formats,
+            graph_direction="TB" if self.graph_direction == "TB" else "LR",
+            trace_step_limit_default=(
+                None
+                if self.trace_step_limit_default is None
+                else max(0, int(self.trace_step_limit_default))
+            ),
+            trace_step_limit_map={
+                trace_name: max(0, int(limit))
+                for trace_name, limit in self.trace_step_limit_map.items()
+            },
+            focus_path_map={
+                trace_name: str(path)
+                for trace_name, path in self.focus_path_map.items()
+                if path
+            },
+            view_color_map={
+                trace_name: str(color).strip()
+                for trace_name, color in self.view_color_map.items()
+                if str(color).strip()
+            },
+        )
 
     def with_converters(
         self,

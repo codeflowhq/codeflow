@@ -20,7 +20,7 @@ export const VIEW_KIND_OPTIONS: ViewKind[] = [
 export const DEFAULT_TYPE_VIEW_DEFAULTS: GlobalConfig["typeViewDefaults"] = {
   "list[any]": "array_cells",
   "tuple[list]": "matrix",
-  "dict[str, any]": "hash_table",
+  "dict[str, any]": "table",
   linked_list: "linked_list",
   tree: "tree",
   graph: "graph",
@@ -28,11 +28,9 @@ export const DEFAULT_TYPE_VIEW_DEFAULTS: GlobalConfig["typeViewDefaults"] = {
 
 export const defaultGlobalConfig: GlobalConfig = {
   stepLimit: 12,
-  outputFormat: "svg",
   maxDepth: 3,
   maxItemsPerView: 50,
   recursionDepthDefault: -1,
-  autoRecursionDepthCap: 6,
   showTitles: false,
   customConverters: "",
   runtimePackages: "",

@@ -5,6 +5,17 @@ import type { ManifestEntry } from "../../shared/types/visualization";
 
 const TIMELINE_PLAYBACK_INTERVAL_MS = 800;
 
+const resolveTimelineIndex = (
+  timelineFrames: TimelineFrame[],
+  timelineKey: string,
+) => {
+  if (timelineFrames.length === 0) {
+    return -1;
+  }
+  const exactIndex = timelineFrames.findIndex((frame) => frame.timelineKey === timelineKey);
+  return exactIndex >= 0 ? exactIndex : 0;
+};
+
 export const useTimelinePlayback = (manifest: ManifestEntry[]) => {
   const [requestedTimelineKey, setActiveTimelineKey] = useState("");
   const [isPlaying, setIsPlaying] = useState(false);
@@ -14,15 +25,21 @@ export const useTimelinePlayback = (manifest: ManifestEntry[]) => {
     if (timelineFrames.length === 0) {
       return "";
     }
-    return timelineFrames.some((frame) => frame.timelineKey === requestedTimelineKey)
-      ? requestedTimelineKey
-      : timelineFrames[0].timelineKey;
+    const resolvedIndex = resolveTimelineIndex(timelineFrames, requestedTimelineKey);
+    return timelineFrames[resolvedIndex]?.timelineKey ?? "";
   }, [requestedTimelineKey, timelineFrames]);
   const activeTimelineIndex = useMemo(() => {
-    const index = timelineFrames.findIndex((frame) => frame.timelineKey === activeTimelineKey);
+    const index = resolveTimelineIndex(timelineFrames, activeTimelineKey);
     return index >= 0 ? index : 0;
   }, [activeTimelineKey, timelineFrames]);
   const activeTimelineFrame = timelineFrames[activeTimelineIndex] as TimelineFrame | undefined;
+
+  useEffect(() => {
+    if (!isPlaying || timelineFrames.length === 0 || requestedTimelineKey) {
+      return;
+    }
+    setActiveTimelineKey(timelineFrames[0]?.timelineKey ?? "");
+  }, [isPlaying, requestedTimelineKey, timelineFrames]);
 
   useEffect(() => {
     if (!isPlaying || timelineFrames.length === 0) {
@@ -30,8 +47,8 @@ export const useTimelinePlayback = (manifest: ManifestEntry[]) => {
     }
     const timer = window.setInterval(() => {
       setActiveTimelineKey((prev) => {
-        const currentIndex = timelineFrames.findIndex((frame) => frame.timelineKey === prev);
-        if (currentIndex < 0 || currentIndex >= timelineFrames.length - 1) {
+        const currentIndex = resolveTimelineIndex(timelineFrames, prev);
+        if (currentIndex >= timelineFrames.length - 1) {
           setIsPlaying(false);
           return timelineFrames[timelineFrames.length - 1]?.timelineKey ?? "";
         }

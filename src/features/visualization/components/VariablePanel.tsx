@@ -2,11 +2,11 @@ import { DeleteOutlined, SettingOutlined } from "@ant-design/icons";
 import { Button, Card, Empty, Space, Typography } from "antd";
 import { Suspense, lazy, useEffect, useMemo, useRef } from "react";
 
-import { buildTimelineKey, isTimelineStepAtOrBefore } from "../shared/lib/timeline-keys";
-import type { ManifestEntry, ManifestStep, VariableConfig } from "../shared/types/visualization";
+import { buildTimelineKey, isTimelineStepAtOrBefore } from "../../../shared/lib/timeline-keys";
+import type { ManifestEntry, ManifestStep, VariableConfig } from "../../../shared/types/visualization";
 
-const GraphvizPanel = lazy(() => import("../features/visualization/renderers/GraphvizPanel"));
-const SvgPanel = lazy(() => import("../features/visualization/renderers/SvgPanel"));
+const GraphvizPanel = lazy(() => import("../renderers/GraphvizPanel"));
+const SvgPanel = lazy(() => import("../renderers/SvgPanel"));
 
 const { Text } = Typography;
 
@@ -65,7 +65,7 @@ const VariablePanel = ({
     if (exact) {
       return exact;
     }
-    return [...entry.steps].reverse().find((step) => isTimelineStepAtOrBefore(step, activeTimelineKey)) ?? entry.steps[0];
+    return [...entry.steps].reverse().find((step) => isTimelineStepAtOrBefore(step, activeTimelineKey));
   }, [activeTimelineKey, entry.steps]);
   void panelConfig;
   const bodyRef = useRef<HTMLDivElement | null>(null);

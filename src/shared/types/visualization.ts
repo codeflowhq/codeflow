@@ -23,11 +23,9 @@ export type VariableConfig = {
 
 export type GlobalConfig = {
   stepLimit: number;
-  outputFormat: "dot" | "svg" | "png" | "jpg";
   maxDepth: number;
   maxItemsPerView: number;
   recursionDepthDefault: number;
-  autoRecursionDepthCap: number;
   showTitles: boolean;
   customConverters: string;
   runtimePackages: string;

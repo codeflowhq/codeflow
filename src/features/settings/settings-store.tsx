@@ -18,9 +18,11 @@ type LibraryState = {
   activeProjectDescription: string;
   activeProjectLabels: string[];
   collections: CollectionRecord[];
+  hasUnsavedChanges: boolean;
   handleLoadCollection: (record: CollectionRecord) => Promise<void>;
   handleDeleteCollection: (record: CollectionRecord) => Promise<void>;
   handleLoadExample: (example: ExampleRecord) => Promise<void>;
+  handleCreateProject: () => void;
   setActiveProjectName: Dispatch<SetStateAction<string>>;
   setActiveProjectDescription: Dispatch<SetStateAction<string>>;
   setActiveProjectLabels: Dispatch<SetStateAction<string[]>>;

@@ -22,7 +22,7 @@ const SettingsPageHarness = ({ initialConfig = defaultGlobalConfig }: { initialC
   );
 };
 
-describe("SettingsPage detail level", () => {
+describe("SettingsPage depth settings", () => {
   beforeAll(() => {
     Object.defineProperty(window, "matchMedia", {
       writable: true,
@@ -39,31 +39,39 @@ describe("SettingsPage detail level", () => {
     });
   });
 
-  it("applies depth presets from the detail level cards", () => {
+  it("renders two independent depth cards", () => {
     render(<SettingsPageHarness />);
 
-    fireEvent.click(screen.getByRole("button", { name: /Simple.*Keep nested data shallow and compact\./ }));
-    expect(screen.getByText("Controls how much nested data is expanded by default.")).toBeTruthy();
-
-    fireEvent.click(screen.getByRole("button", { name: /Deep.*Expand nested data more aggressively\./ }));
-    expect(
-      screen.getByRole("button", { name: /Deep.*Expand nested data more aggressively\./ }).className.includes("is-active"),
-    ).toBe(true);
+    expect(screen.getAllByText("Structure expansion depth").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Default open depth").length).toBeGreaterThan(0);
+    expect(screen.getByText("Example: variable -> item -> value")).toBeTruthy();
+    expect(screen.getByText("data")).toBeTruthy();
+    expect(screen.queryByText("Auto view depth limit")).toBeNull();
   });
 
-  it("explains when imported settings do not match a preset", () => {
+  it("updates nested structure depth independently", () => {
+    render(<SettingsPageHarness />);
+
+    const nestedDepthInputs = screen.getAllByRole("spinbutton");
+    fireEvent.change(nestedDepthInputs[3], { target: { value: "6" } });
+
+    const values = screen.getAllByRole("spinbutton").map((input) => (input as HTMLInputElement).value);
+    expect(values).toEqual(expect.arrayContaining(["6", "-1"]));
+    expect(values.filter((value) => value === "6").length).toBe(1);
+  });
+
+  it("keeps imported depth values visible without preset mapping", () => {
     render(
       <SettingsPageHarness
         initialConfig={{
           ...defaultGlobalConfig,
           maxDepth: 4,
           recursionDepthDefault: 2,
-          autoRecursionDepthCap: 7,
         }}
       />,
     );
 
-    expect(screen.getByLabelText("Custom detail level")).toBeTruthy();
-    expect(screen.getByText("Advanced depth values were imported or adjusted manually.")).toBeTruthy();
+    expect(screen.getByDisplayValue("4")).toBeTruthy();
+    expect(screen.getByDisplayValue("2")).toBeTruthy();
   });
 });

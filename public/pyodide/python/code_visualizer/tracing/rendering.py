@@ -62,7 +62,11 @@ def visualize_trace(
 ) -> list[Artifact]:
     """Render each trace step via the main visualize() helper."""
 
-    cfg = config.copy() if config is not None else default_visualizer_config()
+    cfg = (
+        config.copy().normalized()
+        if config is not None
+        else default_visualizer_config().normalized()
+    )
     artifacts: list[Artifact] = []
     limit = cfg.step_limit_for(trace.name, override=max_steps)
     selected_steps = trace.frames if limit is None else trace.frames[:limit]
@@ -91,7 +95,11 @@ def visualize_traces(
 ) -> dict[str, list[RenderedTraceFrame]]:
     """Render multiple traces at once while preserving each frame's global step."""
 
-    cfg = config.copy() if config is not None else default_visualizer_config()
+    cfg = (
+        config.copy().normalized()
+        if config is not None
+        else default_visualizer_config().normalized()
+    )
     rendered: dict[str, list[RenderedTraceFrame]] = {}
     for trace in traces:
         limit = cfg.step_limit_for(trace.name, override=max_steps)

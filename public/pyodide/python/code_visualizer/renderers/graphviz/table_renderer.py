@@ -49,7 +49,7 @@ def render_graphviz_table(
         inner_depth = max(0, nested_depth) - 1 if nested_depth > 0 else 0
         for index, (key, value) in enumerate(items[:limit]):
             value_html = _format_nested_value(
-                value, inner_depth, max_items, nested_renderer, f"{title}.{key}"
+                value, inner_depth, max_items, None, f"{title}.{key}"
             )
             rows.append(
                 html_row(

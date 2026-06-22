@@ -7,7 +7,7 @@ from ....utils.value_formatting import (
     estimate_table_column_widths as _estimate_table_column_widths,
 )
 from ....utils.value_formatting import table_cell_text as _table_cell_text
-from ...shared.theme import BG_HEADER
+from ...shared.theme import BG_HEADER_MUTED
 from ..labels import html_cell, html_row, html_table
 
 FormatNestedValue = Callable[[Any, int, int, Any, str], str]
@@ -26,9 +26,17 @@ def dict_html(
     key_width, value_width = _estimate_table_column_widths(items[:limit], max_items)
     rows = [
         html_row(
-            html_cell("<b>Key</b>", width=key_width, bgcolor=BG_HEADER, align="center"),
             html_cell(
-                "<b>Value</b>", width=value_width, bgcolor=BG_HEADER, align="center"
+                "<b>Key</b>",
+                width=key_width,
+                bgcolor=BG_HEADER_MUTED,
+                align="center",
+            ),
+            html_cell(
+                "<b>Value</b>",
+                width=value_width,
+                bgcolor=BG_HEADER_MUTED,
+                align="center",
             ),
         )
     ]

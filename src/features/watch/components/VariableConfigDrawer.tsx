@@ -1,8 +1,8 @@
 import { useMemo, useState } from "react";
 import { Alert, Button, Form, InputNumber, Menu, Modal, Select, Space, Tag, Typography } from "antd";
 
-import type { VariableConfig, ViewKind } from "../shared/types/visualization";
-import { viewSelectionSupportsColor, viewSelectionSupportsDepth } from "../shared/lib/view-capabilities";
+import type { VariableConfig, ViewKind } from "../../../shared/types/visualization";
+import { viewSelectionSupportsColor, viewSelectionSupportsDepth } from "../../../shared/lib/view-capabilities";
 
 const { Paragraph, Text } = Typography;
 const PRESET_VIEW_COLORS = [

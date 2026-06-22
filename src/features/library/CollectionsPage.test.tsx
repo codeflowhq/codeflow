@@ -33,11 +33,9 @@ describe("CollectionsPage", () => {
           watchVariables: ["data"],
           globalConfig: {
             stepLimit: 12,
-            outputFormat: "svg",
             maxDepth: 3,
             maxItemsPerView: 50,
             recursionDepthDefault: -1,
-            autoRecursionDepthCap: 6,
             showTitles: false,
             customConverters: "",
             runtimePackages: "",

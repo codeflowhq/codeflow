@@ -1,6 +1,6 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { editor } from "monaco-editor";
-import { App as AntApp, Button, Layout, Modal, Typography } from "antd";
+import { App as AntApp, Button, Layout, Modal, Space, Typography } from "antd";
 
 import { EXAMPLE_LIBRARY, defaultSnippet } from "../data/examples";
 import {
@@ -19,10 +19,11 @@ import {
 import { useEditorDecorations } from "../features/editor/useEditorDecorations";
 import { useSettingsStore } from "../features/settings/settings-store";
 import { useRuntimeBootstrap } from "../features/workspace/useRuntimeBootstrap";
-import { useShareState } from "../hooks/useShareState";
-import { useExportState } from "../hooks/useExportState";
+import { useShareState } from "../features/workspace/useShareState";
 import { useTimelinePlayback } from "../features/visualization/useTimelinePlayback";
 import { useVariableWatch } from "../features/watch/useVariableWatch";
+import { useExportState } from "../features/visualization/useExportState";
+import type { ExportScope } from "../features/visualization/useExportState";
 import { useVisualizationRun } from "../features/visualization/useVisualizationRun";
 import { useLayoutModeState } from "../features/visualization/layout-mode";
 import { useLibraryStore } from "../features/library/library-store";
@@ -37,8 +38,8 @@ import type { CollectionRecord, ExampleRecord, ViewKind } from "../shared/types/
 import "antd/dist/reset.css";
 import "../App.css";
 
-const VariableConfigDrawer = lazy(() => import("../components/VariableConfigDrawer"));
-const SaveCollectionModal = lazy(() => import("../components/SaveCollectionModal"));
+const VariableConfigDrawer = lazy(() => import("../features/watch/components/VariableConfigDrawer"));
+const SaveCollectionModal = lazy(() => import("../features/library/components/SaveCollectionModal"));
 
 const { Header, Content } = Layout;
 const { Text } = Typography;
@@ -226,7 +227,6 @@ function App() {
   });
 
   const { handleExport } = useExportState({
-    activeTimelineKey: timelineState.activeTimelineKey,
     exportSources,
     messageApi,
     projectName: libraryState.activeProjectName,
@@ -347,8 +347,8 @@ function App() {
     statusMessage,
   }), [editorOptions, handleEditorMount, runtimeReady, sourceCode, status, statusMessage]);
 
-  const handleExportProject = useCallback(async () => {
-    await runAction(() => handleExport(), {
+  const handleExportProject = useCallback(async (scope: ExportScope = "current") => {
+    await runAction(() => handleExport(scope), {
       title: "Export failed",
       normalize: normalizeActionError("Could not export the current visualization."),
     });
@@ -382,6 +382,22 @@ function App() {
     });
   }, [libraryState, runAction]);
 
+  const handleCreateProject = useCallback(() => {
+    if (!libraryState.hasUnsavedChanges) {
+      libraryState.handleCreateProject();
+      return;
+    }
+    modal.confirm({
+      title: "Discard unsaved changes?",
+      content: "The current project has unsaved changes. Start a new project anyway?",
+      centered: true,
+      okText: "Discard and continue",
+      onOk: () => {
+        libraryState.handleCreateProject();
+      },
+    });
+  }, [libraryState, modal]);
+
   const pageActions = useMemo(() => ({
     runVisualization: handleRunVisualization,
     openSettings: navigation.openVisualizationConfig,
@@ -396,7 +412,8 @@ function App() {
     handleDeleteCollection,
     handleLoadCollection,
     handleLoadExample,
-  }), [handleDeleteCollection, handleLoadCollection, handleLoadExample, libraryState]);
+    handleCreateProject,
+  }), [handleCreateProject, handleDeleteCollection, handleLoadCollection, handleLoadExample, libraryState]);
 
   const { configPageProps, libraryPageProps } = useSettingsStore({
     manifestVariables,
@@ -447,9 +464,14 @@ function App() {
             <span className="app-brand-mark">CF</span>
             <span className="app-brand-name">CodeFlow</span>
           </Button>
-          <Button type={navigation.topMenuKey === TOP_MENU_LIBRARY ? "primary" : "default"} onClick={navigation.openLibrary}>
-            Collections
-          </Button>
+          <Space size={12}>
+            <Button onClick={handleCreateProject}>
+              New project
+            </Button>
+            <Button type={navigation.topMenuKey === TOP_MENU_LIBRARY ? "primary" : "default"} onClick={navigation.openLibrary}>
+              Collections
+            </Button>
+          </Space>
         </Header>
 
         <Content className="app-content compact-app-content">

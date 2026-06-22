@@ -116,8 +116,6 @@ def _two_column_row(
 def build_table_view_node_rows(
     runtime: ViewBuildContext, value: Any, name: str, depth: int
 ) -> str:
-    from ..composite_view import make_nested_renderer
-
     logical_name = name.split(" [step ", 1)[0]
     if not isinstance(value, dict):
         raise TypeError("table_node view expects dict input")
@@ -199,14 +197,11 @@ def build_table_view_node_rows(
         key_text = _table_cell_text(key)
         row_id = safe_dot_token("table_row", logical_name, key_text)
         value_port = f"{row_id}_value"
-        nested_renderer = make_nested_renderer(
-            runtime, row_id, value_port, f"{name}.{key}"
-        )
         if _is_scalar_value(val):
             value_html = _format_scalar_html(val)
         else:
             value_html = _format_nested_value(
-                val, inner_depth, item_limit, nested_renderer, f"{name}.{key}"
+                val, inner_depth, item_limit, None, f"{name}.{key}"
             )
             if not value_html:
                 value_html = _format_container_stub(val)

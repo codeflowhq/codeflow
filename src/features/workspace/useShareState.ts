@@ -1,7 +1,7 @@
 import { useCallback, useEffect } from "react";
 import type { Dispatch, SetStateAction } from "react";
 
-import type { GlobalConfig, TopMenuKey, VariableConfig, VizMenuKey } from "../shared/types/visualization";
+import type { GlobalConfig, TopMenuKey, VariableConfig, VizMenuKey } from "../../shared/types/visualization";
 
 type MessageApi = {
   success: (message: string) => void;

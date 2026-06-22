@@ -1,68 +1,10 @@
-import { Card, Form, Input, InputNumber, Select, Table, Typography } from "antd";
+import { Card, Form, Input, InputNumber, Select, Switch, Table } from "antd";
 import type { ColumnsType } from "antd/es/table";
+import { useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 
 import { buildTypeDefaultRows, updateTypeViewDefault } from "./config-sections";
 import type { GlobalConfig, VariableConfig, ViewKind } from "../../shared/types/visualization";
-
-const { Paragraph, Text } = Typography;
-
-type DetailLevel = "simple" | "balanced" | "deep";
-
-const DETAIL_LEVEL_PRESETS: Record<Exclude<DetailLevel, "custom">, Pick<GlobalConfig, "maxDepth" | "recursionDepthDefault" | "autoRecursionDepthCap">> = {
-  simple: { maxDepth: 1, recursionDepthDefault: 1, autoRecursionDepthCap: 2 },
-  balanced: { maxDepth: 3, recursionDepthDefault: -1, autoRecursionDepthCap: 6 },
-  deep: { maxDepth: 5, recursionDepthDefault: 4, autoRecursionDepthCap: 10 },
-};
-
-const DETAIL_LEVEL_COPY: Record<DetailLevel, { title: string; description: string }> = {
-  simple: {
-    title: "Simple",
-    description: "Keep nested data shallow and compact.",
-  },
-  balanced: {
-    title: "Balanced",
-    description: "Show the usual amount of nested detail.",
-  },
-  deep: {
-    title: "Deep",
-    description: "Expand nested data more aggressively.",
-  },
-};
-
-const CUSTOM_DETAIL_LEVEL_COPY = {
-  title: "Custom",
-  description: "Advanced depth values were imported or adjusted manually.",
-};
-
-const DETAIL_LEVEL_NODES: Record<DetailLevel, number[]> = {
-  simple: [1],
-  balanced: [1, 2, 3],
-  deep: [1, 2, 3, 4, 5],
-};
-
-const getDetailLevel = (config: GlobalConfig): DetailLevel | null => {
-  for (const [level, preset] of Object.entries(DETAIL_LEVEL_PRESETS) as Array<[DetailLevel, (typeof DETAIL_LEVEL_PRESETS)[DetailLevel]]>) {
-    if (
-      config.maxDepth === preset.maxDepth &&
-      config.recursionDepthDefault === preset.recursionDepthDefault &&
-      config.autoRecursionDepthCap === preset.autoRecursionDepthCap
-    ) {
-      return level;
-    }
-  }
-  return null;
-};
-
-const applyDetailLevelPreset = (previous: GlobalConfig, level: DetailLevel): GlobalConfig => ({
-  ...previous,
-  ...DETAIL_LEVEL_PRESETS[level],
-});
-
-const booleanOptions = [
-  { label: "Hidden", value: false },
-  { label: "Visible", value: true },
-];
 
 type VariableConfigRow = VariableConfig & { variable: string };
 type TypeDefaultRow = {
@@ -70,6 +12,39 @@ type TypeDefaultRow = {
   label: string;
   viewKind: ViewKind | "auto";
 };
+
+type DetailCardConfig = {
+  key: "maxItemsPerView" | "maxDepth" | "recursionDepthDefault";
+  label: string;
+  meaning: string;
+  min: number;
+  max: number;
+};
+
+const DETAIL_CARD_CONFIGS: DetailCardConfig[] = [
+  {
+    key: "maxItemsPerView",
+    label: "Max visible items per variable",
+    meaning: "Example: data shows item 1, item 2, and more.",
+    min: 1,
+    max: 200,
+  },
+  {
+    key: "maxDepth",
+    label: "Structure expansion depth",
+    meaning: "Example: variable -> item -> value",
+    min: 1,
+    max: 20,
+  },
+  {
+    key: "recursionDepthDefault",
+    label: "Default open depth",
+    meaning: "Example: the variable opens into its first item and value levels.",
+    min: -1,
+    max: 20,
+  },
+];
+
 
 type SettingsPageProps = {
   globalConfig: GlobalConfig;
@@ -87,7 +62,7 @@ const SettingsPage = ({
   viewKindOptions,
 }: SettingsPageProps) => {
   const typeDefaultRows = buildTypeDefaultRows(globalConfig.typeViewDefaults);
-  const detailLevel = getDetailLevel(globalConfig);
+  const [activeDetailKey, setActiveDetailKey] = useState<DetailCardConfig["key"]>("maxDepth");
 
   const typeDefaultColumns: ColumnsType<TypeDefaultRow> = [
     { title: "Data type", dataIndex: "label", key: "label" },
@@ -107,75 +82,110 @@ const SettingsPage = ({
       ),
     },
   ];
-
-  const renderDetailLevelCard = (level: DetailLevel) => (
-    <button
-      key={level}
-      type="button"
-      className={`detail-level-card${detailLevel === level ? " is-active" : ""}`}
-      onClick={() => setGlobalConfig((prev) => applyDetailLevelPreset(prev, level))}
-    >
-      <span className="detail-level-card-title">{DETAIL_LEVEL_COPY[level].title}</span>
-      <span className="detail-level-card-preview" aria-hidden="true">
-        {DETAIL_LEVEL_NODES[level].map((node, index) => (
-          <span key={`${level}-${node}`} className="detail-level-node-group">
-            {index > 0 ? <span className="detail-level-connector" /> : null}
-            <span className="detail-level-node">{node}</span>
+  const renderSharedDetailLegend = () => (
+    <div className={`depth-legend depth-legend-${activeDetailKey}`} aria-hidden="true">
+      <div className="depth-legend-structure">
+        <span className="depth-legend-node depth-legend-node-root">
+          <span className="depth-legend-chip depth-legend-root">data</span>
+          <span className="depth-legend-node-label">Default open depth</span>
+        </span>
+        <span className="depth-legend-arrow depth-legend-arrow-root" />
+        <span className="depth-legend-node depth-legend-node-structure">
+          <span className="depth-legend-box depth-legend-box-outer">
+            <span className="depth-legend-box-label">item</span>
+            <span className="depth-legend-box depth-legend-box-middle">
+              <span className="depth-legend-box-label depth-legend-box-label-middle">value</span>
+              <span className="depth-legend-box depth-legend-box-inner depth-legend-box-inner-empty" />
+            </span>
           </span>
-        ))}
-      </span>
-      <span className="detail-level-card-description">{DETAIL_LEVEL_COPY[level].description}</span>
-    </button>
-  );
-
-  const renderCustomDetailLevelCard = () => (
-    <div className="detail-level-card detail-level-card-static is-active" aria-label="Custom detail level">
-      <span className="detail-level-card-title">{CUSTOM_DETAIL_LEVEL_COPY.title}</span>
-      <span className="detail-level-card-preview" aria-hidden="true">
-        <span className="detail-level-node detail-level-node-custom">?</span>
-      </span>
-      <span className="detail-level-card-description">{CUSTOM_DETAIL_LEVEL_COPY.description}</span>
+          <span className="depth-legend-node-label">Structure expansion depth</span>
+        </span>
+        <span className="depth-legend-arrow depth-legend-arrow-items" />
+        <span className="depth-legend-node depth-legend-node-items">
+          <span className="depth-legend-item-stack">
+            <span className="depth-legend-item-pill">item 1</span>
+            <span className="depth-legend-item-pill">item 2</span>
+            <span className="depth-legend-item-pill">item 3</span>
+            <span className="depth-legend-item-pill depth-legend-item-pill-muted">...</span>
+          </span>
+          <span className="depth-legend-node-label">Max visible items per variable</span>
+        </span>
+      </div>
     </div>
   );
+
+  const renderDetailCard = ({ key, label, meaning, min, max }: DetailCardConfig) => {
+    const isActive = activeDetailKey === key;
+
+    return (
+      <div
+        key={key}
+        className={`depth-setting-card${isActive ? " is-active is-primary" : ""}`}
+        onMouseEnter={() => setActiveDetailKey(key)}
+        onFocusCapture={() => setActiveDetailKey(key)}
+        onClick={() => setActiveDetailKey(key)}
+      >
+        <span className="depth-setting-card-title">{label}</span>
+        {isActive ? <span className="depth-setting-card-meaning">{meaning}</span> : null}
+        <InputNumber
+          min={min}
+          max={max}
+          value={globalConfig[key]}
+          onChange={(value) => setGlobalConfig((prev) => ({ ...prev, [key]: value ?? prev[key] }))}
+        />
+      </div>
+    );
+  };
 
   return (
     <div className="config-page-grid config-page-grid-wide">
       <Card className="surface-card" title="Run limits and default rendering">
-        <Paragraph type="secondary">
-          These settings apply before the browser run starts. Use them to control how much execution is traced and how uncategorized values are rendered by default.
-        </Paragraph>
-        <Form layout="vertical" className="compact-form-grid">
-          <Form.Item label="Titles">
-            <Select
-              value={globalConfig.showTitles}
-              options={booleanOptions}
-              onChange={(value: boolean) => setGlobalConfig((prev) => ({ ...prev, showTitles: value }))}
-            />
-          </Form.Item>
-          <Form.Item label="Execution step limit">
-            <InputNumber min={1} max={500} value={globalConfig.stepLimit} onChange={(value) => setGlobalConfig((prev) => ({ ...prev, stepLimit: value ?? 12 }))} />
-          </Form.Item>
-          <Form.Item label="Max visible items per variable">
-            <InputNumber min={1} max={200} value={globalConfig.maxItemsPerView} onChange={(value) => setGlobalConfig((prev) => ({ ...prev, maxItemsPerView: value ?? 50 }))} />
-          </Form.Item>
-          <Form.Item label="Detail level">
-            <div className="detail-level-grid">
-              {renderDetailLevelCard("simple")}
-              {renderDetailLevelCard("balanced")}
-              {renderDetailLevelCard("deep")}
-              {detailLevel === null ? renderCustomDetailLevelCard() : null}
+        <div className="settings-overview-grid">
+          <div className="settings-run-section">
+            <span className="settings-section-title">Run</span>
+            <div className="settings-control-card">
+              <span className="settings-control-title">Execution step limit</span>
+              <span className="settings-control-hint">How many traced steps to keep.</span>
+              <InputNumber
+                min={1}
+                max={500}
+                value={globalConfig.stepLimit}
+                onChange={(value) => setGlobalConfig((prev) => ({ ...prev, stepLimit: value ?? 12 }))}
+              />
             </div>
-            <Text type="secondary" className="detail-level-help">
-              Controls how much nested data is expanded by default.
-            </Text>
-          </Form.Item>
-        </Form>
+          </div>
+
+          <div className="settings-rendering-section">
+            <span className="settings-section-title">Rendering detail</span>
+            <div className="settings-control-card">
+              <span className="settings-control-title">Show titles</span>
+              <span className="settings-control-hint">Show the variable title above each visualization.</span>
+              <div className="settings-control-footer">
+                <Switch
+                  checked={globalConfig.showTitles}
+                  checkedChildren="On"
+                  unCheckedChildren="Off"
+                  onChange={(value) => setGlobalConfig((prev) => ({ ...prev, showTitles: value }))}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="settings-limits-section">
+          <span className="settings-subsection-title">Detail settings</span>
+          <div className="detail-settings-layout">
+            {renderSharedDetailLegend()}
+            <div className="detail-settings-side">
+              <div className="depth-setting-grid">
+                {DETAIL_CARD_CONFIGS.map(renderDetailCard)}
+              </div>
+            </div>
+          </div>
+        </div>
       </Card>
 
-      <Card className="surface-card" title="Browser packages and converters">
-        <Paragraph type="secondary">
-          Use this section only when the browser runtime needs extra Python packages. Custom converters accept comma-separated Python callables in the form package.module:function_name.
-        </Paragraph>
+      <Card className="surface-card settings-card-compact" title="Advanced runtime setup">
         <Form layout="vertical">
           <Form.Item label="Custom converters">
             <Input

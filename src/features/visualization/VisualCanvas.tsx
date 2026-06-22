@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Rnd } from "react-rnd";
 
 import type { ManifestEntry, VariableConfig, VisualizationLayoutMode, VisualizationLayoutState, VisualizationWindowLayout } from "../../shared/types/visualization";
-import VariablePanel from "../../components/VariablePanel";
+import VariablePanel from "./components/VariablePanel";
 
 const DEFAULT_WINDOW_WIDTH = 280;
 const MIN_WINDOW_WIDTH = 220;

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import FeatureBoundary from "../../../shared/ui/FeatureBoundary";
@@ -34,6 +34,31 @@ const buildManifest = (): ManifestEntry[] => [
 ];
 
 describe("CollectionPreviewSurface", () => {
+  it("shows an empty preview state when no manifest was saved", () => {
+    render(<CollectionPreviewSurface savedManifest={[]} />);
+
+    expect(
+      screen.getByText("No visualization was saved with this project yet."),
+    ).toBeTruthy();
+    expect(
+      screen.queryByRole("button", { name: "Previous preview" }),
+    ).toBeNull();
+  });
+
+  it("does not render navigation arrows for a single preview item", () => {
+    render(<CollectionPreviewSurface savedManifest={[buildManifest()[0]]} />);
+
+    return waitFor(() => {
+      expect(
+        within(screen.getByLabelText("data preview")).getByTestId("svg-preview").textContent,
+      ).toContain("one");
+      expect(
+        screen.queryByRole("button", { name: "Previous preview" }),
+      ).toBeNull();
+      expect(screen.queryByRole("button", { name: "Next preview" })).toBeNull();
+    });
+  });
+
   it("disables preview arrows at the ends instead of looping", async () => {
     render(<CollectionPreviewSurface savedManifest={buildManifest()} />);
 
@@ -49,6 +74,10 @@ describe("CollectionPreviewSurface", () => {
       expect(previousButton.disabled).toBe(false);
       expect(nextButton.disabled).toBe(true);
     });
+
+    expect(
+      within(screen.getByLabelText("queue preview")).getByTestId("svg-preview").textContent,
+    ).toContain("two");
   });
 
   it("can be isolated by a local feature boundary when a preview renderer crashes", async () => {

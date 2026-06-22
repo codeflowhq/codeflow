@@ -5,6 +5,7 @@ import type {
   VariableConfig,
   VisualizationLayoutState,
 } from "../../shared/types/visualization";
+import { cloneLayoutState } from "../visualization/layout-state";
 
 type BuildCollectionRecordOptions = {
   name: string;
@@ -39,5 +40,5 @@ export const buildCollectionRecord = ({
   globalConfig,
   variableConfigs,
   savedManifest,
-  layoutState,
+  layoutState: cloneLayoutState(layoutState),
 });

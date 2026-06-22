@@ -1,4 +1,4 @@
-import { Button, Card, Dropdown, Input, Modal, Select, Space, Typography } from "antd";
+import { Button, Card, Dropdown, Input, Modal, Select, Space, Tooltip, Typography } from "antd";
 import { EditOutlined, MoreOutlined, PlayCircleOutlined, SettingOutlined } from "@ant-design/icons";
 import { useMemo, useState } from "react";
 
@@ -23,6 +23,7 @@ type WorkspacePageProps = {
 const WorkspacePage = ({ projectName, projectDescription, projectLabels = [], availableLabels = [], onOpenSettings, onUpdateProjectDetails }: WorkspacePageProps) => {
   const { editorState, pageActions, timelineState, variableConfigs, visualState, watchState } = useWorkspace();
   const layoutMode = visualState.layoutState.mode;
+  const hasExportablePanels = Object.values(visualState.exportSources).some((svg) => svg.trim().length > 0);
   const [projectDetailsOpen, setProjectDetailsOpen] = useState(false);
   const [projectNameDraft, setProjectNameDraft] = useState(projectName);
   const [projectDescriptionDraft, setProjectDescriptionDraft] = useState(projectDescription);
@@ -42,6 +43,15 @@ const WorkspacePage = ({ projectName, projectDescription, projectLabels = [], av
       onClick: ({ key }: { key: string }) => visualState.setLayoutMode(key as "masonry" | "windows"),
     }),
     [visualState],
+  );
+  const exportMenu = useMemo(
+    () => ({
+      items: [
+        { key: "current", label: "Export current step" },
+      ],
+      onClick: () => void pageActions.exportProject("current"),
+    }),
+    [pageActions],
   );
 
   const handleSubmitProjectDetails = () => {
@@ -81,7 +91,13 @@ const WorkspacePage = ({ projectName, projectDescription, projectLabels = [], av
         </Space>
         <Space wrap>
           <Button onClick={pageActions.openSaveModal}>Save</Button>
-          <Button onClick={() => void pageActions.exportProject()}>Export</Button>
+          <Tooltip title={hasExportablePanels ? undefined : "Run once and wait for the current step to finish rendering before exporting."}>
+            <span>
+              <Dropdown menu={exportMenu} trigger={["click"]}>
+                <Button disabled={!hasExportablePanels}>Export <MoreOutlined /></Button>
+              </Dropdown>
+            </span>
+          </Tooltip>
           <Button onClick={() => void pageActions.shareProject()}>Share</Button>
         </Space>
       </div>

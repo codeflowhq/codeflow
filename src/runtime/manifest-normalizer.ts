@@ -5,6 +5,11 @@ import { buildTimelineKey } from "../shared/lib/timeline-keys";
 const normalizeStep = (step: RawManifestStep, index: number): ManifestStep => {
   const executionId = step.execution_id ?? step.executionId ?? step.meta?.execution_id ?? null;
   const order = step.order ?? step.meta?.order ?? null;
+  const timelineKey = step.timeline_key ?? step.timelineKey ?? buildTimelineKey({
+    execution_id: executionId,
+    order,
+    index: step.index ?? index + 1,
+  });
   const normalized = {
     ...step,
     index: step.index ?? index + 1,
@@ -14,7 +19,7 @@ const normalizeStep = (step: RawManifestStep, index: number): ManifestStep => {
   return {
     ...normalized,
     stepId: step.step_id ?? step.stepId ?? String(order ?? normalized.index),
-    timelineKey: buildTimelineKey({ ...step, executionId, order, index: normalized.index }),
+    timelineKey,
   };
 };
 

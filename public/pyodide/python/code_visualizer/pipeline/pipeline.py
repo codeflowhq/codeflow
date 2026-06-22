@@ -17,10 +17,20 @@ DirectionLiteral = Literal["LR", "TD"]
 render_structured_view = render_structured_artifact
 
 
+def _normalize_slot_name(name: str) -> str:
+    normalized = str(name).strip()
+    return normalized or "x"
+
+
 def visualize(
     value: Any, *, name: str = "x", config: VisualizerConfig | None = None
 ) -> Artifact:
-    cfg = config.copy() if config is not None else default_visualizer_config()
+    cfg = (
+        config.copy().normalized()
+        if config is not None
+        else default_visualizer_config().normalized()
+    )
+    slot_name = _normalize_slot_name(name)
     resolved_direction: DirectionLiteral = "TD" if cfg.graph_direction == "TB" else "LR"
     value_coercer = make_value_coercer(cfg)
 
@@ -30,14 +40,16 @@ def visualize(
     def resolver(slot: str, raw: Any, coerced: Any) -> tuple[ViewKind, bool]:
         return determine_view(slot, raw, coerced, cfg)
 
-    view, configured_view = determine_view(name, original_value, coerced_value, cfg)
-    recursion_budget = resolve_recursion_depth(name, original_value, cfg)
-    focus_path = cfg.focus_path_map.get(name)
-    accent_color = cfg.view_color_map.get(name)
+    view, configured_view = determine_view(
+        slot_name, original_value, coerced_value, cfg
+    )
+    recursion_budget = resolve_recursion_depth(slot_name, original_value, cfg)
+    focus_path = cfg.focus_path_map.get(slot_name)
+    accent_color = cfg.view_color_map.get(slot_name)
 
     artifact, handled = render_structured_view(
         view=view,
-        name=name,
+        name=slot_name,
         value=coerced_value,
         direction=resolved_direction,
         recursion_budget=recursion_budget,
@@ -56,12 +68,15 @@ def visualize(
 
     if _is_scalar_value(coerced_value):
         return render_scalar_artifact(
-            name, coerced_value, resolved_direction, show_titles=cfg.show_titles
+            slot_name,
+            coerced_value,
+            resolved_direction,
+            show_titles=cfg.show_titles,
         )
 
     return render_fallback_nodelink_artifact(
         value=coerced_value,
-        name=name,
+        name=slot_name,
         direction=resolved_direction,
         max_depth=cfg.max_depth,
         max_items=cfg.max_items_per_view,

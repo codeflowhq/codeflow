@@ -11,6 +11,7 @@ import type {
 } from "../../shared/types/visualization";
 import type { EditorMountHandler } from "../editor/useEditorDecorations";
 import type { TimelineFrame } from "../../shared/lib/timeline";
+import type { ExportScope } from "../visualization/useExportState";
 
 export type WatchState = {
   advancedSelectionState: {
@@ -60,7 +61,7 @@ export type PageActions = {
   openSettings: () => void;
   openCollections: () => void;
   openSaveModal: () => void;
-  exportProject: () => Promise<void>;
+  exportProject: (scope?: ExportScope) => Promise<void>;
   shareProject: () => Promise<void>;
 };
 

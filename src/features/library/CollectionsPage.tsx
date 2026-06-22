@@ -10,7 +10,7 @@ import type { ManifestEntry } from "../../shared/types/visualization";
 import FeatureBoundary from "../../shared/ui/FeatureBoundary";
 
 const { Search } = Input;
-const { Paragraph, Text, Title } = Typography;
+const { Text, Title } = Typography;
 
 type CollectionsPageProps = {
   collections: CollectionRecord[];
@@ -101,11 +101,8 @@ const CollectionsPage = ({ collections, examples, onDeleteCollection, onLoadColl
 
   return (
     <div className="collections-page-shell">
-      <div className="workspace-page-header workspace-page-header-stack">
+      <div className="workspace-page-header">
         <Title level={1} className="collections-page-title">Collections</Title>
-        <Paragraph type="secondary" className="collections-page-copy">
-          Saved projects keep code, watched variables, variable settings, and any rendered visualization panels available at save time.
-        </Paragraph>
       </div>
 
       <Card className="surface-card" title="Saved projects">

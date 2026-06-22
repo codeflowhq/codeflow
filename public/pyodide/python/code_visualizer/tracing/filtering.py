@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import re
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
+
+_WATCH_ROOT_PATTERN = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*")
 
 
 @dataclass(frozen=True, slots=True)
@@ -41,7 +44,32 @@ WatchTarget = str | WatchFilter | Mapping[str, Any]
 def normalize_trace_access_path(path: str | None) -> str | None:
     if path is None:
         return None
-    return path.replace('"', "'")
+    normalized = path.strip().replace('"', "'")
+    return normalized or None
+
+
+def _normalize_watch_name(name: str | None) -> str | None:
+    if name is None:
+        return None
+    normalized = name.strip()
+    return normalized or None
+
+
+def _coerce_optional_int(value: Any, field_name: str) -> int | None:
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        raise TypeError(f"{field_name} must be an integer or None")
+    if isinstance(value, int):
+        return value
+    raise TypeError(f"{field_name} must be an integer or None")
+
+
+def _root_name_from_expression(expression: str) -> str:
+    match = _WATCH_ROOT_PATTERN.match(expression)
+    if match is None:
+        raise ValueError(f"Unsupported watch expression: {expression!r}")
+    return match.group(0)
 
 
 def trace_access_path_matches(expected: str | None, actual: str | None) -> bool:
@@ -66,23 +94,52 @@ def normalize_trace_watch_filters(
         return filters
     for raw in watch_variables:
         if isinstance(raw, WatchFilter):
-            filters.append(raw)
-        elif isinstance(raw, str):
-            if "[" in raw or "." in raw:
-                root_name = raw.split("[", 1)[0].split(".", 1)[0]
-                filters.append(
-                    WatchFilter(name=root_name, access_path=raw, trace_name=raw)
-                )
-            else:
-                filters.append(WatchFilter(name=raw))
-        elif isinstance(raw, Mapping):
+            name = _normalize_watch_name(raw.name)
+            access_path = normalize_trace_access_path(raw.access_path)
             filters.append(
                 WatchFilter(
-                    name=raw.get("name"),
-                    access_path=raw.get("access_path"),
-                    trace_name=raw.get("trace_name"),
-                    scope_id=raw.get("scope_id"),
-                    line_number=raw.get("line_number"),
+                    name=name or (_root_name_from_expression(access_path) if access_path else None),
+                    access_path=access_path,
+                    trace_name=_normalize_watch_name(raw.trace_name) or access_path,
+                    scope_id=_coerce_optional_int(raw.scope_id, "scope_id"),
+                    line_number=_coerce_optional_int(raw.line_number, "line_number"),
+                )
+            )
+        elif isinstance(raw, str):
+            normalized = raw.strip()
+            if not normalized:
+                raise ValueError("Watch targets must not be empty strings")
+            if "[" in normalized or "." in normalized:
+                root_name = _root_name_from_expression(normalized)
+                filters.append(
+                    WatchFilter(
+                        name=root_name,
+                        access_path=normalize_trace_access_path(normalized),
+                        trace_name=normalized,
+                    )
+                )
+            else:
+                filters.append(WatchFilter(name=normalized))
+        elif isinstance(raw, Mapping):
+            access_path = normalize_trace_access_path(raw.get("access_path"))
+            name = _normalize_watch_name(raw.get("name"))
+            trace_name = _normalize_watch_name(raw.get("trace_name")) or access_path
+            if name is None and access_path is not None:
+                name = _root_name_from_expression(access_path)
+            if (
+                name is None
+                and access_path is None
+                and raw.get("scope_id") is None
+                and raw.get("line_number") is None
+            ):
+                raise ValueError("Watch filter mappings must include at least one selector")
+            filters.append(
+                WatchFilter(
+                    name=name,
+                    access_path=access_path,
+                    trace_name=trace_name,
+                    scope_id=_coerce_optional_int(raw.get("scope_id"), "scope_id"),
+                    line_number=_coerce_optional_int(raw.get("line_number"), "line_number"),
                 )
             )
         else:

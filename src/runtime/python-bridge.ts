@@ -2,6 +2,7 @@ import type { NormalizedManifest, RawManifestPayload, RuntimeVisualizationConfig
 
 export { bootstrapRuntime as initializeBrowserRuntime } from "./pyodide-runtime";
 
+import { DEFAULT_RUNTIME_OUTPUT_FORMAT } from "./config-normalizer";
 import { normalizeManifest } from "./manifest-normalizer";
 import { bootstrapRuntime, installMicropipPackages } from "./pyodide-runtime";
 
@@ -15,8 +16,8 @@ export const runVisualizationInBrowser = async ({
   config: RuntimeVisualizationConfig;
 }): Promise<NormalizedManifest> => {
   const pyodide = await bootstrapRuntime();
-  await installMicropipPackages(pyodide, config?.runtime_packages ?? []);
-  await installMicropipPackages(pyodide, config?.runtime_wheels ?? []);
+  await installMicropipPackages(pyodide, config.runtime_packages);
+  await installMicropipPackages(pyodide, config.runtime_wheels);
   const runner = pyodide.globals.get("run_visualization") as (payload: string) => string;
   try {
     const result = runner(
@@ -25,7 +26,7 @@ export const runVisualizationInBrowser = async ({
         watch,
         config: {
           ...config,
-          output_format: (config && config.output_format) || "svg",
+          output_format: config.output_format || DEFAULT_RUNTIME_OUTPUT_FORMAT,
         },
       }),
     );

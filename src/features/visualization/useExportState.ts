@@ -6,11 +6,12 @@ type MessageApi = {
 };
 
 type UseExportStateOptions = {
-  activeTimelineKey: string;
   exportSources: Record<string, string>;
   messageApi: MessageApi;
   projectName: string;
 };
+
+export type ExportScope = "current";
 
 const slugify = (value: string) =>
   value
@@ -62,27 +63,34 @@ const svgToPngBlob = async (svg: string): Promise<Blob> => {
   }
 };
 
-export const useExportState = ({ activeTimelineKey, exportSources, messageApi, projectName }: UseExportStateOptions) => {
-  const handleExport = useCallback(async () => {
-    const exportable = Object.entries(exportSources).filter(([, svg]) => Boolean(svg));
+const getCurrentExportSources = (exportSources: Record<string, string>) =>
+  Object.entries(exportSources)
+    .filter(([, svg]) => svg.trim().length > 0)
+    .map(([variable, svg]) => ({ variable, svg }));
+
+export const useExportState = ({ exportSources, messageApi, projectName }: UseExportStateOptions) => {
+  const handleExport = useCallback(async (_scope: ExportScope = "current") => {
+    const exportable = getCurrentExportSources(exportSources);
 
     if (!exportable.length) {
-      throw new Error("Nothing exportable is visible right now.");
+      throw new Error("Run once and wait for the current step to finish rendering before exporting.");
     }
 
     const projectSlug = slugify(projectName);
     const zip = new JSZip();
 
-    for (const [variable, svg] of exportable) {
-      const baseName = `${projectSlug}-${slugify(variable)}-${slugify(activeTimelineKey)}`;
+    for (const { variable, svg } of exportable) {
+      const baseName = `${projectSlug}-${slugify(variable)}-current-step`;
       const pngBlob = await svgToPngBlob(svg);
       zip.file(`${baseName}.png`, pngBlob);
     }
 
     const zipBlob = await zip.generateAsync({ type: "blob" });
-    downloadBlob(zipBlob, `${projectSlug}-visualizations.zip`);
-    messageApi.success(`Exported ${exportable.length} visualization${exportable.length === 1 ? "" : "s"}.`);
-  }, [activeTimelineKey, exportSources, messageApi, projectName]);
+    downloadBlob(zipBlob, `${projectSlug}-current-step-visualizations.zip`);
+    messageApi.success(
+      `Exported ${exportable.length} visualization${exportable.length === 1 ? "" : "s"} for the current step.`,
+    );
+  }, [exportSources, messageApi, projectName]);
 
   return { handleExport };
 };

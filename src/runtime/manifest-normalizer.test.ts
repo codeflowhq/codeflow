@@ -46,4 +46,65 @@ describe("normalizeManifest", () => {
       index: 4,
     });
   });
+
+  it("prefers snake_case source fields when both naming styles are present", () => {
+    const payload = normalizeManifest({
+      manifest: [{
+        variable: "graph",
+        kind: "dot",
+        compatible_view_kinds: ["graph", "tree"],
+        compatibleViewKinds: ["table"],
+        steps: [{
+          step_id: "snake-step",
+          stepId: "camel-step",
+          timeline_key: "7:4",
+          timelineKey: "5:2",
+          execution_id: 7,
+          executionId: 5,
+          order: 4,
+          index: 9,
+          dot: "digraph G {}",
+          meta: { line_number: 12, execution_id: 99, order: 99 },
+        }],
+      }],
+    });
+
+    expect(payload.manifest[0]).toMatchObject({
+      variable: "graph",
+      kind: "dot",
+      compatibleViewKinds: ["graph", "tree"],
+    });
+    expect(payload.manifest[0].steps[0]).toMatchObject({
+      stepId: "snake-step",
+      timelineKey: "7:4",
+      executionId: 7,
+      order: 4,
+      index: 9,
+      dot: "digraph G {}",
+      meta: { line_number: 12, execution_id: 99, order: 99 },
+    });
+  });
+
+  it("falls back to camelCase compatible view kinds and empty step lists", () => {
+    const payload = normalizeManifest({
+      manifest: [{
+        variable: "image_data",
+        kind: "svg",
+        compatibleViewKinds: ["image"],
+      }],
+    });
+
+    expect(payload).toEqual({
+      manifest: [{
+        variable: "image_data",
+        kind: "svg",
+        compatibleViewKinds: ["image"],
+        steps: [],
+      }],
+    });
+  });
+
+  it("returns an empty manifest when the payload is missing entries", () => {
+    expect(normalizeManifest({})).toEqual({ manifest: [] });
+  });
 });

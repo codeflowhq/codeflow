@@ -40,7 +40,7 @@ const workspaceValue: WorkspaceValue = {
     openSettings: vi.fn(),
     openCollections: vi.fn(),
     openSaveModal: vi.fn(),
-    exportProject: vi.fn(async () => undefined),
+    exportProject: vi.fn(async (_scope?: "current") => undefined),
     shareProject: vi.fn(async () => undefined),
   },
   timelineState: {
@@ -112,5 +112,51 @@ describe("WorkspacePage", () => {
     expect(screen.getByText("Editor panel")).toBeTruthy();
     expect(screen.getByText("Watch panel")).toBeTruthy();
     consoleError.mockRestore();
+  });
+
+  it("disables export until the current step has rendered exportable content", () => {
+    render(
+      <WorkspaceProvider value={workspaceValue}>
+        <WorkspacePage
+          projectName="Demo"
+          projectDescription=""
+          projectLabels={[]}
+          availableLabels={[]}
+          onOpenSettings={vi.fn()}
+          onUpdateProjectDetails={vi.fn()}
+        />
+      </WorkspaceProvider>,
+    );
+
+    const [exportButton] = screen.getAllByRole("button", { name: /export/i });
+    expect(exportButton.hasAttribute("disabled")).toBe(true);
+  });
+
+  it("enables export once the current step has rendered exportable content", () => {
+    render(
+      <WorkspaceProvider
+        value={{
+          ...workspaceValue,
+          visualState: {
+            ...workspaceValue.visualState,
+            exportSources: {
+              data: "<svg />",
+            },
+          },
+        }}
+      >
+        <WorkspacePage
+          projectName="Demo"
+          projectDescription=""
+          projectLabels={[]}
+          availableLabels={[]}
+          onOpenSettings={vi.fn()}
+          onUpdateProjectDetails={vi.fn()}
+        />
+      </WorkspaceProvider>,
+    );
+
+    const exportButtons = screen.getAllByRole("button", { name: /export/i });
+    expect(exportButtons.some((button) => !button.hasAttribute("disabled"))).toBe(true);
   });
 });

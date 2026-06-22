@@ -5,53 +5,9 @@ import type {
   VisualizationLayoutState,
   VisualizationWindowLayout,
 } from "../../shared/types/visualization";
+import { cloneLayoutState, EMPTY_LAYOUT_STATE, sanitizeLayoutState } from "./layout-state";
 
 const LAYOUT_STATE_STORAGE_KEY = "codeflow.visualization.layout-state";
-
-const EMPTY_LAYOUT_STATE: VisualizationLayoutState = {
-  mode: "masonry",
-  masonryOrder: [],
-  windows: {
-    layouts: {},
-    zIndices: {},
-  },
-};
-
-const isWindowLayout = (value: unknown): value is VisualizationWindowLayout => (
-  Boolean(value)
-  && typeof value === "object"
-  && typeof (value as VisualizationWindowLayout).x === "number"
-  && typeof (value as VisualizationWindowLayout).y === "number"
-  && typeof (value as VisualizationWindowLayout).width === "number"
-  && typeof (value as VisualizationWindowLayout).height === "number"
-);
-
-const sanitizeLayoutState = (value: unknown): VisualizationLayoutState => {
-  if (!value || typeof value !== "object") {
-    return EMPTY_LAYOUT_STATE;
-  }
-  const candidate = value as Partial<VisualizationLayoutState>;
-  return {
-    mode: candidate.mode === "windows" ? "windows" : "masonry",
-    masonryOrder: Array.isArray(candidate.masonryOrder)
-      ? candidate.masonryOrder.filter((item): item is string => typeof item === "string")
-      : [],
-    windows: {
-      layouts: candidate.windows?.layouts && typeof candidate.windows.layouts === "object"
-        ? Object.fromEntries(
-          Object.entries(candidate.windows.layouts)
-            .filter(([, layout]) => isWindowLayout(layout)),
-        )
-        : {},
-      zIndices: candidate.windows?.zIndices && typeof candidate.windows.zIndices === "object"
-        ? Object.fromEntries(
-          Object.entries(candidate.windows.zIndices)
-            .filter(([, value]) => typeof value === "number"),
-        )
-        : {},
-    },
-  };
-};
 
 const readStoredLayoutState = (): VisualizationLayoutState => {
   if (
@@ -59,13 +15,13 @@ const readStoredLayoutState = (): VisualizationLayoutState => {
     || typeof window.localStorage === "undefined"
     || typeof window.localStorage.getItem !== "function"
   ) {
-    return EMPTY_LAYOUT_STATE;
+    return cloneLayoutState(EMPTY_LAYOUT_STATE);
   }
   try {
     const rawValue = window.localStorage.getItem(LAYOUT_STATE_STORAGE_KEY);
     return sanitizeLayoutState(rawValue ? JSON.parse(rawValue) : null);
   } catch {
-    return EMPTY_LAYOUT_STATE;
+    return cloneLayoutState(EMPTY_LAYOUT_STATE);
   }
 };
 
@@ -118,7 +74,7 @@ export const useLayoutModeState = () => {
   };
 
   const replaceLayoutState = (nextState: VisualizationLayoutState) => {
-    setLayoutState(sanitizeLayoutState(nextState));
+    setLayoutState(cloneLayoutState(sanitizeLayoutState(nextState)));
   };
 
   return {
