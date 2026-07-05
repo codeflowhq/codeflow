@@ -1,6 +1,6 @@
-import { Card, Form, Input, InputNumber, Select, Switch, Table } from "antd";
+import { Button, Card, Form, Input, InputNumber, Select, Space, Switch, Table, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 
 import { buildTypeDefaultRows, updateTypeViewDefault } from "./config-sections";
@@ -11,10 +11,11 @@ type TypeDefaultRow = {
   key: string;
   label: string;
   viewKind: ViewKind | "auto";
+  viewKindOptions: Array<ViewKind | "auto">;
 };
 
 type DetailCardConfig = {
-  key: "maxItemsPerView" | "maxDepth" | "recursionDepthDefault";
+  key: "maxItemsPerView" | "maxDepth";
   label: string;
   meaning: string;
   min: number;
@@ -36,13 +37,6 @@ const DETAIL_CARD_CONFIGS: DetailCardConfig[] = [
     min: 1,
     max: 20,
   },
-  {
-    key: "recursionDepthDefault",
-    label: "Default open depth",
-    meaning: "Example: the variable opens into its first item and value levels.",
-    min: -1,
-    max: 20,
-  },
 ];
 
 
@@ -51,7 +45,9 @@ type SettingsPageProps = {
   setGlobalConfig: Dispatch<SetStateAction<GlobalConfig>>;
   variableConfigRows: VariableConfigRow[];
   configTableColumns: ColumnsType<VariableConfigRow>;
-  viewKindOptions: ViewKind[];
+  runtimeWheelFileNames: string[];
+  onRuntimeWheelUpload: (files: FileList | null) => void;
+  onClearRuntimeWheels: () => void;
 };
 
 const SettingsPage = ({
@@ -59,10 +55,13 @@ const SettingsPage = ({
   setGlobalConfig,
   variableConfigRows,
   configTableColumns,
-  viewKindOptions,
+  runtimeWheelFileNames,
+  onRuntimeWheelUpload,
+  onClearRuntimeWheels,
 }: SettingsPageProps) => {
   const typeDefaultRows = buildTypeDefaultRows(globalConfig.typeViewDefaults);
   const [activeDetailKey, setActiveDetailKey] = useState<DetailCardConfig["key"]>("maxDepth");
+  const runtimeWheelInputRef = useRef<HTMLInputElement | null>(null);
 
   const typeDefaultColumns: ColumnsType<TypeDefaultRow> = [
     { title: "Data type", dataIndex: "label", key: "label" },
@@ -73,7 +72,7 @@ const SettingsPage = ({
       render: (value, record) => (
         <Select
           value={value}
-          options={viewKindOptions.map((option) => ({ label: option, value: option }))}
+          options={record.viewKindOptions.map((option) => ({ label: option, value: option }))}
           style={{ width: 180 }}
           onChange={(nextValue: ViewKind | "auto") =>
             setGlobalConfig((prev) => updateTypeViewDefault(prev, record.key, nextValue))
@@ -87,7 +86,7 @@ const SettingsPage = ({
       <div className="depth-legend-structure">
         <span className="depth-legend-node depth-legend-node-root">
           <span className="depth-legend-chip depth-legend-root">data</span>
-          <span className="depth-legend-node-label">Default open depth</span>
+          <span className="depth-legend-node-label">Variable root</span>
         </span>
         <span className="depth-legend-arrow depth-legend-arrow-root" />
         <span className="depth-legend-node depth-legend-node-structure">
@@ -202,11 +201,39 @@ const SettingsPage = ({
             />
           </Form.Item>
           <Form.Item label="Runtime wheels">
-            <Input
-              value={globalConfig.runtimeWheels}
-              placeholder="/pyodide/wheels/custom.whl, https://host/pkg.whl"
-              onChange={(event) => setGlobalConfig((prev) => ({ ...prev, runtimeWheels: event.target.value }))}
-            />
+            <Space direction="vertical" size={8} style={{ width: "100%" }}>
+              <Input
+                value={globalConfig.runtimeWheels}
+                placeholder="/pyodide/wheels/custom.whl, https://host/pkg.whl"
+                onChange={(event) => setGlobalConfig((prev) => ({ ...prev, runtimeWheels: event.target.value }))}
+              />
+              <Space wrap>
+                <Button onClick={() => runtimeWheelInputRef.current?.click()}>
+                  Upload local wheel
+                </Button>
+                <input
+                  ref={runtimeWheelInputRef}
+                  type="file"
+                  accept=".whl"
+                  multiple
+                  hidden
+                  onChange={(event) => {
+                    onRuntimeWheelUpload(event.target.files);
+                    event.target.value = "";
+                  }}
+                />
+                {runtimeWheelFileNames.length > 0 ? (
+                  <Button onClick={onClearRuntimeWheels}>
+                    Clear session wheels
+                  </Button>
+                ) : null}
+              </Space>
+              {runtimeWheelFileNames.length > 0 ? (
+                <Space wrap>
+                  {runtimeWheelFileNames.map((name) => <Tag key={name}>{name}</Tag>)}
+                </Space>
+              ) : null}
+            </Space>
           </Form.Item>
         </Form>
       </Card>

@@ -137,10 +137,16 @@ describe("WorkspacePage", () => {
       <WorkspaceProvider
         value={{
           ...workspaceValue,
+          timelineState: {
+            ...workspaceValue.timelineState,
+            activeTimelineKey: "1:1",
+          },
           visualState: {
             ...workspaceValue.visualState,
             exportSources: {
-              data: "<svg />",
+              "1:1": {
+                data: "<svg />",
+              },
             },
           },
         }}

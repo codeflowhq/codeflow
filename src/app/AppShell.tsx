@@ -2,7 +2,7 @@ import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } fro
 import type { editor } from "monaco-editor";
 import { App as AntApp, Button, Layout, Modal, Space, Typography } from "antd";
 
-import { EXAMPLE_LIBRARY, defaultSnippet } from "../data/examples";
+import { EXAMPLE_LIBRARY } from "../data/examples";
 import {
   extractCandidateVariables,
   getWatchExpressionRoot,
@@ -23,6 +23,7 @@ import { useShareState } from "../features/workspace/useShareState";
 import { useTimelinePlayback } from "../features/visualization/useTimelinePlayback";
 import { useVariableWatch } from "../features/watch/useVariableWatch";
 import { useExportState } from "../features/visualization/useExportState";
+import type { ExportSourceCache } from "../features/visualization/useExportState";
 import type { ExportScope } from "../features/visualization/useExportState";
 import { useVisualizationRun } from "../features/visualization/useVisualizationRun";
 import { useLayoutModeState } from "../features/visualization/layout-mode";
@@ -40,6 +41,7 @@ import "../App.css";
 
 const VariableConfigDrawer = lazy(() => import("../features/watch/components/VariableConfigDrawer"));
 const SaveCollectionModal = lazy(() => import("../features/library/components/SaveCollectionModal"));
+const EMPTY_PROJECT_SNIPPET = "";
 
 const { Header, Content } = Layout;
 const { Text } = Typography;
@@ -47,14 +49,21 @@ const { Text } = Typography;
 const normalizeActionError = (fallback: string) => (error: unknown) =>
   error instanceof Error && error.message ? error.message : fallback;
 
+type SessionRuntimeWheel = {
+  name: string;
+  url: string;
+};
+
 function App() {
   const { message: messageApi } = AntApp.useApp();
   const [modal, modalContextHolder] = Modal.useModal();
   const [exampleRunRequestId, setExampleRunRequestId] = useState(0);
   const handledExampleRunRequestId = useRef(0);
-  const [sourceCode, setSourceCode] = useState(defaultSnippet);
+  const sessionRuntimeWheelsRef = useRef<SessionRuntimeWheel[]>([]);
+  const [sourceCode, setSourceCode] = useState(EMPTY_PROJECT_SNIPPET);
   const [globalConfig, setGlobalConfig] = useState(defaultGlobalConfig);
-  const [exportSources, setExportSources] = useState<Record<string, string>>({});
+  const [exportSources, setExportSources] = useState<ExportSourceCache>({});
+  const [sessionRuntimeWheels, setSessionRuntimeWheels] = useState<SessionRuntimeWheel[]>([]);
   const navigation = useNavigationState();
 
   const candidateVariables = useMemo(() => extractCandidateVariables(sourceCode), [sourceCode]);
@@ -133,6 +142,7 @@ function App() {
     statusMessage,
   } = useVisualizationRun({
     globalConfig,
+    sessionRuntimeWheels: sessionRuntimeWheels.map((wheel) => wheel.url),
     sourceCode,
     variableConfigs: configState.variableConfigs,
     watchVariables: watchList.watchVariables,
@@ -167,7 +177,7 @@ function App() {
 
   const { handleShare } = useShareState({
     defaultGlobalConfig,
-    defaultSnippet,
+    defaultSnippet: EMPTY_PROJECT_SNIPPET,
     globalConfig,
     messageApi,
     setGlobalConfig,
@@ -206,7 +216,7 @@ function App() {
 
   const libraryState = useLibraryStore({
     storageKey: COLLECTIONS_STORAGE_KEY,
-    defaultSnippet,
+    defaultSnippet: EMPTY_PROJECT_SNIPPET,
     defaultGlobalConfig,
     sourceCode,
     watchVariables: watchList.watchVariables,
@@ -227,6 +237,7 @@ function App() {
   });
 
   const { handleExport } = useExportState({
+    activeTimelineKey: timelineState.activeTimelineKey,
     exportSources,
     messageApi,
     projectName: libraryState.activeProjectName,
@@ -234,20 +245,63 @@ function App() {
 
   const { setSaveModalOpen } = libraryState;
   const openSaveModal = useCallback(() => {
+    if (libraryState.hasSavedProject) {
+      void runAction(() => Promise.resolve(libraryState.handleSaveCollection()), {
+        title: "Save project failed",
+        normalize: normalizeActionError("Could not save this project."),
+      });
+      return;
+    }
     setSaveModalOpen(true);
-  }, [setSaveModalOpen]);
+  }, [libraryState, runAction, setSaveModalOpen]);
 
   const handleRunVisualization = useCallback(async () => {
     configState.closeConfigDrawer();
+    setExportSources({});
     await runRuntimeAction(() => runVisualization(), "Visualization failed");
   }, [configState, runRuntimeAction, runVisualization]);
+
+  const handleRuntimeWheelUpload = useCallback((files: FileList | null) => {
+    if (!files || files.length === 0) {
+      return;
+    }
+    const nextWheels = Array.from(files)
+      .filter((file) => file.name.toLowerCase().endsWith(".whl"))
+      .map((file) => ({
+        name: file.name,
+        url: URL.createObjectURL(file),
+      }));
+    if (nextWheels.length === 0) {
+      return;
+    }
+    setSessionRuntimeWheels((prev) => {
+      const next = [...prev, ...nextWheels];
+      sessionRuntimeWheelsRef.current = next;
+      return next;
+    });
+  }, []);
+
+  const clearRuntimeWheels = useCallback(() => {
+    setSessionRuntimeWheels((prev) => {
+      prev.forEach((wheel) => URL.revokeObjectURL(wheel.url));
+      sessionRuntimeWheelsRef.current = [];
+      return [];
+    });
+  }, []);
+
+  useEffect(() => () => {
+    sessionRuntimeWheelsRef.current.forEach((wheel) => URL.revokeObjectURL(wheel.url));
+  }, []);
 
   useEffect(() => {
     if (!runtimeReady || exampleRunRequestId === 0 || handledExampleRunRequestId.current === exampleRunRequestId) {
       return;
     }
     handledExampleRunRequestId.current = exampleRunRequestId;
-    void handleRunVisualization();
+    const timeoutId = window.setTimeout(() => {
+      void handleRunVisualization();
+    }, 0);
+    return () => window.clearTimeout(timeoutId);
   }, [exampleRunRequestId, handleRunVisualization, runtimeReady]);
 
   const variablePanelConfigs = useMemo(
@@ -420,6 +474,9 @@ function App() {
     variableConfigs: configState.variableConfigs,
     globalConfig,
     setGlobalConfig,
+    runtimeWheelFileNames: sessionRuntimeWheels.map((wheel) => wheel.name),
+    onRuntimeWheelUpload: handleRuntimeWheelUpload,
+    onClearRuntimeWheels: clearRuntimeWheels,
     handleOpenVariableConfig: handleOpenVariableConfigWithResolvedViews,
     libraryState: wrappedLibraryState,
     examples: EXAMPLE_LIBRARY,
@@ -436,18 +493,32 @@ function App() {
       layoutState: layoutState.layoutState,
       setLayoutMode: layoutState.setLayoutMode,
       setExportSource: (variable: string, svg: string | null) => setExportSources((prev) => {
+        const timelineKey = timelineState.activeTimelineKey;
+        const currentTimelineSources = prev[timelineKey] ?? {};
+
         if (!svg) {
-          if (!(variable in prev)) {
+          if (!(variable in currentTimelineSources)) {
             return prev;
           }
-          const next = { ...prev };
-          delete next[variable];
-          return next;
+          const nextTimelineSources = { ...currentTimelineSources };
+          delete nextTimelineSources[variable];
+          if (Object.keys(nextTimelineSources).length === 0) {
+            const next = { ...prev };
+            delete next[timelineKey];
+            return next;
+          }
+          return { ...prev, [timelineKey]: nextTimelineSources };
         }
-        if (prev[variable] === svg) {
+        if (currentTimelineSources[variable] === svg) {
           return prev;
         }
-        return { ...prev, [variable]: svg };
+        return {
+          ...prev,
+          [timelineKey]: {
+            ...currentTimelineSources,
+            [variable]: svg,
+          },
+        };
       }),
       setMasonryOrder: layoutState.setMasonryOrder,
       setWindowLayout: layoutState.setWindowLayout,

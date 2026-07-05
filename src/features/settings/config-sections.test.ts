@@ -25,6 +25,8 @@ describe("buildTypeDefaultRows", () => {
     });
 
     expect(rows.find((row) => row.key === "list[any]")?.viewKind).toBe("array_cells");
+    expect(rows.find((row) => row.key === "list[any]")?.viewKindOptions).toEqual(["auto", "array_cells", "bar", "table"]);
+    expect(rows.find((row) => row.key === "dict[str, any]")?.viewKindOptions).toEqual(["auto", "table", "hash_table"]);
     expect(rows.find((row) => row.key === "tree")?.viewKind).toBe("tree");
     expect(rows.find((row) => row.key === "graph")?.viewKind).toBe("graph");
   });

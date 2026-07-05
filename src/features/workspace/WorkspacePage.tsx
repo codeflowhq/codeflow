@@ -23,7 +23,7 @@ type WorkspacePageProps = {
 const WorkspacePage = ({ projectName, projectDescription, projectLabels = [], availableLabels = [], onOpenSettings, onUpdateProjectDetails }: WorkspacePageProps) => {
   const { editorState, pageActions, timelineState, variableConfigs, visualState, watchState } = useWorkspace();
   const layoutMode = visualState.layoutState.mode;
-  const hasExportablePanels = Object.values(visualState.exportSources).some((svg) => svg.trim().length > 0);
+  const hasExportablePanels = Object.values(visualState.exportSources[timelineState.activeTimelineKey] ?? {}).some((svg) => svg.trim().length > 0);
   const [projectDetailsOpen, setProjectDetailsOpen] = useState(false);
   const [projectNameDraft, setProjectNameDraft] = useState(projectName);
   const [projectDescriptionDraft, setProjectDescriptionDraft] = useState(projectDescription);
@@ -129,6 +129,7 @@ const WorkspacePage = ({ projectName, projectDescription, projectLabels = [], av
           <div>
             <Typography.Text strong>Labels</Typography.Text>
             <Select
+              style={{ width: "100%" }}
               mode="tags"
               value={projectLabelsDraft}
               options={availableLabels.map((label) => ({ label, value: label }))}

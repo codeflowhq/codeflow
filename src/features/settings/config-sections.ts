@@ -6,6 +6,7 @@ type TypeDefaultRow = {
   key: string;
   label: string;
   viewKind: ViewKind | "auto";
+  viewKindOptions: Array<ViewKind | "auto">;
 };
 
 export const buildVariableConfigRows = (

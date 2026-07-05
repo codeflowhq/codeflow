@@ -6,13 +6,13 @@ Interactive browser UI for `code_visualizer`.
 
 - `src/` React UI
 - `public/pyodide/` browser runtime assets
-- `scripts/sync_python_runtime.py` rebuilds the Pyodide runtime bundle
-- `scripts/browser_dependency_lock.json` pins browser-side Python dependency builds to immutable upstream refs
+- `scripts/sync_python_runtime.py` registers prebuilt browser wheels into `runtime-config.json`
 
 ## Commands
 
 ```bash
 npm install
+# place browser wheels under public/pyodide/wheels first
 python3 scripts/sync_python_runtime.py
 npm run dev
 ```
@@ -21,4 +21,5 @@ npm run dev
 
 - Browser mode is the default execution path.
 - The app consumes the public manifest API from `codeflow-py`.
-- Local wheel install is used for `codeflow-py`; vendored sources are only for browser-only dependencies.
+- Browser Python dependencies are loaded from wheels under `public/pyodide/wheels/`.
+- This repo does not build Python artifacts; it only consumes prebuilt wheels.

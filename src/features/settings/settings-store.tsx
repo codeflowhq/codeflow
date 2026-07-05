@@ -4,12 +4,9 @@ import { Button, Space, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { SettingOutlined } from "@ant-design/icons";
 
-import {
-  VIEW_KIND_OPTIONS,
-  defaultVariableConfig,
-} from "../../configDefaults";
+import { defaultVariableConfig } from "../../configDefaults";
 import { buildVariableConfigRows } from "./config-sections";
-import type { CollectionRecord, ExampleRecord, GlobalConfig, VariableConfig, ViewKind } from "../../shared/types/visualization";
+import type { CollectionRecord, ExampleRecord, GlobalConfig, VariableConfig } from "../../shared/types/visualization";
 
 type VariableConfigRow = VariableConfig & { variable: string };
 
@@ -17,6 +14,8 @@ type LibraryState = {
   activeProjectName: string;
   activeProjectDescription: string;
   activeProjectLabels: string[];
+  activeProjectId: string | null;
+  hasSavedProject: boolean;
   collections: CollectionRecord[];
   hasUnsavedChanges: boolean;
   handleLoadCollection: (record: CollectionRecord) => Promise<void>;
@@ -33,7 +32,9 @@ export type ConfigPageProps = {
   setGlobalConfig: Dispatch<SetStateAction<GlobalConfig>>;
   variableConfigRows: VariableConfigRow[];
   configTableColumns: ColumnsType<VariableConfigRow>;
-  viewKindOptions: ViewKind[];
+  runtimeWheelFileNames: string[];
+  onRuntimeWheelUpload: (files: FileList | null) => void;
+  onClearRuntimeWheels: () => void;
 };
 
 export type LibraryPageProps = {
@@ -49,6 +50,9 @@ type UseSettingsStoreOptions = {
   variableConfigs: Record<string, VariableConfig>;
   globalConfig: GlobalConfig;
   setGlobalConfig: Dispatch<SetStateAction<GlobalConfig>>;
+  runtimeWheelFileNames: string[];
+  onRuntimeWheelUpload: (files: FileList | null) => void;
+  onClearRuntimeWheels: () => void;
   handleOpenVariableConfig: (variable: string) => void;
   libraryState: LibraryState;
   examples: ExampleRecord[];
@@ -59,6 +63,9 @@ export const useSettingsStore = ({
   variableConfigs,
   globalConfig,
   setGlobalConfig,
+  runtimeWheelFileNames,
+  onRuntimeWheelUpload,
+  onClearRuntimeWheels,
   handleOpenVariableConfig,
   libraryState,
   examples,
@@ -100,8 +107,10 @@ export const useSettingsStore = ({
     setGlobalConfig,
     variableConfigRows,
     configTableColumns,
-    viewKindOptions: VIEW_KIND_OPTIONS,
-  }), [configTableColumns, globalConfig, setGlobalConfig, variableConfigRows]);
+    runtimeWheelFileNames,
+    onRuntimeWheelUpload,
+    onClearRuntimeWheels,
+  }), [configTableColumns, globalConfig, onClearRuntimeWheels, onRuntimeWheelUpload, runtimeWheelFileNames, setGlobalConfig, variableConfigRows]);
 
   const libraryPageProps = useMemo<LibraryPageProps>(() => ({
     collections: libraryState.collections,

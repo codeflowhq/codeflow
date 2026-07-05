@@ -75,9 +75,12 @@ describe("useExportState", () => {
   it("exports the rendered current-step panels and reports success", async () => {
     const { result } = renderHook(() =>
       useExportState({
+        activeTimelineKey: "1:1",
         exportSources: {
-          data: "<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'></svg>",
-          graph: "<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12'></svg>",
+          "1:1": {
+            data: "<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'></svg>",
+            graph: "<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12'></svg>",
+          },
         },
         messageApi,
         projectName: "Demo Project",
@@ -106,9 +109,12 @@ describe("useExportState", () => {
   it("ignores empty export source entries", async () => {
     const { result } = renderHook(() =>
       useExportState({
+        activeTimelineKey: "1:1",
         exportSources: {
-          data: "   ",
-          graph: "<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12'></svg>",
+          "1:1": {
+            data: "   ",
+            graph: "<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12'></svg>",
+          },
         },
         messageApi,
         projectName: "Demo Project",
@@ -129,6 +135,7 @@ describe("useExportState", () => {
   it("throws a clear error when no current-step panel has rendered export content", async () => {
     const { result } = renderHook(() =>
       useExportState({
+        activeTimelineKey: "1:1",
         exportSources: {},
         messageApi,
         projectName: "Demo Project",
@@ -145,8 +152,11 @@ describe("useExportState", () => {
 
     const { result } = renderHook(() =>
       useExportState({
+        activeTimelineKey: "1:1",
         exportSources: {
-          data: "<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'></svg>",
+          "1:1": {
+            data: "<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'></svg>",
+          },
         },
         messageApi,
         projectName: "Demo Project",
@@ -165,8 +175,11 @@ describe("useExportState", () => {
 
     const { result } = renderHook(() =>
       useExportState({
+        activeTimelineKey: "1:1",
         exportSources: {
-          data: "<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'></svg>",
+          "1:1": {
+            data: "<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'></svg>",
+          },
         },
         messageApi,
         projectName: "Demo Project",
@@ -195,8 +208,11 @@ describe("useExportState", () => {
 
     const { result } = renderHook(() =>
       useExportState({
+        activeTimelineKey: "1:1",
         exportSources: {
-          data: "<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'></svg>",
+          "1:1": {
+            data: "<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'></svg>",
+          },
         },
         messageApi,
         projectName: "Demo Project",
@@ -205,6 +221,34 @@ describe("useExportState", () => {
 
     await expect(result.current.handleExport("current")).rejects.toThrow(
       "Could not load SVG for PNG export.",
+    );
+  });
+
+  it("exports only the active timeline cache", async () => {
+    const { result } = renderHook(() =>
+      useExportState({
+        activeTimelineKey: "2:1",
+        exportSources: {
+          "1:1": {
+            data: "<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'></svg>",
+          },
+          "2:1": {
+            queue: "<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12'></svg>",
+          },
+        },
+        messageApi,
+        projectName: "Demo Project",
+      }),
+    );
+
+    await act(async () => {
+      await result.current.handleExport("current");
+    });
+
+    expect(fileMock).toHaveBeenCalledTimes(1);
+    expect(fileMock).toHaveBeenCalledWith(
+      "demo-project-queue-current-step.png",
+      expect.any(Blob),
     );
   });
 });

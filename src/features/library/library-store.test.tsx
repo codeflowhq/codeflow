@@ -323,7 +323,7 @@ describe("useLibraryStore", () => {
       result.current.handleCreateProject();
     });
 
-    expect(persistSourceCode).toHaveBeenCalledWith("data = [1]");
+    expect(persistSourceCode).toHaveBeenCalledWith("");
     expect(persistWatchVariables).toHaveBeenCalledWith(["data"]);
     expect(persistGlobalConfig).toHaveBeenCalledWith(baseGlobalConfig);
     expect(persistVariableConfigs).toHaveBeenCalledWith({});

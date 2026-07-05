@@ -11,7 +11,7 @@ import type {
 } from "../../shared/types/visualization";
 import type { EditorMountHandler } from "../editor/useEditorDecorations";
 import type { TimelineFrame } from "../../shared/lib/timeline";
-import type { ExportScope } from "../visualization/useExportState";
+import type { ExportScope, ExportSourceCache } from "../visualization/useExportState";
 
 export type WatchState = {
   advancedSelectionState: {
@@ -67,7 +67,7 @@ export type PageActions = {
 
 export type VisualState = {
   manifest: ManifestEntry[];
-  exportSources: Record<string, string>;
+  exportSources: ExportSourceCache;
   layoutState: VisualizationLayoutState;
   setLayoutMode: (mode: VisualizationLayoutMode) => void;
   setMasonryOrder: (order: string[]) => void;

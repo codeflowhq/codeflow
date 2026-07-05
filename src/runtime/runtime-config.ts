@@ -14,9 +14,11 @@ const splitCsv = (value: string): string[] => String(value ?? "")
 
 export const buildVisualizationRuntimeConfig = ({
   globalConfig,
+  sessionRuntimeWheels = [],
   variableConfigs,
 }: {
   globalConfig: GlobalConfig;
+  sessionRuntimeWheels?: string[];
   variableConfigs: Record<string, VariableConfig>;
 }): RuntimeVisualizationConfig => {
   const normalizedGlobalConfig = normalizeGlobalConfig(globalConfig);
@@ -33,7 +35,7 @@ export const buildVisualizationRuntimeConfig = ({
     custom_converters: splitCsv(normalizedGlobalConfig.customConverters),
     type_view_defaults: normalizedGlobalConfig.typeViewDefaults,
     runtime_packages: splitCsv(normalizedGlobalConfig.runtimePackages),
-    runtime_wheels: splitCsv(normalizedGlobalConfig.runtimeWheels),
+    runtime_wheels: [...splitCsv(normalizedGlobalConfig.runtimeWheels), ...sessionRuntimeWheels],
     variable_configs: Object.fromEntries(
       Object.entries(normalizedVariableConfigs).map(([variableName, config]) => [
         variableName,

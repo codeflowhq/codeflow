@@ -7,10 +7,18 @@ import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 const modalConfirmMock = vi.fn();
 const handleCreateProjectMock = vi.fn();
 
-const libraryStateFactory = (hasUnsavedChanges: boolean) => ({
+const libraryStateFactory = ({
+  hasUnsavedChanges,
+  hasSavedProject = false,
+}: {
+  hasUnsavedChanges: boolean;
+  hasSavedProject?: boolean;
+}) => ({
   activeProjectName: "Demo",
   activeProjectDescription: "",
   activeProjectLabels: [],
+  activeProjectId: hasSavedProject ? "saved-project" : null,
+  hasSavedProject,
   collections: [],
   saveModalOpen: false,
   setActiveProjectName: vi.fn(),
@@ -158,7 +166,11 @@ vi.mock("../shared/hooks/useActionBoundary", () => ({
 }));
 
 vi.mock("./routes", () => ({
-  AppRoutes: () => <div>Routes</div>,
+  AppRoutes: ({ workspaceValue }: { workspaceValue: { pageActions: { openSaveModal: () => void } } }) => (
+    <button type="button" onClick={workspaceValue.pageActions.openSaveModal}>
+      Save project
+    </button>
+  ),
 }));
 
 vi.mock("../components/AppErrorBoundary", () => ({
@@ -190,7 +202,7 @@ describe("AppShell", () => {
   });
 
   it("starts a new project immediately when there are no unsaved changes", () => {
-    useLibraryStoreMock.mockReturnValue(libraryStateFactory(false));
+    useLibraryStoreMock.mockReturnValue(libraryStateFactory({ hasUnsavedChanges: false }));
 
     render(<AppShell />);
 
@@ -201,7 +213,7 @@ describe("AppShell", () => {
   });
 
   it("asks for confirmation before discarding unsaved changes", () => {
-    useLibraryStoreMock.mockReturnValue(libraryStateFactory(true));
+    useLibraryStoreMock.mockReturnValue(libraryStateFactory({ hasUnsavedChanges: true }));
 
     render(<AppShell />);
 
@@ -214,5 +226,29 @@ describe("AppShell", () => {
     config.onOk?.();
 
     expect(handleCreateProjectMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("saves directly when the current project already exists", () => {
+    const libraryState = libraryStateFactory({ hasUnsavedChanges: false, hasSavedProject: true });
+    useLibraryStoreMock.mockReturnValue(libraryState);
+
+    render(<AppShell />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Save project" }));
+
+    expect(libraryState.handleSaveCollection).toHaveBeenCalledTimes(1);
+    expect(libraryState.setSaveModalOpen).not.toHaveBeenCalled();
+  });
+
+  it("opens the save modal when the project has not been saved yet", () => {
+    const libraryState = libraryStateFactory({ hasUnsavedChanges: false, hasSavedProject: false });
+    useLibraryStoreMock.mockReturnValue(libraryState);
+
+    render(<AppShell />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Save project" }));
+
+    expect(libraryState.handleSaveCollection).not.toHaveBeenCalled();
+    expect(libraryState.setSaveModalOpen).toHaveBeenCalledWith(true);
   });
 });

@@ -17,7 +17,7 @@ export const runVisualizationInBrowser = async ({
 }): Promise<NormalizedManifest> => {
   const pyodide = await bootstrapRuntime();
   await installMicropipPackages(pyodide, config.runtime_packages);
-  await installMicropipPackages(pyodide, config.runtime_wheels);
+  await installMicropipPackages(pyodide, config.runtime_wheels, { treatAsWheels: true });
   const runner = pyodide.globals.get("run_visualization") as (payload: string) => string;
   try {
     const result = runner(

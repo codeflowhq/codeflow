@@ -46,11 +46,11 @@ export const defaultVariableConfig: VariableConfig = {
   },
 };
 
-export const TYPE_VIEW_DEFAULT_ROWS: Array<{ key: string; label: string }> = [
-  { key: "list[any]", label: "List / array" },
-  { key: "tuple[list]", label: "Matrix" },
-  { key: "dict[str, any]", label: "Dictionary / object" },
-  { key: "linked_list", label: "Linked list" },
-  { key: "tree", label: "Tree" },
-  { key: "graph", label: "Graph" },
+export const TYPE_VIEW_DEFAULT_ROWS: Array<{ key: string; label: string; viewKindOptions: Array<ViewKind | "auto"> }> = [
+  { key: "list[any]", label: "List / array", viewKindOptions: ["auto", "array_cells", "bar", "table"] },
+  { key: "tuple[list]", label: "Matrix", viewKindOptions: ["auto", "matrix", "table"] },
+  { key: "dict[str, any]", label: "Dictionary / object", viewKindOptions: ["auto", "table", "hash_table"] },
+  { key: "linked_list", label: "Linked list", viewKindOptions: ["auto", "linked_list"] },
+  { key: "tree", label: "Tree", viewKindOptions: ["auto", "tree"] },
+  { key: "graph", label: "Graph", viewKindOptions: ["auto", "graph"] },
 ];

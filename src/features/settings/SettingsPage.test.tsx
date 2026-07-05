@@ -5,7 +5,7 @@ import { useState } from "react";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 
 import SettingsPage from "./SettingsPage";
-import { defaultGlobalConfig, VIEW_KIND_OPTIONS, defaultVariableConfig } from "../../configDefaults";
+import { defaultGlobalConfig, defaultVariableConfig } from "../../configDefaults";
 import type { GlobalConfig } from "../../shared/types/visualization";
 
 const SettingsPageHarness = ({ initialConfig = defaultGlobalConfig }: { initialConfig?: GlobalConfig }) => {
@@ -17,7 +17,9 @@ const SettingsPageHarness = ({ initialConfig = defaultGlobalConfig }: { initialC
       setGlobalConfig={setGlobalConfig}
       variableConfigRows={[{ variable: "data", ...defaultVariableConfig }]}
       configTableColumns={[]}
-      viewKindOptions={VIEW_KIND_OPTIONS}
+      runtimeWheelFileNames={[]}
+      onRuntimeWheelUpload={vi.fn()}
+      onClearRuntimeWheels={vi.fn()}
     />
   );
 };
@@ -39,24 +41,24 @@ describe("SettingsPage depth settings", () => {
     });
   });
 
-  it("renders two independent depth cards", () => {
+  it("renders the simplified depth settings", () => {
     render(<SettingsPageHarness />);
 
     expect(screen.getAllByText("Structure expansion depth").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Default open depth").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Variable root").length).toBeGreaterThan(0);
     expect(screen.getByText("Example: variable -> item -> value")).toBeTruthy();
     expect(screen.getByText("data")).toBeTruthy();
-    expect(screen.queryByText("Auto view depth limit")).toBeNull();
+    expect(screen.queryByText("Default open depth")).toBeNull();
   });
 
   it("updates nested structure depth independently", () => {
     render(<SettingsPageHarness />);
 
     const nestedDepthInputs = screen.getAllByRole("spinbutton");
-    fireEvent.change(nestedDepthInputs[3], { target: { value: "6" } });
+    fireEvent.change(nestedDepthInputs[2], { target: { value: "6" } });
 
     const values = screen.getAllByRole("spinbutton").map((input) => (input as HTMLInputElement).value);
-    expect(values).toEqual(expect.arrayContaining(["6", "-1"]));
+    expect(values).toEqual(expect.arrayContaining(["6"]));
     expect(values.filter((value) => value === "6").length).toBe(1);
   });
 
@@ -72,6 +74,6 @@ describe("SettingsPage depth settings", () => {
     );
 
     expect(screen.getByDisplayValue("4")).toBeTruthy();
-    expect(screen.getByDisplayValue("2")).toBeTruthy();
+    expect(screen.queryByDisplayValue("2")).toBeNull();
   });
 });

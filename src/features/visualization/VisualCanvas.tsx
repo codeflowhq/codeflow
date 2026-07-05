@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Rnd } from "react-rnd";
 
 import type { ManifestEntry, VariableConfig, VisualizationLayoutMode, VisualizationLayoutState, VisualizationWindowLayout } from "../../shared/types/visualization";
+import type { ExportSourceCache } from "./useExportState";
 import VariablePanel from "./components/VariablePanel";
 
 const DEFAULT_WINDOW_WIDTH = 280;
@@ -79,7 +80,7 @@ type VisualCanvasProps = {
   manifest: ManifestEntry[];
   activeTimelineKey: string;
   variableConfigs: Record<string, VariableConfig>;
-  exportSources: Record<string, string>;
+  exportSources: ExportSourceCache;
   onOpenConfig: (variable: string) => void;
   onRemoveVariable?: (variable: string) => void;
   onRunVisualization: () => Promise<void>;
@@ -116,14 +117,14 @@ const VisualCanvas = ({
   const [boundsElement, setBoundsElement] = useState<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const manifestVariables = useMemo(() => manifest.map((entry) => entry.variable), [manifest]);
-
   useEffect(() => {
-    Object.keys(exportSources).forEach((variable) => {
+    const currentExportSources = exportSources[activeTimelineKey] ?? {};
+    Object.keys(currentExportSources).forEach((variable) => {
       if (!manifestVariables.includes(variable)) {
         setExportSource(variable, null);
       }
     });
-  }, [exportSources, manifestVariables, setExportSource]);
+  }, [activeTimelineKey, exportSources, manifestVariables, setExportSource]);
 
   const handleCanvasRef = useCallback((node: HTMLDivElement | null) => {
     canvasRef.current = node;

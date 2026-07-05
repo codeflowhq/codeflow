@@ -18,7 +18,6 @@ type RuntimeConfig = {
   pyodidePackages?: string[];
   micropipPackages?: string[];
   wheelUrls?: string[];
-  pythonSources?: Array<{ url?: string; path?: string }>;
 };
 
 export type FetchLikeResponse = {
@@ -80,18 +79,6 @@ export type CreatePyodideRuntimeOptions = {
   documentRef?: PyodideDocumentLike;
   windowRef?: PyodideWindowLike;
   pythonBootstrap?: string;
-};
-
-const isMissingPathError = (error: unknown): boolean => {
-  const message = String((error as { message?: string } | null | undefined)?.message ?? error ?? "");
-  const code = (error as { code?: string } | null | undefined)?.code;
-  const errno = (error as { errno?: number } | null | undefined)?.errno;
-  return (
-    code === "ENOENT"
-    || errno === 44
-    || message.includes("No such file or directory")
-    || message.includes("no such file")
-  );
 };
 
 const toInstallSpecifier = (value: unknown): unknown => {
@@ -187,56 +174,11 @@ export const createPyodideRuntime = ({
     return runtimeConfigPromise;
   };
 
-  const ensureDirectory = (pyodide: PyodideRuntime, path: string) => {
-    const parts = path.split("/").filter(Boolean);
-    let cursor = "";
-    for (const part of parts) {
-      cursor += `/${part}`;
-      try {
-        const stat = pyodide.FS.stat(cursor);
-        if (pyodide.FS.isDir(stat.mode) !== true) {
-          throw new Error(`Path exists but is not a directory: ${cursor}`);
-        }
-      } catch (error) {
-        if (error instanceof Error && error.message.startsWith("Path exists but is not a directory:")) {
-          throw error;
-        }
-        if (isMissingPathError(error) !== true) {
-          throw error;
-        }
-        pyodide.FS.mkdir(cursor);
-      }
-    }
-  };
-
-  const writePythonSources = async (pyodide: PyodideRuntime, sources: RuntimeConfig["pythonSources"] = []) => {
-    if (sources.length === 0) {
-      return;
-    }
-
-    ensureDirectory(pyodide, "/code_visualizer_runtime");
-    for (const entry of sources) {
-      if (entry.url === undefined || entry.path === undefined) {
-        throw new Error("Each pythonSources entry needs both url and path.");
-      }
-      const sourceUrl = resolveAssetUrl(entry.url) as string;
-      const response = await fetchImpl(sourceUrl);
-      if (response.ok !== true) {
-        throw new Error(`Failed to fetch Python source: ${sourceUrl}`);
-      }
-      const content = await response.text();
-      const targetPath = `/code_visualizer_runtime/${entry.path}`;
-      const directory = targetPath.split("/").slice(0, -1).join("/");
-      try {
-        ensureDirectory(pyodide, directory);
-        pyodide.FS.writeFile(targetPath, content, { encoding: "utf8" });
-      } catch (error) {
-        throw new Error(`Failed while writing Python source to ${targetPath}: ${String(error)}`);
-      }
-    }
-  };
-
-  const installMicropipPackages = async (pyodide: PyodideRuntime, packages: string[] = []) => {
+  const installMicropipPackages = async (
+    pyodide: PyodideRuntime,
+    packages: string[] = [],
+    options?: { treatAsWheels?: boolean },
+  ) => {
     const normalized: string[] = [];
     const pendingPackages = new Set<string>();
     for (const pkg of packages ?? []) {
@@ -260,8 +202,8 @@ export const createPyodideRuntime = ({
     const micropip = pyodide.pyimport("micropip");
     try {
       for (const pkg of normalized) {
-        const options = isWheelSpecifier(pkg) ? { deps: false as const } : undefined;
-        await micropip.install(pkg, options);
+        const installOptions = options?.treatAsWheels || isWheelSpecifier(pkg) ? { deps: false as const } : undefined;
+        await micropip.install(pkg, installOptions);
         installedDynamicPackages.add(pkg);
       }
     } finally {
@@ -278,8 +220,7 @@ export const createPyodideRuntime = ({
           await pyodide.loadPackage(pyodidePackages);
         }
         await installMicropipPackages(pyodide, runtimeConfig.micropipPackages ?? []);
-        await installMicropipPackages(pyodide, runtimeConfig.wheelUrls ?? []);
-        await writePythonSources(pyodide, runtimeConfig.pythonSources ?? []);
+        await installMicropipPackages(pyodide, runtimeConfig.wheelUrls ?? [], { treatAsWheels: true });
         pyodide.runPython(pythonBootstrap);
         return pyodide;
       })();

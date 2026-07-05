@@ -59,6 +59,23 @@ describe("buildVisualizationRuntimeConfig", () => {
     ]);
   });
 
+  it("appends session runtime wheel uploads after configured wheel URLs", () => {
+    const config = buildVisualizationRuntimeConfig({
+      globalConfig: {
+        ...defaultGlobalConfig,
+        runtimeWheels: "pyodide/wheels/custom-0.1.0-py3-none-any.whl",
+      },
+      sessionRuntimeWheels: ["blob:session-wheel-1", "blob:session-wheel-2"],
+      variableConfigs: {},
+    });
+
+    expect(config.runtime_wheels).toEqual([
+      "pyodide/wheels/custom-0.1.0-py3-none-any.whl",
+      "blob:session-wheel-1",
+      "blob:session-wheel-2",
+    ]);
+  });
+
   it("returns empty lists for blank comma-separated fields", () => {
     const config = buildVisualizationRuntimeConfig({
       globalConfig: {

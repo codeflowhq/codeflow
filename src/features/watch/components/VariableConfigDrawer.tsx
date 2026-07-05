@@ -51,6 +51,7 @@ const VariableConfigDrawer = ({
   onSelectVariable,
 }: VariableConfigDrawerProps) => {
   const [drafts, setDrafts] = useState<Record<string, VariableConfig>>({});
+  const defaultDepthLabel = defaultDepthValue < 0 ? "Auto" : String(defaultDepthValue);
 
   const selectedDraft = useMemo(() => {
     if (!variableName) {
@@ -175,7 +176,7 @@ const VariableConfigDrawer = ({
                       max={20}
                       value={selectedDraft.depth ?? undefined}
                       onChange={(value) => updateDraft((prev) => ({ ...prev, depth: value ?? null }))}
-                      placeholder={`Default: ${defaultDepthValue}`}
+                      placeholder={`Default: ${defaultDepthLabel}`}
                       style={{ width: "100%" }}
                     />
                   </Form.Item>

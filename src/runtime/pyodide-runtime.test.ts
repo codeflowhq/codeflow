@@ -90,11 +90,11 @@ describe("createPyodideRuntime", () => {
         return createResponse({
           json: async () => ({
             pyodidePackages: ["micropip"],
-            pythonSources: [{ url: "/runtime/code.py", path: "pkg/code.py" }],
+            wheelUrls: ["/pyodide/wheels/codeflow_py.whl"],
           }),
         });
       }
-      return createResponse({ text: async () => "print('ok')" });
+      return createResponse({});
     });
 
     const runtime = createPyodideRuntime({
@@ -111,11 +111,11 @@ describe("createPyodideRuntime", () => {
     expect(second).toBe(pyodide);
     expect(loadPyodide).toHaveBeenCalledTimes(1);
     expect(pyodide.runPython).toHaveBeenCalledWith("print('bootstrap')");
-    expect(pyodide.FS.writeFile).toHaveBeenCalledWith(
-      "/code_visualizer_runtime/pkg/code.py",
-      "print('ok')",
-      { encoding: "utf8" },
+    expect(pyodide.__install).toHaveBeenCalledWith(
+      "http://localhost/pyodide/wheels/codeflow_py.whl",
+      { deps: false },
     );
+    expect(pyodide.FS.writeFile).not.toHaveBeenCalled();
   });
 
   it("skips blocked packages and deduplicates installs", async () => {

@@ -60,6 +60,7 @@ const SaveCollectionModal = ({
         <div>
           <Text strong>Labels</Text>
           <Select
+            style={{ width: "100%" }}
             mode="tags"
             value={projectLabels}
             options={availableLabels.map((label) => ({ label, value: label }))}

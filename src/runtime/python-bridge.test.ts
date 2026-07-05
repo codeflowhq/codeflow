@@ -78,7 +78,12 @@ describe("runVisualizationInBrowser", () => {
     });
 
     expect(installMicropipPackages).toHaveBeenNthCalledWith(1, pyodide, ["numpy"]);
-    expect(installMicropipPackages).toHaveBeenNthCalledWith(2, pyodide, ["/pyodide/custom.whl"]);
+    expect(installMicropipPackages).toHaveBeenNthCalledWith(
+      2,
+      pyodide,
+      ["/pyodide/custom.whl"],
+      { treatAsWheels: true },
+    );
     expect(result.manifest[0].steps[0]).toMatchObject({
       executionId: 1,
       order: 2,

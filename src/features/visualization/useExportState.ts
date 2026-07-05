@@ -6,12 +6,14 @@ type MessageApi = {
 };
 
 type UseExportStateOptions = {
-  exportSources: Record<string, string>;
+  activeTimelineKey: string;
+  exportSources: Record<string, Record<string, string>>;
   messageApi: MessageApi;
   projectName: string;
 };
 
 export type ExportScope = "current";
+export type ExportSourceCache = Record<string, Record<string, string>>;
 
 const slugify = (value: string) =>
   value
@@ -63,15 +65,18 @@ const svgToPngBlob = async (svg: string): Promise<Blob> => {
   }
 };
 
-const getCurrentExportSources = (exportSources: Record<string, string>) =>
-  Object.entries(exportSources)
+const getCurrentExportSources = (
+  exportSources: ExportSourceCache,
+  activeTimelineKey: string,
+) =>
+  Object.entries(exportSources[activeTimelineKey] ?? {})
     .filter(([, svg]) => svg.trim().length > 0)
     .map(([variable, svg]) => ({ variable, svg }));
 
-export const useExportState = ({ exportSources, messageApi, projectName }: UseExportStateOptions) => {
+export const useExportState = ({ activeTimelineKey, exportSources, messageApi, projectName }: UseExportStateOptions) => {
   const handleExport = useCallback(async (scope: ExportScope = "current") => {
     void scope;
-    const exportable = getCurrentExportSources(exportSources);
+    const exportable = getCurrentExportSources(exportSources, activeTimelineKey);
 
     if (!exportable.length) {
       throw new Error("Run once and wait for the current step to finish rendering before exporting.");
@@ -91,7 +96,7 @@ export const useExportState = ({ exportSources, messageApi, projectName }: UseEx
     messageApi.success(
       `Exported ${exportable.length} visualization${exportable.length === 1 ? "" : "s"} for the current step.`,
     );
-  }, [exportSources, messageApi, projectName]);
+  }, [activeTimelineKey, exportSources, messageApi, projectName]);
 
   return { handleExport };
 };

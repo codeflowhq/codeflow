@@ -8,11 +8,13 @@ import type { GlobalConfig, ManifestEntry, VariableConfig } from "../../shared/t
 
 export const useVisualizationRun = ({
   globalConfig,
+  sessionRuntimeWheels = [],
   sourceCode,
   variableConfigs,
   watchVariables,
 }: {
   globalConfig: GlobalConfig;
+  sessionRuntimeWheels?: string[];
   sourceCode: string;
   variableConfigs: Record<string, VariableConfig>;
   watchVariables: string[];
@@ -28,7 +30,7 @@ export const useVisualizationRun = ({
       const data = await runVisualizationInBrowser({
         snippet: sourceCode,
         watch: watchVariables.length ? watchVariables : undefined,
-        config: buildVisualizationRuntimeConfig({ globalConfig, variableConfigs }),
+        config: buildVisualizationRuntimeConfig({ globalConfig, sessionRuntimeWheels, variableConfigs }),
       });
       setManifest(data.manifest ?? []);
       setStatus("ready");
@@ -40,7 +42,7 @@ export const useVisualizationRun = ({
       setStatusMessage(message);
       throw error;
     }
-  }, [globalConfig, sourceCode, variableConfigs, watchVariables]);
+  }, [globalConfig, sessionRuntimeWheels, sourceCode, variableConfigs, watchVariables]);
 
   return { manifest, runVisualization, setManifest, setStatusMessage, status, statusMessage };
 };

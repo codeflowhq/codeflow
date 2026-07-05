@@ -103,6 +103,8 @@ type UseLibraryStoreOptions = {
   requestExampleRun: () => void;
 };
 
+const EMPTY_PROJECT_SNIPPET = "";
+
 export const useLibraryStore = ({
   storageKey,
   defaultSnippet,
@@ -145,7 +147,7 @@ export const useLibraryStore = ({
     name: "Untitled project",
     description: "",
     labels: [],
-    sourceCode: defaultSnippet,
+    sourceCode: EMPTY_PROJECT_SNIPPET,
     watchVariables: ["data"],
     globalConfig: defaultGlobalConfig,
     variableConfigs: {},
@@ -277,7 +279,7 @@ export const useLibraryStore = ({
   ]);
 
   const handleCreateProject = useCallback(() => {
-    persistSourceCode(defaultSnippet);
+    persistSourceCode(EMPTY_PROJECT_SNIPPET);
     persistWatchVariables(["data"]);
     persistGlobalConfig(defaultGlobalConfig);
     persistVariableConfigs({});
@@ -292,7 +294,6 @@ export const useLibraryStore = ({
     messageApi.success("Started a new project.");
   }, [
     defaultGlobalConfig,
-    defaultSnippet,
     messageApi,
     openVisualizationMain,
     persistGlobalConfig,
@@ -308,6 +309,8 @@ export const useLibraryStore = ({
     activeProjectName,
     activeProjectDescription,
     activeProjectLabels,
+    activeProjectId,
+    hasSavedProject: activeProjectId !== null,
     collections,
     saveModalOpen,
     setActiveProjectName,
