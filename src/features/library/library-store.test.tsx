@@ -324,7 +324,7 @@ describe("useLibraryStore", () => {
     });
 
     expect(persistSourceCode).toHaveBeenCalledWith("");
-    expect(persistWatchVariables).toHaveBeenCalledWith(["data"]);
+    expect(persistWatchVariables).toHaveBeenCalledWith([]);
     expect(persistGlobalConfig).toHaveBeenCalledWith(baseGlobalConfig);
     expect(persistVariableConfigs).toHaveBeenCalledWith({});
     expect(persistManifest).toHaveBeenCalledWith([]);

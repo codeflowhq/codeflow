@@ -280,7 +280,7 @@ export const useLibraryStore = ({
 
   const handleCreateProject = useCallback(() => {
     persistSourceCode(EMPTY_PROJECT_SNIPPET);
-    persistWatchVariables(["data"]);
+    persistWatchVariables([]);
     persistGlobalConfig(defaultGlobalConfig);
     persistVariableConfigs({});
     persistManifest([]);

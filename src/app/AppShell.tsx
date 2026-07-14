@@ -83,7 +83,7 @@ function App() {
     handleSubmitWatchExpression,
   } = useVariableWatch({
     defaultVariableConfig,
-    initialWatchVariables: ["data"],
+    initialWatchVariables: [],
     isWatchExpression,
     getWatchExpressionRoot,
     availableVariableRoots: candidateVariables,
