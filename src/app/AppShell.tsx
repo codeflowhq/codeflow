@@ -200,7 +200,7 @@ function App() {
     activeExecutionLine,
     isPythonIdentifier,
     selectableIdentifiers: candidateVariables,
-    draftHighlightIdentifier: watchList.selectionLocked ? draftHighlightIdentifier : null,
+    draftHighlightIdentifier,
     onIdentifierClick: (identifier) => {
       watchList.setSelectedVariable(identifier);
       if (watchList.selectionLocked) {

@@ -151,7 +151,7 @@ const EditorPanel = ({
         </div>
       ) : null}
 
-      <div className="editor-shell">
+      <div className={`editor-shell${watchState.advancedSelectionOpen && !watchState.selectionLocked ? " editor-shell-advanced-selection" : ""}`}>
         {watchState.selectionLocked || watchState.advancedSelectionOpen ? (
           <Tooltip title={watchState.selectionLocked ? "Cannot edit in selection mode." : "Cannot edit in advanced selection."}>
             <div

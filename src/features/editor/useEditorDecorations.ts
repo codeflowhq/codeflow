@@ -118,7 +118,6 @@ export const useEditorDecorations = ({
             range: new monaco.Range(lineNumber, identifier.startColumn, lineNumber, identifier.endColumn),
             options: {
               inlineClassName: highlightClassName,
-              hoverMessage: { value: isDraftMatch ? "Matches the current advanced selection root." : "Click to add this variable to watch." },
             },
           });
         }
