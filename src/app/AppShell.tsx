@@ -200,14 +200,15 @@ function App() {
     activeExecutionLine,
     isPythonIdentifier,
     selectableIdentifiers: candidateVariables,
-    draftHighlightIdentifier,
+    draftHighlightIdentifier: watchList.selectionLocked ? draftHighlightIdentifier : null,
     onIdentifierClick: (identifier) => {
       watchList.setSelectedVariable(identifier);
       if (watchList.selectionLocked) {
         handleAddWatchVariable(identifier);
       }
     },
-    selectionEnabled: watchList.selectionLocked || watchList.advancedSelectionOpen,
+    selectionEnabled: watchList.selectionLocked,
+    readOnlyEnabled: watchList.selectionLocked || watchList.advancedSelectionOpen,
   });
 
   const { handleShare } = useShareState({

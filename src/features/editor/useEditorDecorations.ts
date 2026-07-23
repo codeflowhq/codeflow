@@ -36,6 +36,7 @@ type UseEditorDecorationsOptions = {
   draftHighlightIdentifier: string | null;
   onIdentifierClick: (identifier: string) => void;
   selectionEnabled: boolean;
+  readOnlyEnabled: boolean;
 };
 
 export type EditorMountHandler = OnMount;
@@ -47,6 +48,7 @@ export const useEditorDecorations = ({
   draftHighlightIdentifier,
   onIdentifierClick,
   selectionEnabled,
+  readOnlyEnabled,
 }: UseEditorDecorationsOptions) => {
   const [editorApi, setEditorApi] = useState<EditorApi | null>(null);
   const clickDisposableRef = useRef<{ dispose: () => void } | null>(null);
@@ -136,11 +138,11 @@ export const useEditorDecorations = ({
 
     try {
       currentDecorationsRef.current = editor.deltaDecorations(currentDecorationsRef.current, decorations);
-      editor.updateOptions({ readOnly: selectionEnabled, mouseStyle: selectionEnabled ? "copy" : "text" });
+      editor.updateOptions({ readOnly: readOnlyEnabled, mouseStyle: selectionEnabled ? "copy" : "text" });
     } catch {
       // Monaco can dispose between React passes during remount; skip stale updates.
     }
-  }, [activeExecutionLine, draftHighlightIdentifier, editorApi, isPythonIdentifier, selectableIdentifierSet, selectionEnabled]);
+  }, [activeExecutionLine, draftHighlightIdentifier, editorApi, isPythonIdentifier, readOnlyEnabled, selectableIdentifierSet, selectionEnabled]);
 
   useEffect(() => () => {
     clickDisposableRef.current?.dispose();
