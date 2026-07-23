@@ -207,7 +207,7 @@ function App() {
         handleAddWatchVariable(identifier);
       }
     },
-    selectionEnabled: watchList.selectionLocked,
+    selectionEnabled: watchList.selectionLocked || watchList.advancedSelectionOpen,
   });
 
   const { handleShare } = useShareState({
