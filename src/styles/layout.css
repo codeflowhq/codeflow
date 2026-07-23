@@ -192,9 +192,26 @@
 }
 
 .editor-shell {
+  position: relative;
   border-radius: 12px;
   overflow: hidden;
   border: 1px solid #dbe1ea;
+}
+
+.editor-readonly-indicator {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.72);
+  color: #f8fafc;
+  pointer-events: auto;
 }
 
 .variables-list-section,
@@ -254,6 +271,11 @@
 .watch-card-selected {
   border-color: #93c5fd;
   background: #eff6ff;
+}
+
+.watch-card-guide-placeholder {
+  cursor: default;
+  opacity: 0.92;
 }
 
 .watch-card-main {
@@ -334,6 +356,11 @@
 .timeline-summary {
   display: flex;
   align-items: center;
+}
+
+.timeline-primary-action {
+  width: 96px;
+  justify-content: center;
 }
 
 .timeline-slider-block {

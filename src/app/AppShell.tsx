@@ -1,6 +1,8 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { editor } from "monaco-editor";
 import { App as AntApp, Button, Layout, Modal, Space, Typography } from "antd";
+import type { ReactNode } from "react";
+import { QuestionCircleOutlined } from "@ant-design/icons";
 
 import { EXAMPLE_LIBRARY } from "../data/examples";
 import {
@@ -31,9 +33,10 @@ import { useLibraryStore } from "../features/library/library-store";
 import { useNavigationState } from "../features/navigation/useNavigationState";
 import { AppRoutes } from "./routes";
 import { AppErrorBoundary } from "../components/AppErrorBoundary";
-import { useGlobalErrorHandling } from "../shared/hooks/useGlobalErrorHandling";
+import { DUPLICATE_WINDOW_MS, useGlobalErrorHandling } from "../shared/hooks/useGlobalErrorHandling";
 import { useActionBoundary } from "../shared/hooks/useActionBoundary";
 import { TOP_MENU_LIBRARY } from "../features/navigation/navigationState";
+import { TOP_MENU_VISUALIZATION, VIZ_MENU_MAIN } from "../features/navigation/navigationState";
 import FeatureBoundary from "../shared/ui/FeatureBoundary";
 import type { CollectionRecord, ExampleRecord, ViewKind } from "../shared/types/visualization";
 import "antd/dist/reset.css";
@@ -48,6 +51,22 @@ const { Text } = Typography;
 
 const normalizeActionError = (fallback: string) => (error: unknown) =>
   error instanceof Error && error.message ? error.message : fallback;
+
+const renderModalErrorContent = (content: string): ReactNode => {
+  const missingPackageMatch = /^Missing Python package:\s*([^.]+)\.\s*Add it in Settings > Runtime packages, then run again\.$/.exec(content);
+  if (!missingPackageMatch) {
+    return content;
+  }
+  return (
+    <Space wrap size={[6, 6]}>
+      <Text type="danger">Missing Python package</Text>
+      <Text code>{missingPackageMatch[1]}</Text>
+      <Text type="secondary">Add it in</Text>
+      <Text code>Settings &gt; Runtime packages</Text>
+      <Text type="secondary">then run again.</Text>
+    </Space>
+  );
+};
 
 type SessionRuntimeWheel = {
   name: string;
@@ -64,12 +83,21 @@ function App() {
   const [globalConfig, setGlobalConfig] = useState(defaultGlobalConfig);
   const [exportSources, setExportSources] = useState<ExportSourceCache>({});
   const [sessionRuntimeWheels, setSessionRuntimeWheels] = useState<SessionRuntimeWheel[]>([]);
+  const [lastRunSignature, setLastRunSignature] = useState("");
+  const [guideOpen, setGuideOpen] = useState(false);
+  const lastModalErrorRef = useRef<{ content: string; timestamp: number } | null>(null);
   const navigation = useNavigationState();
 
   const candidateVariables = useMemo(() => extractCandidateVariables(sourceCode), [sourceCode]);
 
   const showErrorModal = useCallback((title: string, content: string) => {
-    modal.error({ title, content, centered: true });
+    const now = Date.now();
+    const previous = lastModalErrorRef.current;
+    if (previous && previous.content === content && now - previous.timestamp < DUPLICATE_WINDOW_MS) {
+      return;
+    }
+    lastModalErrorRef.current = { content, timestamp: now };
+    modal.error({ title, content: renderModalErrorContent(content), centered: true });
   }, [modal]);
 
   useGlobalErrorHandling(showErrorModal);
@@ -149,6 +177,13 @@ function App() {
   });
 
   const timelineState = useTimelinePlayback(manifest);
+  const runSignature = useMemo(() => JSON.stringify({
+    sourceCode,
+    watchVariables: watchList.watchVariables,
+    variableConfigs: configState.variableConfigs,
+    globalConfig,
+    sessionRuntimeWheels: sessionRuntimeWheels.map((wheel) => wheel.name),
+  }), [configState.variableConfigs, globalConfig, sessionRuntimeWheels, sourceCode, watchList.watchVariables]);
 
   const manifestVariables = useMemo(() => manifest.map((entry) => entry.variable), [manifest]);
   const activeExecutionLine = useMemo(() => {
@@ -255,11 +290,47 @@ function App() {
     setSaveModalOpen(true);
   }, [libraryState, runAction, setSaveModalOpen]);
 
+  const promptUnsavedChanges = useCallback((
+    content: string,
+    onDiscard: () => void | Promise<void>,
+  ) => {
+    const instance = modal.confirm({
+      title: "Discard unsaved changes?",
+      content,
+      centered: true,
+      okText: "Discard and continue",
+      cancelText: "Cancel",
+      footer: (_origin, { OkBtn, CancelBtn }) => (
+        <Space>
+          <CancelBtn />
+          <Button
+            onClick={() => {
+              instance?.destroy?.();
+              openSaveModal();
+            }}
+          >
+            Save
+          </Button>
+          <OkBtn />
+        </Space>
+      ),
+      onOk: () => onDiscard(),
+    });
+  }, [modal, openSaveModal]);
+
   const handleRunVisualization = useCallback(async () => {
     configState.closeConfigDrawer();
     setExportSources({});
-    await runRuntimeAction(() => runVisualization(), "Visualization failed");
-  }, [configState, runRuntimeAction, runVisualization]);
+    try {
+      const succeeded = await runRuntimeAction(() => runVisualization(), "Visualization failed");
+      if (succeeded) {
+        setLastRunSignature(runSignature);
+      }
+      return Boolean(succeeded);
+    } catch {
+      return false;
+    }
+  }, [configState, runRuntimeAction, runVisualization, runSignature]);
 
   const handleRuntimeWheelUpload = useCallback((files: FileList | null) => {
     if (!files || files.length === 0) {
@@ -392,6 +463,7 @@ function App() {
   ]);
 
   const editorState = useMemo(() => ({
+    hasPendingRunChanges: runSignature !== lastRunSignature,
     editorOptions,
     handleEditorMount,
     runtimeReady,
@@ -399,7 +471,7 @@ function App() {
     sourceCode,
     status,
     statusMessage,
-  }), [editorOptions, handleEditorMount, runtimeReady, sourceCode, status, statusMessage]);
+  }), [editorOptions, handleEditorMount, lastRunSignature, runSignature, runtimeReady, sourceCode, status, statusMessage]);
 
   const handleExportProject = useCallback(async (scope: ExportScope = "current") => {
     await runAction(() => handleExport(scope), {
@@ -416,11 +488,16 @@ function App() {
   }, [handleShare, runAction]);
 
   const handleLoadCollection = useCallback(async (record: CollectionRecord) => {
-    await runAction(() => Promise.resolve(libraryState.handleLoadCollection(record)), {
+    const load = () => runAction(() => Promise.resolve(libraryState.handleLoadCollection(record)), {
       title: "Load project failed",
       normalize: normalizeActionError(`Could not load ${record.name}.`),
     });
-  }, [libraryState, runAction]);
+    if (!libraryState.hasUnsavedChanges) {
+      await load();
+      return;
+    }
+    promptUnsavedChanges(`The current project has unsaved changes. Open ${record.name} anyway?`, load);
+  }, [libraryState, promptUnsavedChanges, runAction]);
 
   const handleDeleteCollection = useCallback(async (record: CollectionRecord) => {
     await runAction(() => Promise.resolve(libraryState.handleDeleteCollection(record)), {
@@ -430,33 +507,36 @@ function App() {
   }, [libraryState, runAction]);
 
   const handleLoadExample = useCallback(async (example: ExampleRecord) => {
-    await runAction(() => Promise.resolve(libraryState.handleLoadExample(example)), {
+    const load = () => runAction(() => Promise.resolve(libraryState.handleLoadExample(example)), {
       title: "Load example failed",
       normalize: normalizeActionError(`Could not load ${example.title}.`),
     });
-  }, [libraryState, runAction]);
+    if (!libraryState.hasUnsavedChanges) {
+      await load();
+      return;
+    }
+    promptUnsavedChanges(`The current project has unsaved changes. Open ${example.title} anyway?`, load);
+  }, [libraryState, promptUnsavedChanges, runAction]);
 
   const handleCreateProject = useCallback(() => {
     if (!libraryState.hasUnsavedChanges) {
       libraryState.handleCreateProject();
       return;
     }
-    modal.confirm({
-      title: "Discard unsaved changes?",
-      content: "The current project has unsaved changes. Start a new project anyway?",
-      centered: true,
-      okText: "Discard and continue",
-      onOk: () => {
+    promptUnsavedChanges(
+      "The current project has unsaved changes. Start a new project anyway?",
+      () => {
         libraryState.handleCreateProject();
       },
-    });
-  }, [libraryState, modal]);
+    );
+  }, [libraryState, promptUnsavedChanges]);
 
   const pageActions = useMemo(() => ({
     runVisualization: handleRunVisualization,
     openSettings: navigation.openVisualizationConfig,
     openCollections: navigation.openLibrary,
     openSaveModal,
+    openGuide: () => setGuideOpen(true),
     exportProject: handleExportProject,
     shareProject: handleShareProject,
   }), [handleExportProject, handleRunVisualization, handleShareProject, navigation.openLibrary, navigation.openVisualizationConfig, openSaveModal]);
@@ -536,6 +616,11 @@ function App() {
             <span className="app-brand-name">CodeFlow</span>
           </Button>
           <Space size={12}>
+            {navigation.topMenuKey === TOP_MENU_VISUALIZATION && navigation.vizMenuKey === VIZ_MENU_MAIN ? (
+              <Button icon={<QuestionCircleOutlined />} onClick={() => setGuideOpen(true)}>
+                Guide
+              </Button>
+            ) : null}
             <Button onClick={handleCreateProject}>
               New project
             </Button>
@@ -558,6 +643,8 @@ function App() {
                 libraryState.setActiveProjectDescription(description);
                 libraryState.setActiveProjectLabels(labels);
               }}
+              guideOpen={guideOpen}
+              onCloseGuide={() => setGuideOpen(false)}
               workspaceValue={workspaceValue}
               configPageProps={configPageProps}
               libraryPageProps={libraryPageProps}

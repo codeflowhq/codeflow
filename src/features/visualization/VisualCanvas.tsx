@@ -83,7 +83,8 @@ type VisualCanvasProps = {
   exportSources: ExportSourceCache;
   onOpenConfig: (variable: string) => void;
   onRemoveVariable?: (variable: string) => void;
-  onRunVisualization: () => Promise<void>;
+  onRunVisualization: () => Promise<boolean>;
+  onOpenGuide: () => void;
   canRun: boolean;
   layoutMode: VisualizationLayoutMode;
   layoutState: VisualizationLayoutState;
@@ -103,6 +104,7 @@ const VisualCanvas = ({
   onOpenConfig,
   onRemoveVariable,
   onRunVisualization,
+  onOpenGuide,
   canRun,
   layoutMode,
   layoutState,
@@ -240,12 +242,13 @@ const VisualCanvas = ({
           description={(
             <Space orientation="vertical" size={10} style={{ width: "100%" }}>
               <Text strong>No visualization yet</Text>
-              <Text type="secondary">1. Select variables to watch</Text>
-              <Text type="secondary">2. Run the visualization</Text>
-              <Text type="secondary">3. Step through the execution</Text>
-              <Button type="primary" disabled={!canRun} onClick={() => void onRunVisualization()}>
-                Run visualization
-              </Button>
+              <Text type="secondary">Open Guide for a quick walkthrough, or press Play after choosing variables.</Text>
+              <Space wrap>
+                <Button onClick={onOpenGuide}>Open guide</Button>
+                <Button type="primary" disabled={!canRun} onClick={() => void onRunVisualization()}>
+                  Play
+                </Button>
+              </Space>
             </Space>
           )}
         />

@@ -32,6 +32,8 @@ type AppRoutesProps = {
   projectLabels: string[];
   availableLabels: string[];
   onUpdateProjectDetails: (name: string, description: string, labels: string[]) => void;
+  guideOpen: boolean;
+  onCloseGuide: () => void;
 };
 
 export const AppRoutes = ({
@@ -44,6 +46,8 @@ export const AppRoutes = ({
   projectLabels,
   availableLabels,
   onUpdateProjectDetails,
+  guideOpen,
+  onCloseGuide,
 }: AppRoutesProps) => (
   <div className="page-copy workspace-shell">
     {navigation.topMenuKey === TOP_MENU_VISUALIZATION && navigation.vizMenuKey === VIZ_MENU_MAIN ? (
@@ -57,6 +61,8 @@ export const AppRoutes = ({
               availableLabels={availableLabels}
               onOpenSettings={navigation.openVisualizationConfig}
               onUpdateProjectDetails={onUpdateProjectDetails}
+              guideOpen={guideOpen}
+              onCloseGuide={onCloseGuide}
             />
           </Suspense>
         </PageBoundary>

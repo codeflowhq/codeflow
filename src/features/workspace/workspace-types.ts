@@ -36,6 +36,7 @@ export type WatchState = {
 };
 
 export type EditorState = {
+  hasPendingRunChanges: boolean;
   editorOptions: editor.IStandaloneEditorConstructionOptions;
   handleEditorMount: EditorMountHandler;
   runtimeReady: boolean;
@@ -57,10 +58,11 @@ export type TimelineState = {
 };
 
 export type PageActions = {
-  runVisualization: () => Promise<void>;
+  runVisualization: () => Promise<boolean>;
   openSettings: () => void;
   openCollections: () => void;
   openSaveModal: () => void;
+  openGuide: () => void;
   exportProject: (scope?: ExportScope) => Promise<void>;
   shareProject: () => Promise<void>;
 };

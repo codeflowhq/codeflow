@@ -8,9 +8,17 @@ const { Text } = Typography;
 
 type WatchPanelProps = {
   watchState: WatchState;
+  addButtonRef?: ((node: HTMLSpanElement | null) => void) | undefined;
+  firstConfigButtonRef?: ((node: HTMLButtonElement | null) => void) | undefined;
+  showGuideVariablePlaceholder?: boolean;
 };
 
-const WatchPanel = ({ watchState }: WatchPanelProps) => {
+const WatchPanel = ({
+  watchState,
+  addButtonRef,
+  firstConfigButtonRef,
+  showGuideVariablePlaceholder = false,
+}: WatchPanelProps) => {
   const watchCards = useMemo(() => watchState.watchVariables.map((variable) => ({
     variable,
     pending: watchState.pendingWatchVariables.includes(variable),
@@ -21,28 +29,42 @@ const WatchPanel = ({ watchState }: WatchPanelProps) => {
       className="surface-card surface-card-subtle variable-card-large"
       title="Variables"
       extra={(
-        <Dropdown
-          menu={{
-            items: [
-              { key: "select", label: "Select variables" },
-              { key: "advanced", label: "Advanced selection" },
-            ],
-            onClick: ({ key }) => {
-              if (key === "select") {
-                watchState.setAdvancedSelectionOpen(false);
-                watchState.setSelectionLocked(true);
-                return;
-              }
-              watchState.setSelectionLocked(false);
-              watchState.setAdvancedSelectionOpen(true);
-            },
-          }}
-          trigger={["click"]}
-        >
-          <Button type="primary">
-            + Add <DownOutlined />
-          </Button>
-        </Dropdown>
+        <Space size={8}>
+          {watchState.selectionLocked ? (
+            <Button onClick={() => watchState.setSelectionLocked(false)}>
+              Exit select mode
+            </Button>
+          ) : watchState.advancedSelectionOpen ? (
+            <Button onClick={() => watchState.setAdvancedSelectionOpen(false)}>
+              Exit advanced selection
+            </Button>
+          ) : (
+            <Dropdown
+              menu={{
+                items: [
+                  { key: "select", label: "Select variables" },
+                  { key: "advanced", label: "Advanced selection" },
+                ],
+                onClick: ({ key }) => {
+                  if (key === "select") {
+                    watchState.setAdvancedSelectionOpen(false);
+                    watchState.setSelectionLocked(true);
+                    return;
+                  }
+                  watchState.setSelectionLocked(false);
+                  watchState.setAdvancedSelectionOpen(true);
+                },
+              }}
+              trigger={["click"]}
+            >
+              <span ref={addButtonRef}>
+                <Button type="primary">
+                  + Add <DownOutlined />
+                </Button>
+              </span>
+            </Dropdown>
+          )}
+        </Space>
       )}
     >
       <Space orientation="vertical" size={18} style={{ width: "100%" }}>
@@ -59,6 +81,7 @@ const WatchPanel = ({ watchState }: WatchPanelProps) => {
                 <Space size={4}>
                   {pending ? <Tag color="orange">pending</Tag> : null}
                   <Button
+                    ref={variable === watchCards[0]?.variable ? firstConfigButtonRef : undefined}
                     type="text"
                     size="small"
                     icon={<SettingOutlined />}
@@ -81,7 +104,22 @@ const WatchPanel = ({ watchState }: WatchPanelProps) => {
                   />
                 </Space>
               </div>
-            )) : <Text type="secondary">No variables watched yet.</Text>}
+            )) : (
+              <Space orientation="vertical" size={4}>
+                <Text type="secondary">No variables watched yet.</Text>
+                {showGuideVariablePlaceholder ? (
+                  <div className="watch-card watch-card-guide-placeholder" aria-hidden="true">
+                    <div className="watch-card-main">
+                      <Text strong>example</Text>
+                      <Text type="secondary">Guide preview</Text>
+                    </div>
+                    <Space size={4}>
+                      <Button ref={firstConfigButtonRef} type="text" size="small" icon={<SettingOutlined />} />
+                    </Space>
+                  </div>
+                ) : null}
+              </Space>
+            )}
         </div>
       </Space>
     </Card>

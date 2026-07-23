@@ -66,7 +66,7 @@ const SettingsPage = ({
   const typeDefaultColumns: ColumnsType<TypeDefaultRow> = [
     { title: "Data type", dataIndex: "label", key: "label" },
     {
-      title: "Default view",
+      title: "Default display mode",
       dataIndex: "viewKind",
       key: "viewKind",
       render: (value, record) => (
@@ -238,7 +238,7 @@ const SettingsPage = ({
         </Form>
       </Card>
 
-      <Card className="surface-card" title="Default view by data type">
+      <Card className="surface-card" title="Default display mode by data type">
         <Table rowKey="key" pagination={false} dataSource={typeDefaultRows} columns={typeDefaultColumns} />
       </Card>
 

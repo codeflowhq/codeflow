@@ -131,7 +131,7 @@ const VariableConfigDrawer = ({
         <>
           <Form layout="vertical">
             <Paragraph type="secondary">
-              Configure how this watched variable is rendered. Use the variable list on the left to jump between watched variables without leaving this dialog.
+              Configure how this watched variable is shown. Display mode controls how the variable is rendered, not whether it is tracked. Use the variable list on the left to jump between watched variables without leaving this dialog.
             </Paragraph>
             <div className="watch-settings-layout">
               <div className="watch-settings-sidebar">
@@ -162,7 +162,7 @@ const VariableConfigDrawer = ({
                     style={{ marginBottom: 16 }}
                   />
                 ) : null}
-                <Form.Item label="View kind">
+                <Form.Item label="Display mode">
                   <Select
                     value={selectedDraft.viewKind}
                     options={viewKindOptions.map((value) => ({ label: value, value }))}

@@ -59,4 +59,24 @@ describe("WatchPanel", () => {
     expect(screen.queryByText("Watch list")).toBeNull();
     expect(screen.queryByText("Detected variables")).toBeNull();
   });
+
+  it("shows a guide-only variable settings placeholder when requested", () => {
+    const watchState = buildWatchState({
+      selectionLocked: false,
+      watchVariables: [],
+    });
+    render(<WatchPanel watchState={watchState} showGuideVariablePlaceholder />);
+
+    expect(screen.getByText("Guide preview")).toBeTruthy();
+  });
+
+  it("does not show the guide placeholder during the normal empty state", () => {
+    const watchState = buildWatchState({
+      selectionLocked: false,
+      watchVariables: [],
+    });
+    render(<WatchPanel watchState={watchState} />);
+
+    expect(screen.queryByText("Guide preview")).toBeNull();
+  });
 });

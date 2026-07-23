@@ -27,6 +27,7 @@ import type { WorkspaceValue } from "./workspace-types";
 
 const workspaceValue: WorkspaceValue = {
   editorState: {
+    hasPendingRunChanges: false,
     editorOptions: {},
     handleEditorMount: vi.fn(),
     runtimeReady: true,
@@ -36,10 +37,11 @@ const workspaceValue: WorkspaceValue = {
     statusMessage: "Runtime ready",
   },
   pageActions: {
-    runVisualization: vi.fn(async () => undefined),
+    runVisualization: vi.fn(async () => true),
     openSettings: vi.fn(),
     openCollections: vi.fn(),
     openSaveModal: vi.fn(),
+    openGuide: vi.fn(),
     exportProject: vi.fn(async () => undefined),
     shareProject: vi.fn(async () => undefined),
   },
@@ -101,6 +103,8 @@ describe("WorkspacePage", () => {
           availableLabels={[]}
           onOpenSettings={vi.fn()}
           onUpdateProjectDetails={vi.fn()}
+          guideOpen={false}
+          onCloseGuide={vi.fn()}
         />
       </WorkspaceProvider>,
     );
@@ -124,6 +128,8 @@ describe("WorkspacePage", () => {
           availableLabels={[]}
           onOpenSettings={vi.fn()}
           onUpdateProjectDetails={vi.fn()}
+          guideOpen={false}
+          onCloseGuide={vi.fn()}
         />
       </WorkspaceProvider>,
     );
@@ -158,6 +164,8 @@ describe("WorkspacePage", () => {
           availableLabels={[]}
           onOpenSettings={vi.fn()}
           onUpdateProjectDetails={vi.fn()}
+          guideOpen={false}
+          onCloseGuide={vi.fn()}
         />
       </WorkspaceProvider>,
     );

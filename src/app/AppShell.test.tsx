@@ -3,6 +3,7 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
+import type { ExampleRecord, CollectionRecord } from "../shared/types/visualization";
 
 const modalConfirmMock = vi.fn();
 const handleCreateProjectMock = vi.fn();
@@ -55,7 +56,23 @@ vi.mock("../features/editor/useEditorDecorations", () => ({
 }));
 
 vi.mock("../features/settings/settings-store", () => ({
-  useSettingsStore: () => ({ configPageProps: {}, libraryPageProps: {} }),
+  useSettingsStore: ({ libraryState }: {
+    libraryState: {
+      collections: unknown[];
+      handleDeleteCollection: (record: CollectionRecord) => Promise<void>;
+      handleLoadCollection: (record: CollectionRecord) => Promise<void>;
+      handleLoadExample: (example: ExampleRecord) => Promise<void>;
+    };
+  }) => ({
+    configPageProps: {},
+    libraryPageProps: {
+      collections: libraryState.collections,
+      examples: [],
+      onDeleteCollection: libraryState.handleDeleteCollection,
+      onLoadCollection: libraryState.handleLoadCollection,
+      onLoadExample: libraryState.handleLoadExample,
+    },
+  }),
 }));
 
 vi.mock("../features/workspace/useRuntimeBootstrap", () => ({
@@ -118,7 +135,7 @@ vi.mock("../features/visualization/useExportState", () => ({
 vi.mock("../features/visualization/useVisualizationRun", () => ({
   useVisualizationRun: () => ({
     manifest: [],
-    runVisualization: vi.fn(async () => undefined),
+    runVisualization: vi.fn(async () => true),
     setManifest: vi.fn(),
     setStatusMessage: vi.fn(),
     status: "ready",
@@ -166,10 +183,56 @@ vi.mock("../shared/hooks/useActionBoundary", () => ({
 }));
 
 vi.mock("./routes", () => ({
-  AppRoutes: ({ workspaceValue }: { workspaceValue: { pageActions: { openSaveModal: () => void } } }) => (
-    <button type="button" onClick={workspaceValue.pageActions.openSaveModal}>
-      Save project
-    </button>
+  AppRoutes: ({
+    workspaceValue,
+    libraryPageProps,
+  }: {
+    workspaceValue: { pageActions: { openSaveModal: () => void } };
+    libraryPageProps: {
+      onLoadExample: (example: ExampleRecord) => Promise<void>;
+      onLoadCollection: (record: CollectionRecord) => Promise<void>;
+    };
+  }) => (
+    <>
+      <button type="button" onClick={workspaceValue.pageActions.openSaveModal}>
+        Save project
+      </button>
+      <button
+        type="button"
+        onClick={() => void libraryPageProps.onLoadExample({
+          key: "example",
+          title: "Example A",
+          description: "",
+          snippet: "data = [1]",
+        })}
+      >
+        Load example
+      </button>
+      <button
+        type="button"
+        onClick={() => void libraryPageProps.onLoadCollection({
+          id: "collection-1",
+          name: "Project A",
+          sourceCode: "data = [1]",
+          watchVariables: ["data"],
+          variableConfigs: {},
+          globalConfig: {
+            stepLimit: 12,
+            maxDepth: 3,
+            maxItemsPerView: 10,
+            recursionDepthDefault: 2,
+            showTitles: true,
+            customConverters: "",
+            runtimePackages: "",
+            runtimeWheels: "",
+            typeViewDefaults: {},
+          },
+          savedAt: new Date("2026-07-23T00:00:00Z").toISOString(),
+        })}
+      >
+        Load collection
+      </button>
+    </>
   ),
 }));
 
@@ -221,6 +284,7 @@ describe("AppShell", () => {
 
     expect(handleCreateProjectMock).not.toHaveBeenCalled();
     expect(modalConfirmMock).toHaveBeenCalledTimes(1);
+    expect((modalConfirmMock.mock.calls[0]?.[0] as { footer?: unknown }).footer).toBeTruthy();
 
     const config = modalConfirmMock.mock.calls[0]?.[0] as { onOk?: () => void };
     config.onOk?.();
@@ -250,5 +314,63 @@ describe("AppShell", () => {
 
     expect(libraryState.handleSaveCollection).not.toHaveBeenCalled();
     expect(libraryState.setSaveModalOpen).toHaveBeenCalledWith(true);
+  });
+
+  it("asks before loading an example when there are unsaved changes", () => {
+    const libraryState = libraryStateFactory({ hasUnsavedChanges: true });
+    useLibraryStoreMock.mockReturnValue(libraryState);
+
+    render(<AppShell />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Load example" }));
+
+    expect(libraryState.handleLoadExample).not.toHaveBeenCalled();
+    expect(modalConfirmMock).toHaveBeenCalledTimes(1);
+
+    const config = modalConfirmMock.mock.calls[0]?.[0] as { onOk?: () => void };
+    config.onOk?.();
+
+    expect(libraryState.handleLoadExample).toHaveBeenCalledTimes(1);
+  });
+
+  it("asks before loading a collection when there are unsaved changes", () => {
+    const libraryState = libraryStateFactory({ hasUnsavedChanges: true });
+    useLibraryStoreMock.mockReturnValue(libraryState);
+
+    render(<AppShell />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Load collection" }));
+
+    expect(libraryState.handleLoadCollection).not.toHaveBeenCalled();
+    expect(modalConfirmMock).toHaveBeenCalledTimes(1);
+
+    const config = modalConfirmMock.mock.calls[0]?.[0] as { onOk?: () => void };
+    config.onOk?.();
+
+    expect(libraryState.handleLoadCollection).toHaveBeenCalledTimes(1);
+  });
+
+  it("lets the user save from the unsaved-changes prompt", () => {
+    const libraryState = libraryStateFactory({ hasUnsavedChanges: true, hasSavedProject: false });
+    useLibraryStoreMock.mockReturnValue(libraryState);
+
+    render(<AppShell />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Load example" }));
+
+    const config = modalConfirmMock.mock.calls[0]?.[0] as {
+      footer?: (origin: unknown, components: { OkBtn: () => ReactNode; CancelBtn: () => ReactNode }) => ReactNode;
+    };
+    const footer = config.footer?.(null, {
+      OkBtn: () => <button type="button">Discard and continue</button>,
+      CancelBtn: () => <button type="button">Cancel</button>,
+    });
+
+    render(<>{footer}</>);
+
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(libraryState.setSaveModalOpen).toHaveBeenCalledWith(true);
+    expect(libraryState.handleLoadExample).not.toHaveBeenCalled();
   });
 });

@@ -1,6 +1,7 @@
 import Editor from "@monaco-editor/react";
-import { Button, Card, Input, Space, Tag, Typography } from "antd";
-import { CloseOutlined, PlusOutlined } from "@ant-design/icons";
+import { Alert, Button, Card, Input, Space, Tag, Tooltip, Typography } from "antd";
+import { CloseOutlined, LockOutlined, PlusOutlined } from "@ant-design/icons";
+import type { ReactNode } from "react";
 
 import type { EditorState, WatchState } from "../workspace/workspace-types";
 
@@ -9,7 +10,6 @@ const { Text } = Typography;
 type EditorPanelProps = {
   editorState: EditorState;
   watchState: WatchState;
-  onExitPickingMode: () => void;
   onCloseAdvancedSelection: () => void;
 };
 
@@ -29,6 +29,40 @@ const statusLabel = (status: string) => {
   }
   return status;
 };
+
+const statusAlertType = (status: string, message: string) => {
+  if (status === "error") {
+    return "error" as const;
+  }
+  if (status === "loading") {
+    return "info" as const;
+  }
+  if (message !== "Runtime ready") {
+    return "warning" as const;
+  }
+  return "info" as const;
+};
+
+const buildStatusAlert = (status: string, message: string): { message: ReactNode; description?: ReactNode } => {
+  const missingPackageMatch = /^Missing Python package:\s*([^.]+)\.\s*Add it in Settings > Runtime packages, then run again\.$/.exec(message);
+  if (missingPackageMatch) {
+    return {
+      message: "Missing Python package",
+      description: (
+        <Space wrap size={[6, 6]}>
+          <Tag color="volcano">{missingPackageMatch[1]}</Tag>
+          <Text type="secondary">Add it in</Text>
+          <Text code>Settings &gt; Runtime packages</Text>
+          <Text type="secondary">then run again.</Text>
+        </Space>
+      ),
+    };
+  }
+  return { message };
+};
+
+const shouldShowStatusAlert = (status: string, message: string) =>
+  Boolean(message) && status !== "error" && (status === "loading" || message !== "Runtime ready");
 
 const advancedInputStatus = (status: WatchState["advancedSelectionState"]["status"]) => {
   if (status === "error") {
@@ -69,7 +103,6 @@ const handleAdvancedSelectionEnter = (
 const EditorPanel = ({
   editorState,
   watchState,
-  onExitPickingMode,
   onCloseAdvancedSelection,
 }: EditorPanelProps) => (
   <Card
@@ -81,10 +114,9 @@ const EditorPanel = ({
       {watchState.selectionLocked ? (
         <div className="workspace-banner workspace-banner-active">
           <div className="workspace-banner-copy">
-            <Text strong>Picking mode active</Text>
-            <Text type="secondary">Click identifiers in the editor to add them to the watch list.</Text>
+            <Text strong>Select mode is on</Text>
+            <Text type="secondary">Click variable names in the editor to add them.</Text>
           </div>
-          <Button onClick={onExitPickingMode}>Exit picking mode</Button>
         </div>
       ) : null}
 
@@ -120,6 +152,16 @@ const EditorPanel = ({
       ) : null}
 
       <div className="editor-shell">
+        {watchState.selectionLocked || watchState.advancedSelectionOpen ? (
+          <Tooltip title={watchState.selectionLocked ? "Cannot edit in selection mode." : "Cannot edit in advanced selection."}>
+            <div
+              className="editor-readonly-indicator"
+              aria-label={watchState.selectionLocked ? "Editing locked in selection mode" : "Editing locked in advanced selection"}
+            >
+              <LockOutlined />
+            </div>
+          </Tooltip>
+        ) : null}
         <Editor
           height="460px"
           defaultLanguage="python"
@@ -130,6 +172,13 @@ const EditorPanel = ({
           onMount={editorState.handleEditorMount}
         />
       </div>
+      {shouldShowStatusAlert(editorState.status, editorState.statusMessage) ? (
+        <Alert
+          type={statusAlertType(editorState.status, editorState.statusMessage)}
+          showIcon
+          {...buildStatusAlert(editorState.status, editorState.statusMessage)}
+        />
+      ) : null}
     </Space>
   </Card>
 );
