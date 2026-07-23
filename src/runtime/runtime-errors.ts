@@ -1,14 +1,22 @@
 type FriendlyPattern = {
   pattern: RegExp;
-  message: string;
+  message: string | ((match: RegExpExecArray | null, compact: string) => string);
 };
 
 const FRIENDLY_PATTERNS: FriendlyPattern[] = [
   { pattern: /SyntaxError:/i, message: "Python syntax error. Check the code and try again." },
   { pattern: /Browser dependency import failed/i, message: "Browser runtime is not ready. Reload the page and try again." },
   { pattern: /Invalid converter spec/i, message: "Custom converter format is invalid. Use package.module:function_name." },
-  { pattern: /ModuleNotFoundError:/i, message: "A required Python module is missing in the browser runtime." },
-  { pattern: /No module named/i, message: "A required runtime package is missing." },
+  {
+    pattern: /ModuleNotFoundError:\s*No module named ['"]([^'"]+)['"]/i,
+    message: (match) => `Missing Python package: ${match?.[1] ?? "unknown"}. Add it in Settings > Runtime packages, then run again.`,
+  },
+  {
+    pattern: /No module named ['"]([^'"]+)['"]/i,
+    message: (match) => `Missing Python package: ${match?.[1] ?? "unknown"}. Add it in Settings > Runtime packages, then run again.`,
+  },
+  { pattern: /ModuleNotFoundError:/i, message: "A required Python package is missing. Add it in Settings > Runtime packages, then run again." },
+  { pattern: /No module named/i, message: "A required Python package is missing. Add it in Settings > Runtime packages, then run again." },
   { pattern: /MissingDependencyError/i, message: "A required tracing dependency is missing from the browser runtime." },
   { pattern: /step-tracer or query-engine is missing/i, message: "Tracing dependencies are missing from the browser runtime." },
   { pattern: /heap_dual_node view expects list input/i, message: "Heap dual view only works with list data." },
@@ -50,7 +58,8 @@ export const normalizeRuntimeError = (error: unknown): string => {
   const compact = getRawMessage(error, "Unexpected error.").replace(COMPACT_ERROR_PREFIX, "").trim();
   const matched = FRIENDLY_PATTERNS.find(({ pattern }) => pattern.test(compact));
   if (matched) {
-    return matched.message;
+    const match = matched.pattern.exec(compact);
+    return typeof matched.message === "function" ? matched.message(match, compact) : matched.message;
   }
 
   const usefulLine = extractUsefulLine(compact);
@@ -61,7 +70,8 @@ export const normalizeGraphRenderError = (error: unknown): string => {
   const compact = getRawMessage(error, "Graph render failed.").replace(COMPACT_ERROR_PREFIX, "").trim();
   const matched = GRAPH_RENDER_PATTERNS.find(({ pattern }) => pattern.test(compact));
   if (matched) {
-    return matched.message;
+    const match = matched.pattern.exec(compact);
+    return typeof matched.message === "function" ? matched.message(match, compact) : matched.message;
   }
   return "This graph could not be rendered.";
 };
@@ -70,11 +80,13 @@ export const normalizeUnexpectedAppError = (error: unknown): string => {
   const compact = getRawMessage(error, "Unexpected application error.").replace(COMPACT_ERROR_PREFIX, "").trim();
   const runtimeMatch = FRIENDLY_PATTERNS.find(({ pattern }) => pattern.test(compact));
   if (runtimeMatch) {
-    return runtimeMatch.message;
+    const match = runtimeMatch.pattern.exec(compact);
+    return typeof runtimeMatch.message === "function" ? runtimeMatch.message(match, compact) : runtimeMatch.message;
   }
   const graphMatch = GRAPH_RENDER_PATTERNS.find(({ pattern }) => pattern.test(compact));
   if (graphMatch) {
-    return graphMatch.message;
+    const match = graphMatch.pattern.exec(compact);
+    return typeof graphMatch.message === "function" ? graphMatch.message(match, compact) : graphMatch.message;
   }
   const usefulLine = extractUsefulLine(compact);
   return usefulLine?.replace(/^[A-Za-z_.]*Error:\s*/i, "") || "Something went wrong in the app. Reload the page and try again.";

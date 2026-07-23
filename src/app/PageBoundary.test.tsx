@@ -25,7 +25,7 @@ describe("PageBoundary", () => {
 
     await waitFor(() => {
       expect(screen.getByText("The collections page failed to load.")).toBeTruthy();
-      expect(screen.getByText("A required Python module is missing in the browser runtime.")).toBeTruthy();
+      expect(screen.getByText("Missing Python package: numpy. Add it in Settings > Runtime packages, then run again.")).toBeTruthy();
       expect(screen.getByText("Reload page")).toBeTruthy();
     });
   });

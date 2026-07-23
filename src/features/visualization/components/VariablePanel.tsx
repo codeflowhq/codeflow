@@ -142,7 +142,14 @@ const VariablePanel = ({
               <SvgPanel svg={currentStep.svg} onSvgChange={onExportSourceChange} />
             </Suspense>
           ) : null}
-          {!currentStep ? <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No frame" /> : null}
+          {!currentStep ? (
+            <Empty
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description={(
+                <Text>This step has no value.</Text>
+              )}
+            />
+          ) : null}
       </div>
     </Card>
   );

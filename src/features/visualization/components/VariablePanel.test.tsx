@@ -80,7 +80,7 @@ describe("VariablePanel", () => {
       />,
     );
 
-    expect(screen.getAllByText("No frame").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("This step has no value.").length).toBeGreaterThan(0);
     await waitFor(() => {
       expect(onExportSourceChange).toHaveBeenCalledWith(null);
     });
@@ -98,7 +98,7 @@ describe("VariablePanel", () => {
       />,
     );
 
-    expect(screen.getAllByText("No frame").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("This step has no value.").length).toBeGreaterThan(0);
     await waitFor(() => {
       expect(onExportSourceChange).toHaveBeenCalledWith(null);
     });

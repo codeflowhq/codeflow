@@ -44,7 +44,7 @@ describe("useVisualizationRun", () => {
     );
 
     expect(result.current.status).toBe("idle");
-    expect(result.current.statusMessage).toBe("Provide code and run the visualizer.");
+    expect(result.current.statusMessage).toBe("");
     expect(result.current.manifest).toEqual([]);
   });
 
@@ -80,7 +80,7 @@ describe("useVisualizationRun", () => {
     });
 
     expect(result.current.status).toBe("ready");
-    expect(result.current.statusMessage).toBe("Visualization completed.");
+    expect(result.current.statusMessage).toBe("");
     expect(result.current.manifest).toEqual(manifest);
     expect(runVisualizationInBrowserMock).toHaveBeenCalledWith(
       expect.objectContaining({

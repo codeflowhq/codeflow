@@ -29,7 +29,7 @@ describe("normalizeGraphRenderError", () => {
 describe("normalizeUnexpectedAppError", () => {
   it("reuses runtime friendly mappings", () => {
     expect(normalizeUnexpectedAppError(new Error("ModuleNotFoundError: No module named 'numpy'")))
-      .toBe("A required Python module is missing in the browser runtime.");
+      .toBe("Missing Python package: numpy. Add it in Settings > Runtime packages, then run again.");
   });
 
   it("falls back to a generic application message", () => {

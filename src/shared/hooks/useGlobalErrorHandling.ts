@@ -9,7 +9,7 @@ type LastErrorState = {
   timestamp: number;
 };
 
-const DUPLICATE_WINDOW_MS = 1000;
+export const DUPLICATE_WINDOW_MS = 1000;
 
 export const shouldSuppressDuplicateError = (
   previous: LastErrorState | null,
