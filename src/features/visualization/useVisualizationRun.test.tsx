@@ -113,6 +113,28 @@ describe("useVisualizationRun", () => {
     );
   });
 
+  it("shows a definition-only hint when code defines a callable but never invokes it", async () => {
+    runVisualizationInBrowserMock.mockResolvedValue({ manifest: [] });
+
+    const { result } = renderHook(() =>
+      useVisualizationRun({
+        globalConfig: defaultGlobalConfig,
+        sourceCode: "def bubble_sort(arr):\n    return sorted(arr)\n",
+        variableConfigs,
+        watchVariables: ["data"],
+      }),
+    );
+
+    await act(async () => {
+      await result.current.runVisualization();
+    });
+
+    expect(result.current.status).toBe("ready");
+    expect(result.current.statusMessage).toBe(
+      "You defined a function or class, but nothing called it. Call the function and assign the result to a watched variable, for example: data = bubble_sort([5, 1, 4, 2, 8])",
+    );
+  });
+
   it("clears stale manifest state and exposes an error state when the runtime fails", async () => {
     let rejectRun: ((reason?: unknown) => void) | undefined;
     runVisualizationInBrowserMock

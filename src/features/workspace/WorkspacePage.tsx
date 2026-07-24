@@ -306,6 +306,7 @@ const WorkspacePage = ({
                 activeTimelineKey={timelineState.activeTimelineFrame?.timelineKey ?? ""}
                 variableConfigs={variableConfigs}
                 exportSources={visualState.exportSources}
+                emptyStateMessage={editorState.statusMessage || undefined}
                 onOpenConfig={watchState.handleOpenVariableConfig}
                 onRemoveVariable={watchState.removeWatchVariable}
                 onRunVisualization={pageActions.runVisualization}

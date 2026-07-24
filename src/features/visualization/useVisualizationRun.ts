@@ -6,7 +6,7 @@ import { normalizeRuntimeError } from "../../runtime/runtime-errors";
 
 import type { GlobalConfig, ManifestEntry, VariableConfig } from "../../shared/types/visualization";
 
-const DEFINITION_ONLY_HINT = "Code ran, but no observable result was produced. Try calling the function and assigning the result to a watched variable, for example: data = bubble_sort([5, 1, 4, 2, 8])";
+const DEFINITION_ONLY_HINT = "You defined a function or class, but nothing called it. Call the function and assign the result to a watched variable, for example: data = bubble_sort([5, 1, 4, 2, 8])";
 const MISSING_WATCH_HINT = "Choose variables to observe with + Add or Select variables, then run again.";
 const EMPTY_RESULT_HINT = "Code ran, but the current watched variables did not produce a renderable result.";
 

@@ -76,6 +76,7 @@ const VariableConfigDrawer = ({
     () => viewSelectionSupportsDepth(selectedDraft.viewKind, viewKindOptions),
     [selectedDraft.viewKind, viewKindOptions],
   );
+  const autoOnlyDisplay = viewKindOptions.length === 1 && viewKindOptions[0] === "auto";
 
   const updateDraft = (updater: (current: VariableConfig) => VariableConfig) => {
     if (!variableName) {
@@ -159,6 +160,15 @@ const VariableConfigDrawer = ({
                     showIcon
                     message="Watch needs configuration"
                     description="This variable is already in the watch list. Apply settings when you are ready."
+                    style={{ marginBottom: 16 }}
+                  />
+                ) : null}
+                {autoOnlyDisplay ? (
+                  <Alert
+                    type="info"
+                    showIcon
+                    message="Automatic display only"
+                    description="This variable currently behaves like a simple scalar or text value, so only automatic display is available."
                     style={{ marginBottom: 16 }}
                   />
                 ) : null}

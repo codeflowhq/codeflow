@@ -81,6 +81,7 @@ type VisualCanvasProps = {
   activeTimelineKey: string;
   variableConfigs: Record<string, VariableConfig>;
   exportSources: ExportSourceCache;
+  emptyStateMessage?: string;
   onOpenConfig: (variable: string) => void;
   onRemoveVariable?: (variable: string) => void;
   onRunVisualization: () => Promise<boolean>;
@@ -101,6 +102,7 @@ const VisualCanvas = ({
   activeTimelineKey,
   variableConfigs,
   exportSources,
+  emptyStateMessage,
   onOpenConfig,
   onRemoveVariable,
   onRunVisualization,
@@ -242,7 +244,10 @@ const VisualCanvas = ({
           description={(
             <Space orientation="vertical" size={10} style={{ width: "100%" }}>
               <Text strong>No visualization yet</Text>
-              <Text type="secondary">Open Guide for a quick walkthrough, or press Play after choosing variables.</Text>
+              {emptyStateMessage ? <Text>{emptyStateMessage}</Text> : null}
+              <Text type="secondary">
+                Open Guide for a quick walkthrough, or press Play after choosing variables.
+              </Text>
               <Space wrap>
                 <Button onClick={onOpenGuide}>Open guide</Button>
                 <Button type="primary" disabled={!canRun} onClick={() => void onRunVisualization()}>
