@@ -12,7 +12,7 @@ Interactive browser UI for `code_visualizer`.
 
 ```bash
 npm install
-# place browser wheels under public/pyodide/wheels first
+# download upstream wheels first, then place them under public/pyodide/wheels
 python3 scripts/sync_python_runtime.py
 npm run dev
 ```
@@ -23,3 +23,4 @@ npm run dev
 - The app consumes the public manifest API from `codeflow-py`.
 - Browser Python dependencies are loaded from wheels under `public/pyodide/wheels/`.
 - This repo does not build Python artifacts; it only consumes prebuilt wheels.
+- `step-tracer` and `query-engine` browser wheels should come from their upstream GitHub workflow artifacts or release assets.

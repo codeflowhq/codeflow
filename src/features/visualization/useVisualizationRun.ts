@@ -10,20 +10,31 @@ const DEFINITION_ONLY_HINT = "You defined a function or class, but nothing calle
 const MISSING_WATCH_HINT = "Choose variables to observe with + Add or Select variables, then run again.";
 const EMPTY_RESULT_HINT = "Code ran, but the current watched variables did not produce a renderable result.";
 
-const looksLikeDefinitionOnlySource = (sourceCode: string) => {
-  const compact = sourceCode
+const getTopLevelSourceLines = (sourceCode: string) =>
+  sourceCode
     .split("\n")
-    .map((line) => line.trim())
-    .filter((line) => line && !line.startsWith("#"));
-  if (compact.length === 0) {
+    .map((line) => ({
+      raw: line,
+      trimmed: line.trim(),
+      isTopLevel: line.trim().length > 0 && !/^\s/.test(line),
+    }))
+    .filter((line) => line.trimmed && !line.trimmed.startsWith("#"));
+
+const looksLikeDefinitionOnlySource = (sourceCode: string) => {
+  const lines = getTopLevelSourceLines(sourceCode);
+  if (lines.length === 0) {
     return false;
   }
-  const hasDefinition = compact.some((line) => line.startsWith("def ") || line.startsWith("class "));
+  const topLevelLines = lines.filter((line) => line.isTopLevel).map((line) => line.trimmed);
+  if (topLevelLines.length === 0) {
+    return false;
+  }
+  const hasDefinition = topLevelLines.some((line) => line.startsWith("def ") || line.startsWith("class "));
   if (!hasDefinition) {
     return false;
   }
-  const hasTopLevelAssignment = compact.some((line) => /^[A-Za-z_][A-Za-z0-9_]*\s*=/.test(line));
-  const hasLikelyInvocation = compact.some((line) =>
+  const hasTopLevelAssignment = topLevelLines.some((line) => /^[A-Za-z_][A-Za-z0-9_]*\s*=/.test(line));
+  const hasLikelyInvocation = topLevelLines.some((line) =>
     /\w+\s*\(/.test(line)
     && !line.startsWith("def ")
     && !line.startsWith("class ")

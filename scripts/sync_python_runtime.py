@@ -20,7 +20,7 @@ def _resolve_latest_wheel(prefix: str) -> str:
     if not matches:
         raise SystemExit(
             f"Missing required browser wheel for {prefix!r} in {PYODIDE_WHEEL_ROOT}. "
-            "Build or download the wheel first, then run this script again."
+            "Download or build the wheel in its source repository first, then run this script again."
         )
     return matches[-1].name
 

@@ -135,6 +135,34 @@ describe("useVisualizationRun", () => {
     );
   });
 
+  it("ignores assignments inside a function body when detecting definition-only code", async () => {
+    runVisualizationInBrowserMock.mockResolvedValue({ manifest: [] });
+
+    const { result } = renderHook(() =>
+      useVisualizationRun({
+        globalConfig: defaultGlobalConfig,
+        sourceCode: [
+          "def f(x):",
+          "    data = [7, 3, 1]",
+          "    for i in range(len(data)):",
+          "        for j in range(len(data) - i - 1):",
+          "            if data[j] > data[j + 1]:",
+          "                data[j], data[j + 1] = data[j + 1], data[j]",
+        ].join("\n"),
+        variableConfigs,
+        watchVariables: ["data"],
+      }),
+    );
+
+    await act(async () => {
+      await result.current.runVisualization();
+    });
+
+    expect(result.current.statusMessage).toBe(
+      "You defined a function or class, but nothing called it. Call the function and assign the result to a watched variable, for example: data = bubble_sort([5, 1, 4, 2, 8])",
+    );
+  });
+
   it("clears stale manifest state and exposes an error state when the runtime fails", async () => {
     let rejectRun: ((reason?: unknown) => void) | undefined;
     runVisualizationInBrowserMock
