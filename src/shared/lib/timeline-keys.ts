@@ -1,11 +1,14 @@
 type TimelineMeta = {
   execution_id?: number;
   order?: number;
+  var_id?: number;
 };
 
 export type TimelineStepLike = {
   timelineKey?: string;
   timeline_key?: string;
+  eventOrder?: number | null;
+  event_order?: number | null;
   executionId?: number | null;
   execution_id?: number | null;
   order?: number | null;
@@ -33,6 +36,25 @@ export const compareTimelineKeys = (leftKey: string, rightKey: string): number =
   const left = parseTimelineKey(leftKey);
   const right = parseTimelineKey(rightKey);
   return left.execution - right.execution || left.order - right.order;
+};
+
+export const resolveTimelineEventOrder = (step: TimelineStepLike): number | null => {
+  const resolved = step.eventOrder ?? step.event_order ?? step.meta?.var_id ?? null;
+  return resolved == null ? null : Number(resolved);
+};
+
+export const isTimelineStepAtOrBeforeEventOrder = (
+  step: TimelineStepLike,
+  targetEventOrder: number | null,
+): boolean => {
+  if (targetEventOrder == null) {
+    return false;
+  }
+  const stepEventOrder = resolveTimelineEventOrder(step);
+  if (stepEventOrder == null) {
+    return false;
+  }
+  return stepEventOrder <= targetEventOrder;
 };
 
 export const isTimelineStepAtOrBefore = (step: TimelineStepLike, targetTimelineKey: string): boolean =>

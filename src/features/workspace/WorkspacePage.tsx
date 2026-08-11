@@ -304,6 +304,7 @@ const WorkspacePage = ({
               <VisualCanvas
                 manifest={visibleManifest}
                 activeTimelineKey={timelineState.activeTimelineFrame?.timelineKey ?? ""}
+                activeTimelineEventOrder={timelineState.activeTimelineFrame?.eventOrder ?? null}
                 variableConfigs={variableConfigs}
                 exportSources={visualState.exportSources}
                 emptyStateMessage={editorState.statusMessage || undefined}

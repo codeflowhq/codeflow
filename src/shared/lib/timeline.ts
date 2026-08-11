@@ -4,6 +4,7 @@ import { buildTimelineKey } from "./timeline-keys";
 
 export type TimelineFrame = {
   timelineKey: string;
+  eventOrder: number;
   index: number;
   executionOrder: number;
   order: number;
@@ -40,12 +41,14 @@ export const buildTimelineFrames = (manifestEntries: ManifestEntry[]): TimelineF
   const frames = new Map<string, TimelineFrame>();
   manifestEntries.forEach((entry) => {
     entry.steps.forEach((step) => {
+      const eventOrder = Number(step.eventOrder ?? step.meta?.var_id ?? step.index ?? 0);
       const executionOrder = Number(step.executionId ?? step.meta?.execution_id ?? step.index ?? 0);
       const order = Number(step.order ?? step.meta?.order ?? 0);
       const timelineKey = buildTimelineKey(step);
       if (!frames.has(timelineKey)) {
         frames.set(timelineKey, {
           timelineKey,
+          eventOrder,
           index: step.index ?? 0,
           executionOrder,
           order,
@@ -57,6 +60,7 @@ export const buildTimelineFrames = (manifestEntries: ManifestEntry[]): TimelineF
   });
   return [...frames.values()].sort(
     (left, right) =>
+      left.eventOrder - right.eventOrder ||
       left.executionOrder - right.executionOrder ||
       left.order - right.order ||
       left.index - right.index ||

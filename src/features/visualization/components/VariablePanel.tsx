@@ -2,7 +2,7 @@ import { DeleteOutlined, SettingOutlined } from "@ant-design/icons";
 import { Button, Card, Empty, Space, Typography } from "antd";
 import { Suspense, lazy, useEffect, useMemo, useRef } from "react";
 
-import { buildTimelineKey, isTimelineStepAtOrBefore } from "../../../shared/lib/timeline-keys";
+import { buildTimelineKey, isTimelineStepAtOrBefore, isTimelineStepAtOrBeforeEventOrder, resolveTimelineEventOrder } from "../../../shared/lib/timeline-keys";
 import type { ManifestEntry, ManifestStep, VariableConfig } from "../../../shared/types/visualization";
 
 const GraphvizPanel = lazy(() => import("../renderers/GraphvizPanel"));
@@ -14,6 +14,7 @@ type VariablePanelProps = {
   entry: ManifestEntry;
   panelConfig?: VariableConfig;
   activeTimelineKey: string;
+  activeTimelineEventOrder?: number | null;
   onOpenConfig: () => void;
   onRemoveVariable?: () => void;
   onContentSizeChange?: (size: { width: number; height: number }) => void;
@@ -52,6 +53,7 @@ const VariablePanel = ({
   entry,
   panelConfig,
   activeTimelineKey,
+  activeTimelineEventOrder,
   onOpenConfig,
   onRemoveVariable,
   onContentSizeChange,
@@ -65,8 +67,14 @@ const VariablePanel = ({
     if (exact) {
       return exact;
     }
+    if (
+      activeTimelineEventOrder != null
+      && entry.steps.some((step) => resolveTimelineEventOrder(step) != null)
+    ) {
+      return [...entry.steps].reverse().find((step) => isTimelineStepAtOrBeforeEventOrder(step, activeTimelineEventOrder));
+    }
     return [...entry.steps].reverse().find((step) => isTimelineStepAtOrBefore(step, activeTimelineKey));
-  }, [activeTimelineKey, entry.steps]);
+  }, [activeTimelineEventOrder, activeTimelineKey, entry.steps]);
   void panelConfig;
   const bodyRef = useRef<HTMLDivElement | null>(null);
 

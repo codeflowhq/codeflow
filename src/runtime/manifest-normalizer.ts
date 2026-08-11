@@ -3,6 +3,7 @@ import type { ManifestEntry, ManifestStep, NormalizedManifest, RawManifestPayloa
 import { buildTimelineKey } from "../shared/lib/timeline-keys";
 
 const normalizeStep = (step: RawManifestStep, index: number): ManifestStep => {
+  const eventOrder = step.event_order ?? step.eventOrder ?? step.meta?.var_id ?? null;
   const executionId = step.execution_id ?? step.executionId ?? step.meta?.execution_id ?? null;
   const order = step.order ?? step.meta?.order ?? null;
   const timelineKey = step.timeline_key ?? step.timelineKey ?? buildTimelineKey({
@@ -13,6 +14,7 @@ const normalizeStep = (step: RawManifestStep, index: number): ManifestStep => {
   const normalized = {
     ...step,
     index: step.index ?? index + 1,
+    eventOrder,
     executionId,
     order,
   };

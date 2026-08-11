@@ -11,9 +11,10 @@ describe("normalizeManifest", () => {
         steps: [{
           step_id: "step 3",
           timeline_key: "5:7",
+          event_order: 11,
           execution_id: 5,
           order: 7,
-          meta: { execution_id: 5, order: 7 },
+          meta: { execution_id: 5, order: 7, var_id: 11 },
         }],
       }],
     });
@@ -21,6 +22,7 @@ describe("normalizeManifest", () => {
     expect(payload.manifest[0].steps[0]).toMatchObject({
       stepId: "step 3",
       timelineKey: "5:7",
+      eventOrder: 11,
       executionId: 5,
       order: 7,
     });
@@ -33,7 +35,7 @@ describe("normalizeManifest", () => {
         kind: "svg",
         steps: [{
           index: 4,
-          meta: { execution_id: 2, order: 8 },
+          meta: { execution_id: 2, order: 8, var_id: 6 },
         }],
       }],
     });
@@ -41,6 +43,7 @@ describe("normalizeManifest", () => {
     expect(payload.manifest[0].steps[0]).toMatchObject({
       stepId: "8",
       timelineKey: "2:8",
+      eventOrder: 6,
       executionId: 2,
       order: 8,
       index: 4,
@@ -59,12 +62,14 @@ describe("normalizeManifest", () => {
           stepId: "camel-step",
           timeline_key: "7:4",
           timelineKey: "5:2",
+          event_order: 13,
+          eventOrder: 12,
           execution_id: 7,
           executionId: 5,
           order: 4,
           index: 9,
           dot: "digraph G {}",
-          meta: { line_number: 12, execution_id: 99, order: 99 },
+          meta: { line_number: 12, execution_id: 99, order: 99, var_id: 77 },
         }],
       }],
     });
@@ -77,6 +82,7 @@ describe("normalizeManifest", () => {
     expect(payload.manifest[0].steps[0]).toMatchObject({
       stepId: "snake-step",
       timelineKey: "7:4",
+      eventOrder: 13,
       executionId: 7,
       order: 4,
       index: 9,

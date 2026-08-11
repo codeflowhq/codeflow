@@ -37,6 +37,10 @@ export type RawStepMeta = {
   line_number?: number;
   execution_id?: number;
   order?: number;
+  var_id?: number;
+  access_path?: string;
+  access_paths?: string[];
+  scope_id?: number;
 };
 
 export type RawManifestStep = {
@@ -44,6 +48,8 @@ export type RawManifestStep = {
   stepId?: string;
   timeline_key?: string;
   timelineKey?: string;
+  event_order?: number;
+  eventOrder?: number;
   execution_id?: number;
   executionId?: number;
   order?: number;
@@ -64,6 +70,7 @@ export type RawManifestEntry = {
 export type ManifestStep = {
   stepId: string;
   timelineKey: string;
+  eventOrder?: number | null;
   executionId: number | null;
   order: number | null;
   index: number;

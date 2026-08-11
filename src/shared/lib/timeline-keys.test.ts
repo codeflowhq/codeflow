@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { buildTimelineKey, compareTimelineKeys, isTimelineStepAtOrBefore, parseTimelineKey } from "./timeline-keys";
+import {
+  buildTimelineKey,
+  compareTimelineKeys,
+  isTimelineStepAtOrBefore,
+  isTimelineStepAtOrBeforeEventOrder,
+  parseTimelineKey,
+  resolveTimelineEventOrder,
+} from "./timeline-keys";
 
 describe("timeline-keys", () => {
   it("builds timeline keys from normalized or raw manifest fields", () => {
@@ -18,5 +25,16 @@ describe("timeline-keys", () => {
   it("checks if a step is at or before a target frame", () => {
     expect(isTimelineStepAtOrBefore({ executionId: 1, order: 2 }, "1:3")).toBe(true);
     expect(isTimelineStepAtOrBefore({ executionId: 2, order: 0 }, "1:99")).toBe(false);
+  });
+
+  it("resolves event order from normalized or raw step fields", () => {
+    expect(resolveTimelineEventOrder({ eventOrder: 7 })).toBe(7);
+    expect(resolveTimelineEventOrder({ event_order: 8 })).toBe(8);
+    expect(resolveTimelineEventOrder({ meta: { var_id: 9 } })).toBe(9);
+  });
+
+  it("checks event-order ordering independently from timeline keys", () => {
+    expect(isTimelineStepAtOrBeforeEventOrder({ eventOrder: 4 }, 5)).toBe(true);
+    expect(isTimelineStepAtOrBeforeEventOrder({ eventOrder: 6 }, 5)).toBe(false);
   });
 });

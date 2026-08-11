@@ -14,6 +14,7 @@ const manifest: ManifestEntry[] = [
       {
         stepId: "step 1",
         timelineKey: "1:1",
+        eventOrder: 1,
         executionId: 1,
         order: 1,
         index: 1,
@@ -22,6 +23,7 @@ const manifest: ManifestEntry[] = [
       {
         stepId: "step 2",
         timelineKey: "2:2",
+        eventOrder: 2,
         executionId: 2,
         order: 2,
         index: 2,
@@ -30,6 +32,7 @@ const manifest: ManifestEntry[] = [
       {
         stepId: "step 3",
         timelineKey: "3:3",
+        eventOrder: 3,
         executionId: 3,
         order: 3,
         index: 3,
@@ -47,6 +50,7 @@ const singleStepManifest: ManifestEntry[] = [
       {
         stepId: "step 1",
         timelineKey: "1:1",
+        eventOrder: 1,
         executionId: 1,
         order: 1,
         index: 1,
@@ -64,6 +68,7 @@ const shiftedManifest: ManifestEntry[] = [
       {
         stepId: "step 10",
         timelineKey: "10:1",
+        eventOrder: 10,
         executionId: 10,
         order: 1,
         index: 10,
@@ -72,6 +77,7 @@ const shiftedManifest: ManifestEntry[] = [
       {
         stepId: "step 11",
         timelineKey: "11:2",
+        eventOrder: 11,
         executionId: 11,
         order: 2,
         index: 11,

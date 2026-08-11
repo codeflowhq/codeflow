@@ -75,6 +75,7 @@ describe("VariablePanel", () => {
       <VariablePanel
         entry={{ ...baseEntry, steps: [] }}
         activeTimelineKey="1:1"
+        activeTimelineEventOrder={1}
         onOpenConfig={vi.fn()}
         onExportSourceChange={onExportSourceChange}
       />,
@@ -93,6 +94,7 @@ describe("VariablePanel", () => {
       <VariablePanel
         entry={baseEntry}
         activeTimelineKey="0:0"
+        activeTimelineEventOrder={0}
         onOpenConfig={vi.fn()}
         onExportSourceChange={onExportSourceChange}
       />,
@@ -109,6 +111,7 @@ describe("VariablePanel", () => {
       <VariablePanel
         entry={baseEntry}
         activeTimelineKey="9:9"
+        activeTimelineEventOrder={9}
         onOpenConfig={vi.fn()}
       />,
     );
@@ -127,6 +130,7 @@ describe("VariablePanel", () => {
       <VariablePanel
         entry={{ ...baseEntry, kind: "dot", steps: [{ ...baseEntry.steps[0], dot: "digraph G {}", svg: undefined }] }}
         activeTimelineKey="1:1"
+        activeTimelineEventOrder={1}
         onOpenConfig={vi.fn()}
         onContentSizeChange={onContentSizeChange}
       />,
@@ -138,5 +142,50 @@ describe("VariablePanel", () => {
     const size = onContentSizeChange.mock.calls[0]?.[0] as { width: number; height: number };
     expect(size.width).toBeGreaterThan(0);
     expect(size.height).toBeGreaterThan(0);
+  });
+
+  it("falls back by event order instead of timeline key ordering", async () => {
+    const suffixEntry: ManifestEntry = {
+      variable: "suffixes",
+      kind: "svg",
+      steps: [
+        {
+          stepId: "step 1",
+          timelineKey: "0:1",
+          eventOrder: 2,
+          executionId: 0,
+          order: 1,
+          index: 0,
+          svg: "<svg id='initial' />",
+        },
+        {
+          stepId: "step 6",
+          timelineKey: "3:6",
+          eventOrder: 4,
+          executionId: 3,
+          order: 6,
+          index: 3,
+          svg: "<svg id='loop' />",
+        },
+      ],
+    };
+
+    render(
+      <VariablePanel
+        entry={suffixEntry}
+        activeTimelineKey="0:4"
+        activeTimelineEventOrder={3}
+        onOpenConfig={vi.fn()}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(svgPanelMock).toHaveBeenCalledWith(
+        expect.objectContaining({ svg: "<svg id='initial' />" }),
+      );
+    });
+    expect(svgPanelMock).not.toHaveBeenCalledWith(
+      expect.objectContaining({ svg: "<svg id='loop' />" }),
+    );
   });
 });

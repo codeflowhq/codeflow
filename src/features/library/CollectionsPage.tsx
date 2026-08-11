@@ -11,6 +11,41 @@ import FeatureBoundary from "../../shared/ui/FeatureBoundary";
 
 const { Search } = Input;
 const { Text, Title } = Typography;
+const EXAMPLE_TOPIC_ORDER = [
+  "All topics",
+  "Arrays & Sorting",
+  "Linear Structures & Maps",
+  "Trees & Range Structures",
+  "Graphs & Graph Algorithms",
+  "Recursion",
+  "Strings",
+  "Special Media",
+] as const;
+
+type ExampleTopic = typeof EXAMPLE_TOPIC_ORDER[number];
+
+const getExampleTopic = (example: ExampleRecord): ExampleTopic => {
+  const tags = new Set(example.tags ?? []);
+  if (tags.has("image") || tags.has("special") || tags.has("asset required")) {
+    return "Special Media";
+  }
+  if (tags.has("recursion") || tags.has("call trace")) {
+    return "Recursion";
+  }
+  if (tags.has("string") || tags.has("suffix array")) {
+    return "Strings";
+  }
+  if (tags.has("graph") || tags.has("queue") || tags.has("dfs") || tags.has("mst") || tags.has("shortest path") || tags.has("union-find") || tags.has("traversal") || tags.has("cycle") || tags.has("pointer")) {
+    return "Graphs & Graph Algorithms";
+  }
+  if (tags.has("tree") || tags.has("heap") || tags.has("bst") || tags.has("avl") || tags.has("fenwick") || tags.has("segment tree") || tags.has("range query")) {
+    return "Trees & Range Structures";
+  }
+  if (tags.has("dict") || tags.has("map") || tags.has("hash table") || tags.has("table") || tags.has("linked list") || tags.has("nested")) {
+    return "Linear Structures & Maps";
+  }
+  return "Arrays & Sorting";
+};
 
 type CollectionsPageProps = {
   collections: CollectionRecord[];
@@ -24,7 +59,7 @@ const CollectionsPage = ({ collections, examples, onDeleteCollection, onLoadColl
   const [savedQuery, setSavedQuery] = useState("");
   const [savedLabelFilter, setSavedLabelFilter] = useState("all");
   const [query, setQuery] = useState("");
-  const [tagFilter, setTagFilter] = useState("all");
+  const [topicFilter, setTopicFilter] = useState<ExampleTopic>("All topics");
   const [examplePreviews, setExamplePreviews] = useState<Record<string, ManifestEntry[]>>({});
 
   const savedLabels = useMemo(() => {
@@ -32,6 +67,10 @@ const CollectionsPage = ({ collections, examples, onDeleteCollection, onLoadColl
     collections.forEach((record) => record.labels?.forEach((label) => values.add(label)));
     return ["all", ...Array.from(values).sort()];
   }, [collections]);
+  const savedLabelOptions = useMemo(
+    () => savedLabels.map((label) => ({ label: label === "all" ? "All labels" : label, value: label })),
+    [savedLabels],
+  );
 
   const filteredCollections = useMemo(() => {
     const normalizedQuery = savedQuery.trim().toLowerCase();
@@ -46,17 +85,20 @@ const CollectionsPage = ({ collections, examples, onDeleteCollection, onLoadColl
       return haystack.includes(normalizedQuery);
     });
   }, [collections, savedLabelFilter, savedQuery]);
-  const tags = useMemo(() => {
-    const values = new Set<string>();
-    examples.forEach((example) => example.tags?.forEach((tag) => values.add(tag)));
-    return ["all", ...Array.from(values).sort()];
-  }, [examples]);
+  const exampleTopics = useMemo(
+    () => EXAMPLE_TOPIC_ORDER.filter((topic) => topic === "All topics" || examples.some((example) => getExampleTopic(example) === topic)),
+    [examples],
+  );
+  const topicOptions = useMemo(
+    () => exampleTopics.map((topic) => ({ label: topic, value: topic })),
+    [exampleTopics],
+  );
 
   const filteredExamples = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
     return examples.filter((example) => {
-      const matchesTag = tagFilter === "all" || example.tags?.includes(tagFilter);
-      if (!matchesTag) {
+      const matchesTopic = topicFilter === "All topics" || getExampleTopic(example) === topicFilter;
+      if (!matchesTopic) {
         return false;
       }
       if (!normalizedQuery) {
@@ -65,7 +107,20 @@ const CollectionsPage = ({ collections, examples, onDeleteCollection, onLoadColl
       const haystack = `${example.title} ${example.description} ${(example.tags ?? []).join(" ")}`.toLowerCase();
       return haystack.includes(normalizedQuery);
     });
-  }, [examples, query, tagFilter]);
+  }, [examples, query, topicFilter]);
+  const groupedExamples = useMemo(() => {
+    const groups = new Map<ExampleTopic, ExampleRecord[]>();
+    filteredExamples.forEach((example) => {
+      const topic = getExampleTopic(example);
+      const entries = groups.get(topic) ?? [];
+      entries.push(example);
+      groups.set(topic, entries);
+    });
+    return EXAMPLE_TOPIC_ORDER
+      .filter((topic) => topic !== "All topics")
+      .map((topic) => ({ topic, examples: groups.get(topic) ?? [] }))
+      .filter((group) => group.examples.length > 0);
+  }, [filteredExamples]);
 
   useEffect(() => {
     let cancelled = false;
@@ -110,7 +165,7 @@ const CollectionsPage = ({ collections, examples, onDeleteCollection, onLoadColl
           <Search value={savedQuery} onChange={(event) => setSavedQuery(event.target.value)} placeholder="Search saved projects" style={{ width: 240 }} />
           <Select
             value={savedLabelFilter}
-            options={savedLabels.map((label) => ({ label, value: label }))}
+            options={savedLabelOptions}
             onChange={setSavedLabelFilter}
             style={{ width: 180 }}
           />
@@ -161,36 +216,46 @@ const CollectionsPage = ({ collections, examples, onDeleteCollection, onLoadColl
       <Card className="surface-card" title="Examples">
         <Space wrap className="collection-filter-bar">
           <Search value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search examples" style={{ width: 240 }} />
-          <Select value={tagFilter} options={tags.map((tag) => ({ label: tag, value: tag }))} onChange={setTagFilter} style={{ width: 180 }} />
+          <Select value={topicFilter} options={topicOptions} onChange={setTopicFilter} style={{ width: 220 }} />
         </Space>
-        <div className="collection-card-grid">
-          {filteredExamples.map((example) => (
-            <Card key={example.key} className="surface-card surface-card-subtle collection-record-card">
-              <div className="collection-record-layout">
-                <div className="collection-record-copy">
-                  <Space orientation="vertical" size={12} style={{ width: "100%" }}>
-                    <div className="collection-record-header">
-                      <div>
-                        <Text strong>{example.title}</Text>
-                        <div><Text type="secondary">{example.description}</Text></div>
-                      </div>
+        {groupedExamples.length ? groupedExamples.map((group) => (
+          <div key={group.topic} style={{ marginBottom: 24 }}>
+            <Title level={4} style={{ marginBottom: 12 }}>{group.topic}</Title>
+            <div className="collection-card-grid">
+              {group.examples.map((example) => (
+                <Card key={example.key} className="surface-card surface-card-subtle collection-record-card">
+                  <div className="collection-record-layout">
+                    <div className="collection-record-copy">
+                      <Space orientation="vertical" size={12} style={{ width: "100%" }}>
+                        <div className="collection-record-header">
+                          <div>
+                            <Text strong>{example.title}</Text>
+                            <div><Text type="secondary">{example.description}</Text></div>
+                          </div>
+                        </div>
+                        {example.tags?.length ? (
+                          <Space wrap size={[6, 6]}>
+                            {example.tags.map((tag) => <Tag key={tag}>{tag}</Tag>)}
+                          </Space>
+                        ) : null}
+                      </Space>
+                      <Space className="collection-record-actions">
+                        <Button type="primary" onClick={() => void onLoadExample(example)}>
+                          Open example
+                        </Button>
+                      </Space>
                     </div>
-                  </Space>
-                  <Space className="collection-record-actions">
-                    <Button type="primary" onClick={() => void onLoadExample(example)}>
-                      Open example
-                    </Button>
-                  </Space>
-                </div>
-                <div className="collection-record-preview">
-                  <FeatureBoundary title="The example preview failed to render.">
-                    <CollectionPreviewSurface savedManifest={example.savedManifest ?? examplePreviews[example.key]} />
-                  </FeatureBoundary>
-                </div>
-              </div>
-            </Card>
-          ))}
-        </div>
+                    <div className="collection-record-preview">
+                      <FeatureBoundary title="The example preview failed to render.">
+                        <CollectionPreviewSurface savedManifest={example.savedManifest ?? examplePreviews[example.key]} />
+                      </FeatureBoundary>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )) : <Empty description="No examples match the current filters." />}
       </Card>
     </div>
   );

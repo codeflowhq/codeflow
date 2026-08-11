@@ -8,6 +8,7 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
+    "smoke:examples": "../../code-visualizer/.venv/bin/python scripts/example_smoke_check.py",
     "typecheck": "tsc --noEmit",
     "verify": "npm run lint && npm run test && npm run typecheck && npm run build",
     "test": "vitest run"

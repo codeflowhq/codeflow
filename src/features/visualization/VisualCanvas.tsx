@@ -79,6 +79,7 @@ const clampWindowLayout = (layout: VisualizationWindowLayout, canvasWidth: numbe
 type VisualCanvasProps = {
   manifest: ManifestEntry[];
   activeTimelineKey: string;
+  activeTimelineEventOrder?: number | null;
   variableConfigs: Record<string, VariableConfig>;
   exportSources: ExportSourceCache;
   emptyStateMessage?: string;
@@ -100,6 +101,7 @@ const { Text } = Typography;
 const VisualCanvas = ({
   manifest,
   activeTimelineKey,
+  activeTimelineEventOrder,
   variableConfigs,
   exportSources,
   emptyStateMessage,
@@ -284,6 +286,7 @@ const VisualCanvas = ({
             <VariablePanel
               entry={entry}
               activeTimelineKey={activeTimelineKey}
+              activeTimelineEventOrder={activeTimelineEventOrder}
               panelConfig={variableConfigs[entry.variable]}
               onOpenConfig={() => onOpenConfig(entry.variable)}
               onRemoveVariable={onRemoveVariable ? () => onRemoveVariable(entry.variable) : undefined}
@@ -338,6 +341,7 @@ const VisualCanvas = ({
             <VariablePanel
               entry={entry}
               activeTimelineKey={activeTimelineKey}
+              activeTimelineEventOrder={activeTimelineEventOrder}
               panelConfig={variableConfigs[entry.variable]}
               onOpenConfig={() => onOpenConfig(entry.variable)}
               onRemoveVariable={onRemoveVariable ? () => onRemoveVariable(entry.variable) : undefined}
