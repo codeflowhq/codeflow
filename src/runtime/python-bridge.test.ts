@@ -175,6 +175,7 @@ describe("runVisualizationInBrowser", () => {
         steps: [{
           stepId: "frame-1",
           timelineKey: "3:5",
+          eventOrder: null,
           executionId: 3,
           order: 5,
           index: 1,
