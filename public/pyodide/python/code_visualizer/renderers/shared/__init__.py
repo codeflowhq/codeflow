@@ -1,1 +1,0 @@
-"""Renderer-only shared helpers."""

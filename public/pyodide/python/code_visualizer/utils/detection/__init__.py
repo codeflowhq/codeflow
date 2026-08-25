@@ -1,1 +1,0 @@
-"""Structure detection helpers."""
