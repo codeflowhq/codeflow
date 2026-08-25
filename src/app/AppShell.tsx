@@ -31,6 +31,7 @@ import { useVisualizationRun } from "../features/visualization/useVisualizationR
 import { useLayoutModeState } from "../features/visualization/layout-mode";
 import { useLibraryStore } from "../features/library/library-store";
 import { useNavigationState } from "../features/navigation/useNavigationState";
+import { normalizeRuntimeError } from "../runtime/runtime-errors";
 import { AppRoutes } from "./routes";
 import { AppErrorBoundary } from "../components/AppErrorBoundary";
 import { DUPLICATE_WINDOW_MS, useGlobalErrorHandling } from "../shared/hooks/useGlobalErrorHandling";
@@ -38,7 +39,7 @@ import { useActionBoundary } from "../shared/hooks/useActionBoundary";
 import { TOP_MENU_LIBRARY } from "../features/navigation/navigationState";
 import { TOP_MENU_VISUALIZATION, VIZ_MENU_MAIN } from "../features/navigation/navigationState";
 import FeatureBoundary from "../shared/ui/FeatureBoundary";
-import type { CollectionRecord, ExampleRecord, ViewKind } from "../shared/types/visualization";
+import type { CollectionRecord, ExampleRecord, VariableConfig, ViewKind } from "../shared/types/visualization";
 import "antd/dist/reset.css";
 import "../App.css";
 
@@ -51,6 +52,30 @@ const { Text } = Typography;
 
 const normalizeActionError = (fallback: string) => (error: unknown) =>
   error instanceof Error && error.message ? error.message : fallback;
+
+const resetExplicitViewKindsToAuto = (variableConfigs: Record<string, VariableConfig>) => {
+  let changed = false;
+  const next = Object.fromEntries(
+    Object.entries(variableConfigs).map(([variableName, config]) => {
+      if (config.viewKind === "auto") {
+        return [variableName, config];
+      }
+      changed = true;
+      return [variableName, {
+        ...config,
+        viewKind: "auto" as const,
+        viewOptions: { ...config.viewOptions },
+      }];
+    }),
+  );
+  return changed ? next : null;
+};
+
+const isIncompatibleViewError = (message: string) => (
+  message === "The selected view does not match the current variable value."
+  || message === "The selected array view only works with list-like data."
+  || message === "Heap dual view only works with list data."
+);
 
 const renderModalErrorContent = (content: string): ReactNode => {
   const missingPackageMatch = /^Missing Python package:\s*([^.]+)\.\s*Add it in Settings > Runtime packages, then run again\.$/.exec(content);
@@ -101,7 +126,7 @@ function App() {
   }, [modal]);
 
   useGlobalErrorHandling(showErrorModal);
-  const { runAction, runRuntimeAction } = useActionBoundary({ onError: showErrorModal });
+  const { runAction } = useActionBoundary({ onError: showErrorModal });
 
   const {
     watchList,
@@ -184,6 +209,13 @@ function App() {
     globalConfig,
     sessionRuntimeWheels: sessionRuntimeWheels.map((wheel) => wheel.name),
   }), [configState.variableConfigs, globalConfig, sessionRuntimeWheels, sourceCode, watchList.watchVariables]);
+  const buildRunSignature = useCallback((variableConfigs: Record<string, VariableConfig>) => JSON.stringify({
+    sourceCode,
+    watchVariables: watchList.watchVariables,
+    variableConfigs,
+    globalConfig,
+    sessionRuntimeWheels: sessionRuntimeWheels.map((wheel) => wheel.name),
+  }), [globalConfig, sessionRuntimeWheels, sourceCode, watchList.watchVariables]);
 
   const manifestVariables = useMemo(() => manifest.map((entry) => entry.variable), [manifest]);
   const activeExecutionLine = useMemo(() => {
@@ -323,15 +355,37 @@ function App() {
     configState.closeConfigDrawer();
     setExportSources({});
     try {
-      const succeeded = await runRuntimeAction(() => runVisualization(), "Visualization failed");
+      const succeeded = await runVisualization();
       if (succeeded) {
         setLastRunSignature(runSignature);
       }
       return Boolean(succeeded);
-    } catch {
+    } catch (error) {
+      const message = normalizeRuntimeError(error);
+      const fallbackVariableConfigs =
+        isIncompatibleViewError(message)
+          ? resetExplicitViewKindsToAuto(configState.variableConfigs)
+          : null;
+
+      if (fallbackVariableConfigs) {
+        configState.setVariableConfigs(fallbackVariableConfigs);
+        try {
+          const succeeded = await runVisualization(fallbackVariableConfigs);
+          if (succeeded) {
+            setLastRunSignature(buildRunSignature(fallbackVariableConfigs));
+            messageApi.success("Display mode reset to auto for the updated variable type.");
+          }
+          return Boolean(succeeded);
+        } catch (retryError) {
+          showErrorModal("Visualization failed", normalizeRuntimeError(retryError));
+          return false;
+        }
+      }
+
+      showErrorModal("Visualization failed", message);
       return false;
     }
-  }, [configState, runRuntimeAction, runVisualization, runSignature]);
+  }, [buildRunSignature, configState, messageApi, runSignature, runVisualization, showErrorModal]);
 
   const handleRuntimeWheelUpload = useCallback((files: FileList | null) => {
     if (!files || files.length === 0) {
@@ -398,9 +452,6 @@ function App() {
       const currentView = configState.variableConfigs[variableName]?.viewKind;
       if (!compatible?.length) {
         return [variableName, currentView && currentView !== "auto" ? ["auto", currentView] : ["auto"]];
-      }
-      if (currentView && !compatible.includes(currentView)) {
-        return [variableName, [currentView, ...compatible]];
       }
       return [variableName, compatible];
     }),

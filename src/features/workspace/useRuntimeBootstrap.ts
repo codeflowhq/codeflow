@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { initializeBrowserRuntime } from "../../runtime/python-bridge";
+import { normalizeRuntimeError } from "../../runtime/runtime-errors";
 
 export const useRuntimeBootstrap = ({
   onError,
@@ -17,10 +18,10 @@ export const useRuntimeBootstrap = ({
           setRuntimeReady(true);
         }
       })
-      .catch(() => {
+      .catch((error: unknown) => {
         if (!cancelled) {
           setRuntimeReady(false);
-          onError?.("Browser runtime failed", "Reload the page and try again.");
+          onError?.("Browser runtime failed", normalizeRuntimeError(error));
         }
       });
 

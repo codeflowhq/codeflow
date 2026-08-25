@@ -1,12 +1,16 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import type { ExampleRecord, CollectionRecord } from "../shared/types/visualization";
 
 const modalConfirmMock = vi.fn();
 const handleCreateProjectMock = vi.fn();
+const setVariableConfigsMock = vi.fn();
+const closeConfigDrawerMock = vi.fn();
+const runVisualizationMock = vi.fn(async () => true);
+let mockVariableConfigs: Record<string, { viewKind: "auto" | "array_cells"; depth: number | null; viewOptions: { color: string } }> = {};
 
 const libraryStateFactory = ({
   hasUnsavedChanges,
@@ -112,12 +116,12 @@ vi.mock("../features/watch/useVariableWatch", () => ({
       removeWatchVariable: vi.fn(),
     },
     configState: {
-      variableConfigs: {},
+      variableConfigs: mockVariableConfigs,
       pendingWatchVariables: [],
       configDrawerVariable: null,
       configDrawerOpen: false,
-      setVariableConfigs: vi.fn(),
-      closeConfigDrawer: vi.fn(),
+      setVariableConfigs: setVariableConfigsMock,
+      closeConfigDrawer: closeConfigDrawerMock,
       clearPendingWatchConfig: vi.fn(),
       openVariableConfig: vi.fn(),
       applyVariableConfigs: vi.fn(),
@@ -135,7 +139,7 @@ vi.mock("../features/visualization/useExportState", () => ({
 vi.mock("../features/visualization/useVisualizationRun", () => ({
   useVisualizationRun: () => ({
     manifest: [],
-    runVisualization: vi.fn(async () => true),
+    runVisualization: runVisualizationMock,
     setManifest: vi.fn(),
     setStatusMessage: vi.fn(),
     status: "ready",
@@ -187,7 +191,7 @@ vi.mock("./routes", () => ({
     workspaceValue,
     libraryPageProps,
   }: {
-    workspaceValue: { pageActions: { openSaveModal: () => void } };
+    workspaceValue: { pageActions: { openSaveModal: () => void; runVisualization: () => Promise<boolean> } };
     libraryPageProps: {
       onLoadExample: (example: ExampleRecord) => Promise<void>;
       onLoadCollection: (record: CollectionRecord) => Promise<void>;
@@ -196,6 +200,9 @@ vi.mock("./routes", () => ({
     <>
       <button type="button" onClick={workspaceValue.pageActions.openSaveModal}>
         Save project
+      </button>
+      <button type="button" onClick={() => void workspaceValue.pageActions.runVisualization()}>
+        Run visualization
       </button>
       <button
         type="button"
@@ -217,7 +224,7 @@ vi.mock("./routes", () => ({
           watchVariables: ["data"],
           variableConfigs: {},
           globalConfig: {
-            stepLimit: 12,
+            stepLimit: 128,
             maxDepth: 3,
             maxItemsPerView: 10,
             recursionDepthDefault: 2,
@@ -258,6 +265,11 @@ describe("AppShell", () => {
   beforeEach(() => {
     modalConfirmMock.mockReset();
     handleCreateProjectMock.mockReset();
+    setVariableConfigsMock.mockReset();
+    closeConfigDrawerMock.mockReset();
+    runVisualizationMock.mockReset();
+    runVisualizationMock.mockResolvedValue(true);
+    mockVariableConfigs = {};
   });
 
   afterEach(() => {
@@ -372,5 +384,34 @@ describe("AppShell", () => {
 
     expect(libraryState.setSaveModalOpen).toHaveBeenCalledWith(true);
     expect(libraryState.handleLoadExample).not.toHaveBeenCalled();
+  });
+
+  it("resets stale explicit view configs to auto and retries when the variable type changes", async () => {
+    const libraryState = libraryStateFactory({ hasUnsavedChanges: false });
+    useLibraryStoreMock.mockReturnValue(libraryState);
+    mockVariableConfigs = {
+      data: { viewKind: "array_cells", depth: 2, viewOptions: { color: "#64748b" } },
+    };
+
+    const mismatch = new Error("TypeError: array_cells_node view expects a list-like input");
+    runVisualizationMock
+      .mockRejectedValueOnce(mismatch)
+      .mockResolvedValueOnce(true);
+
+    render(<AppShell />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Run visualization" }));
+
+    await waitFor(() => {
+      expect(setVariableConfigsMock).toHaveBeenCalledWith({
+        data: { viewKind: "auto", depth: 2, viewOptions: { color: "#64748b" } },
+      });
+    });
+
+    expect(closeConfigDrawerMock).toHaveBeenCalled();
+    expect(runVisualizationMock).toHaveBeenNthCalledWith(1);
+    expect(runVisualizationMock).toHaveBeenNthCalledWith(2, {
+      data: { viewKind: "auto", depth: 2, viewOptions: { color: "#64748b" } },
+    });
   });
 });

@@ -37,6 +37,15 @@ const cloneConfig = (config: VariableConfig): VariableConfig => ({
   },
 });
 
+const normalizeConfigViewKind = (config: VariableConfig, viewKindOptions: ViewKind[]): VariableConfig => (
+  viewKindOptions.includes(config.viewKind)
+    ? cloneConfig(config)
+    : {
+        ...cloneConfig(config),
+        viewKind: "auto",
+      }
+);
+
 const VariableConfigDrawer = ({
   open,
   variableName,
@@ -53,28 +62,31 @@ const VariableConfigDrawer = ({
   const [drafts, setDrafts] = useState<Record<string, VariableConfig>>({});
   const defaultDepthLabel = defaultDepthValue < 0 ? "Auto" : String(defaultDepthValue);
 
-  const selectedDraft = useMemo(() => {
-    if (!variableName) {
-      return cloneConfig(defaultVariableConfig);
-    }
-    return drafts[variableName] ?? cloneConfig(variableConfig);
-  }, [defaultVariableConfig, drafts, variableConfig, variableName]);
-
   const viewKindOptions = useMemo(() => {
     if (!variableName) {
       return ["auto"] as ViewKind[];
     }
     return viewKindOptionsByVariable[variableName] ?? ["auto"];
   }, [variableName, viewKindOptionsByVariable]);
+  const selectedDraft = useMemo(() => {
+    if (!variableName) {
+      return cloneConfig(defaultVariableConfig);
+    }
+    return drafts[variableName] ?? normalizeConfigViewKind(variableConfig, viewKindOptions);
+  }, [defaultVariableConfig, drafts, variableConfig, variableName, viewKindOptions]);
+  const resolvedViewKind = useMemo<ViewKind>(
+    () => (viewKindOptions.includes(selectedDraft.viewKind) ? selectedDraft.viewKind : "auto"),
+    [selectedDraft.viewKind, viewKindOptions],
+  );
 
   const isPending = variableName ? pendingWatchVariables.includes(variableName) : false;
   const supportsColor = useMemo(
-    () => viewSelectionSupportsColor(selectedDraft.viewKind, viewKindOptions),
-    [selectedDraft.viewKind, viewKindOptions],
+    () => viewSelectionSupportsColor(resolvedViewKind, viewKindOptions),
+    [resolvedViewKind, viewKindOptions],
   );
   const supportsDepth = useMemo(
-    () => viewSelectionSupportsDepth(selectedDraft.viewKind, viewKindOptions),
-    [selectedDraft.viewKind, viewKindOptions],
+    () => viewSelectionSupportsDepth(resolvedViewKind, viewKindOptions),
+    [resolvedViewKind, viewKindOptions],
   );
   const autoOnlyDisplay = viewKindOptions.length === 1 && viewKindOptions[0] === "auto";
 
@@ -84,7 +96,7 @@ const VariableConfigDrawer = ({
     }
     setDrafts((prev) => ({
       ...prev,
-      [variableName]: updater(prev[variableName] ?? cloneConfig(variableConfig)),
+      [variableName]: updater(prev[variableName] ?? normalizeConfigViewKind(variableConfig, viewKindOptions)),
     }));
   };
 
@@ -174,7 +186,7 @@ const VariableConfigDrawer = ({
                 ) : null}
                 <Form.Item label="Display mode">
                   <Select
-                    value={selectedDraft.viewKind}
+                    value={resolvedViewKind}
                     options={viewKindOptions.map((value) => ({ label: value, value }))}
                     onChange={(value: ViewKind) => updateDraft((prev) => ({ ...prev, viewKind: value }))}
                   />

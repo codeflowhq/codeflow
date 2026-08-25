@@ -64,14 +64,18 @@ export const useVisualizationRun = ({
   const [status, setStatus] = useState("idle");
   const [statusMessage, setStatusMessage] = useState("");
 
-  const runVisualization = useCallback(async () => {
+  const runVisualization = useCallback(async (overrideVariableConfigs?: Record<string, VariableConfig>) => {
     setStatus("loading");
     setStatusMessage("Loading browser runtime…");
     try {
       const data = await runVisualizationInBrowser({
         snippet: sourceCode,
         watch: watchVariables.length ? watchVariables : undefined,
-        config: buildVisualizationRuntimeConfig({ globalConfig, sessionRuntimeWheels, variableConfigs }),
+        config: buildVisualizationRuntimeConfig({
+          globalConfig,
+          sessionRuntimeWheels,
+          variableConfigs: overrideVariableConfigs ?? variableConfigs,
+        }),
       });
       setManifest(data.manifest ?? []);
       setStatus("ready");
