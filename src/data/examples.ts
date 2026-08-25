@@ -1,5 +1,4 @@
 import type { ExampleRecord, VariableConfig, ViewKind } from "../shared/types/visualization";
-import { PREGENERATED_EXAMPLE_MANIFESTS } from "./exampleSavedManifests";
 
 export const defaultSnippet = `data = [7, 3, 1]
 for i in range(len(data)):
@@ -27,7 +26,6 @@ export const EXAMPLE_LIBRARY: ExampleRecord[] = [
     description: "Classic bubble sort trace over an array view.",
     snippet: defaultSnippet,
     watchVariables: ["data", "i", "j"],
-    savedManifest: PREGENERATED_EXAMPLE_MANIFESTS["bubble-sort-steps"],
     variableConfigs: variable("bar", 1),
     tags: ["algorithm", "sorting", "array", "curriculum"],
   },
@@ -69,17 +67,24 @@ for i in range(1, len(data)):
   {
     key: "merge-sort-trace",
     title: "Merge Sort Trace",
-    description: "Merge sort with intermediate merges captured as array updates.",
+    description: "Merge sort with the current recursive range, merge snapshots, and call stack exposed.",
     snippet: `data = [38, 27, 43, 3, 9, 82, 10]
 segments = []
+active_range = []
+call_stack = []
 
 
 def merge_sort(start, end):
+    global active_range
     if end - start <= 1:
         return
+    active_range = [start, end - 1]
+    call_stack.append(f"{start}:{end - 1}")
     mid = (start + end) // 2
     merge_sort(start, mid)
+    active_range = [start, end - 1]
     merge_sort(mid, end)
+    active_range = [start, end - 1]
 
     left = data[start:mid]
     right = data[mid:end]
@@ -107,31 +112,33 @@ def merge_sort(start, end):
         k += 1
 
     segments.append(data[start:end])
+    active_range = [start, end - 1]
+    call_stack.pop()
 
 
 merge_sort(0, len(data))
 `,
-    watchVariables: ["data", "segments"],
+    watchVariables: ["data", "active_range", "segments", "call_stack"],
     variableConfigs: {
       data: { viewKind: "bar", depth: 1, viewOptions: { color } },
+      active_range: { viewKind: "array_cells", depth: 2, viewOptions: { color } },
       segments: { viewKind: "matrix", depth: 2, viewOptions: { color } },
+      call_stack: { viewKind: "array_cells", depth: 2, viewOptions: { color } },
     },
     tags: ["algorithm", "sorting", "array", "curriculum"],
   },
   {
     key: "quick-sort-trace",
     title: "Quick Sort Trace",
-    description: "In-place quick sort with the active partition bounds exposed.",
+    description: "In-place quick sort with the current recursive range, pivot, and call stack exposed.",
     snippet: `data = [33, 10, 55, 26, 64, 18]
-low = 0
-high = len(data) - 1
+active_range = []
 pivot = None
-i = None
-j = None
+call_stack = []
 
 
 def partition(left, right):
-    global pivot, i, j
+    global pivot
     pivot = data[right]
     i = left - 1
     for j in range(left, right):
@@ -143,26 +150,27 @@ def partition(left, right):
 
 
 def quick_sort(left, right):
-    global low, high
+    global active_range
     if left >= right:
         return
-    low = left
-    high = right
+    active_range = [left, right]
+    call_stack.append(f"{left}:{right}")
     pivot_index = partition(left, right)
     quick_sort(left, pivot_index - 1)
+    active_range = [left, right]
     quick_sort(pivot_index + 1, right)
+    active_range = [left, right]
+    call_stack.pop()
 
 
 quick_sort(0, len(data) - 1)
 `,
-    watchVariables: ["data", "low", "high", "pivot", "i", "j"],
+    watchVariables: ["data", "active_range", "pivot", "call_stack"],
     variableConfigs: {
       data: { viewKind: "bar", depth: 1, viewOptions: { color } },
-      low: { viewKind: "auto", depth: null, viewOptions: { color } },
-      high: { viewKind: "auto", depth: null, viewOptions: { color } },
+      active_range: { viewKind: "array_cells", depth: 2, viewOptions: { color } },
       pivot: { viewKind: "auto", depth: null, viewOptions: { color } },
-      i: { viewKind: "auto", depth: null, viewOptions: { color } },
-      j: { viewKind: "auto", depth: null, viewOptions: { color } },
+      call_stack: { viewKind: "array_cells", depth: 2, viewOptions: { color } },
     },
     tags: ["algorithm", "sorting", "array", "curriculum"],
   },
@@ -296,8 +304,8 @@ log.append(f"remove front value {removed}")
   { key: "matrix", title: "Matrix", description: "Matrix view with aligned cells.", snippet: `data = [[2, 5, 6], [9, 0, 2], [7, 3, 1]]\nfor i in range(3):\n    data[i][i] = i + 1\n`, watchVariables: ["data"], variableConfigs: variable("matrix", 2), tags: ["matrix", "array", "intro"] },
 
   // Linear structures and maps
-  { key: "linked-list", title: "Linked List", description: "Linked list view with insert/delete example.", snippet: `class Node:\n    def __init__(self, value, next=None):\n        self.value = value\n        self.next = next\n\ndef insert_after(node, value):\n    node.next = Node(value, node.next)\n\ndef delete_after(node):\n    if node.next is not None:\n        node.next = node.next.next\n\ndata = Node(1, Node(2, Node(3)))\ninsert_after(data, 9)\ndelete_after(data.next)\n`, watchVariables: ["data"], savedManifest: PREGENERATED_EXAMPLE_MANIFESTS["linked-list"], variableConfigs: variable("linked_list", 2), tags: ["linked list", "linear structure", "data structure", "curriculum"] },
-  { key: "hash-table", title: "Hash Table", description: "Hash table view with bucket chains.", snippet: `data = [[("ab", 1), ("ba", 3)], [], [("cab", 2)]]\ndata[2].append(("dab", 4))\n`, watchVariables: ["data"], savedManifest: PREGENERATED_EXAMPLE_MANIFESTS["hash-table"], variableConfigs: variable("hash_table", 2), tags: ["hash table", "map", "data structure", "curriculum"] },
+  { key: "linked-list", title: "Linked List", description: "Linked list view with insert/delete example.", snippet: `class Node:\n    def __init__(self, value, next=None):\n        self.value = value\n        self.next = next\n\ndef insert_after(node, value):\n    node.next = Node(value, node.next)\n\ndef delete_after(node):\n    if node.next is not None:\n        node.next = node.next.next\n\ndata = Node(1, Node(2, Node(3)))\ninsert_after(data, 9)\ndelete_after(data.next)\n`, watchVariables: ["data"], variableConfigs: variable("linked_list", 2), tags: ["linked list", "linear structure", "data structure", "curriculum"] },
+  { key: "hash-table", title: "Hash Table", description: "Hash table view with bucket chains.", snippet: `data = [[("ab", 1), ("ba", 3)], [], [("cab", 2)]]\ndata[2].append(("dab", 4))\n`, watchVariables: ["data"], variableConfigs: variable("hash_table", 2), tags: ["hash table", "map", "data structure", "curriculum"] },
   {
     key: "linear-probing-hash-table",
     title: "Linear Probing Hash Table",
@@ -323,7 +331,7 @@ for key in [10, 17, 24, 31]:
 `,
     watchVariables: ["table", "probes"],
     variableConfigs: {
-      table: { viewKind: "array_cells", depth: 2, viewOptions: { color } },
+      table: { viewKind: "hash_table", depth: 2, viewOptions: { color } },
       probes: { viewKind: "array_cells", depth: 2, viewOptions: { color } },
     },
     tags: ["hash table", "map", "array", "curriculum"],
@@ -353,7 +361,7 @@ for key in [22, 1, 13, 11, 24, 33]:
 `,
     watchVariables: ["table", "probes"],
     variableConfigs: {
-      table: { viewKind: "array_cells", depth: 2, viewOptions: { color } },
+      table: { viewKind: "hash_table", depth: 2, viewOptions: { color } },
       probes: { viewKind: "array_cells", depth: 2, viewOptions: { color } },
     },
     tags: ["hash table", "map", "array", "curriculum"],
@@ -364,17 +372,58 @@ for key in [22, 1, 13, 11, 24, 33]:
     title: "BFS Queue",
     description: "Queue evolution for breadth-first search.",
     snippet: `graph = {"A": ["B", "C"], "B": ["D"], "C": ["E"], "D": [], "E": []}
+graph_state = {
+    "nodes": list(graph.keys()),
+    "edges": [],
+    "directed": True,
+}
 queue = ["A"]
 visited = []
+seen = {"A"}
+parent = {"A": None}
+current_node = None
+
+
+def refresh_nodes():
+    graph_state["nodes"] = [
+        {"id": node, "label": f"[{node}]"} if node == current_node else node
+        for node in graph
+    ]
+
+for source, neighbors in graph.items():
+    for target in neighbors:
+        graph_state["edges"].append({
+            "source": source,
+            "target": target,
+            "label": "",
+            "color": "#cbd5e1",
+        })
+
 while queue:
     node = queue.pop(0)
+    current_node = node
+    refresh_nodes()
     visited.append(node)
     for nxt in graph[node]:
+        if nxt in seen:
+            continue
+        seen.add(nxt)
+        parent[nxt] = node
         queue.append(nxt)
+        graph_state["edges"] = [
+            {
+                "source": source,
+                "target": target,
+                "label": "",
+                "color": "#2563eb" if parent.get(target) == source else "#cbd5e1",
+            }
+            for source, neighbors in graph.items()
+            for target in neighbors
+        ]
 `,
-    watchVariables: ["queue", "visited", "node"],
-    savedManifest: PREGENERATED_EXAMPLE_MANIFESTS["bfs-queue"],
+    watchVariables: ["graph_state", "queue", "visited", "node"],
     variableConfigs: {
+      graph_state: { viewKind: "graph", depth: 3, viewOptions: { color } },
       queue: { viewKind: "auto", depth: null, viewOptions: { color } },
       visited: { viewKind: "array_cells", depth: 2, viewOptions: { color } },
       node: { viewKind: "auto", depth: null, viewOptions: { color } },
@@ -395,7 +444,6 @@ while queue:
 data["users"][1]["tags"][0] = "z"
 `,
     watchVariables: ["data"],
-    savedManifest: PREGENERATED_EXAMPLE_MANIFESTS["nested-dict-list"],
     variableConfigs: variable("table", 3),
     tags: ["nested", "dict", "list", "intro"],
   },
@@ -405,30 +453,44 @@ data["users"][1]["tags"][0] = "z"
   {
     key: "heap-insert-trace",
     title: "Heap Insert Trace",
-    description: "Shows a max-heap growing as new values bubble upward.",
+    description: "Shows a max-heap growing as new values bubble upward, with the active node and parent exposed.",
     snippet: `data = [40, 18, 33, 12, 9]
 inserted = []
+active_index = None
+parent_index = None
+swap_path = []
 
 
 def push(value):
+    global active_index, parent_index, swap_path
     data.append(value)
     inserted.append(value)
     index = len(data) - 1
+    active_index = index
+    parent_index = None
+    swap_path = [index]
     while index > 0:
         parent = (index - 1) // 2
+        parent_index = parent
         if data[parent] >= data[index]:
             break
         data[parent], data[index] = data[index], data[parent]
         index = parent
+        active_index = index
+        swap_path.append(index)
+    active_index = index
 
 
 for value in [27, 45]:
     push(value)
 `,
-    watchVariables: ["data", "inserted"],
+    watchVariables: ["data", "inserted", "active_index", "parent_index", "swap_path"],
     variableConfigs: {
       data: { viewKind: "heap_dual", depth: 2, viewOptions: { color } },
       inserted: { viewKind: "array_cells", depth: 2, viewOptions: { color } },
+      active_index: { viewKind: "auto", depth: null, viewOptions: { color } },
+      parent_index: { viewKind: "auto", depth: null, viewOptions: { color } },
+      swap_path: { viewKind: "array_cells", depth: 2, viewOptions: { color } },
     },
     tags: ["heap", "tree", "data structure", "curriculum"],
   },
@@ -473,7 +535,7 @@ pop_max()
     },
     tags: ["heap", "tree", "data structure", "curriculum"],
   },
-  { key: "tree", title: "Tree", description: "Tree view using nested children.", snippet: `data = {"label": "A", "children": [{"label": "B", "children": []}, {"label": "C", "children": [{"label": "D", "children": []}]}]}\n`, watchVariables: ["data"], savedManifest: PREGENERATED_EXAMPLE_MANIFESTS.tree, variableConfigs: variable("tree", 3), tags: ["tree", "data structure", "intro"] },
+  { key: "tree", title: "Tree", description: "Tree view using nested children.", snippet: `data = {"label": "A", "children": [{"label": "B", "children": []}, {"label": "C", "children": [{"label": "D", "children": []}]}]}\n`, watchVariables: ["data"], variableConfigs: variable("tree", 3), tags: ["tree", "data structure", "intro"] },
   {
     key: "bitmask-builder",
     title: "Bitmask Builder",
@@ -493,43 +555,41 @@ for bit in [0, 2, 4]:
   {
     key: "bst-insert-trace",
     title: "BST Insert Trace",
-    description: "Shows a binary search tree growing through successive insert-style states.",
-    snippet: `steps = [
-    {"label": "7", "children": []},
-    {"label": "7", "children": [{"label": "3", "children": []}]},
-    {"label": "7", "children": [{"label": "3", "children": []}, {"label": "9", "children": []}]},
-    {
-        "label": "7",
-        "children": [
-            {"label": "3", "children": [{"label": "1", "children": []}]},
-            {"label": "9", "children": []},
-        ],
-    },
-    {
-        "label": "7",
-        "children": [
-            {"label": "3", "children": [{"label": "1", "children": []}, {"label": "5", "children": []}]},
-            {"label": "9", "children": []},
-        ],
-    },
-    {
-        "label": "7",
-        "children": [
-            {"label": "3", "children": [{"label": "1", "children": []}, {"label": "5", "children": []}]},
-            {"label": "9", "children": [{"label": "8", "children": []}]},
-        ],
-    },
-    {
-        "label": "7",
-        "children": [
-            {"label": "3", "children": [{"label": "1", "children": []}, {"label": "5", "children": []}]},
-            {"label": "9", "children": [{"label": "8", "children": []}, {"label": "10", "children": []}]},
-        ],
-    },
-]
+    description: "Builds a binary search tree through real insert operations.",
+    snippet: `class Node:
+    def __init__(self, value):
+        self.value = value
+        self.left = None
+        self.right = None
 
-for data in steps:
-    pass
+
+def insert(node, value):
+    if node is None:
+        return Node(value)
+    if value < node.value:
+        node.left = insert(node.left, value)
+    else:
+        node.right = insert(node.right, value)
+    return node
+
+
+def snapshot(node):
+    if node is None:
+        return {"label": "∅", "children": []}
+    children = []
+    if node.left is not None:
+        children.append(snapshot(node.left))
+    if node.right is not None:
+        children.append(snapshot(node.right))
+    return {"label": str(node.value), "children": children}
+
+
+root = None
+data = {"label": "∅", "children": []}
+
+for value in [7, 3, 9, 1, 5, 8, 10]:
+    root = insert(root, value)
+    data = snapshot(root)
 `,
     watchVariables: ["data"],
     variableConfigs: variable("tree", 3),
@@ -539,53 +599,57 @@ for data in steps:
     key: "bst-search-trace",
     title: "BST Search Trace",
     description: "Walks a binary search tree while recording the visited path.",
-    snippet: `states = [
-    {
-        "data": {
-            "label": "8",
-            "children": [
-                {"label": "3", "children": [{"label": "1", "children": []}, {"label": "6", "children": [{"label": "4", "children": []}, {"label": "7", "children": []}]}]},
-                {"label": "10", "children": [{"label": "9", "children": []}, {"label": "14", "children": [{"label": "13", "children": []}]}]},
-            ],
-        },
-        "path": ["8"],
-    },
-    {
-        "data": {
-            "label": "8",
-            "children": [
-                {"label": "3", "children": [{"label": "1", "children": []}, {"label": "6", "children": [{"label": "4", "children": []}, {"label": "7", "children": []}]}]},
-                {"label": "10", "children": [{"label": "9", "children": []}, {"label": "14", "children": [{"label": "13", "children": []}]}]},
-            ],
-        },
-        "path": ["8", "10"],
-    },
-    {
-        "data": {
-            "label": "8",
-            "children": [
-                {"label": "3", "children": [{"label": "1", "children": []}, {"label": "6", "children": [{"label": "4", "children": []}, {"label": "7", "children": []}]}]},
-                {"label": "10", "children": [{"label": "9", "children": []}, {"label": "14", "children": [{"label": "13", "children": []}]}]},
-            ],
-        },
-        "path": ["8", "10", "14"],
-    },
-    {
-        "data": {
-            "label": "8",
-            "children": [
-                {"label": "3", "children": [{"label": "1", "children": []}, {"label": "6", "children": [{"label": "4", "children": []}, {"label": "7", "children": []}]}]},
-                {"label": "10", "children": [{"label": "9", "children": []}, {"label": "14", "children": [{"label": "13", "children": []}]}]},
-            ],
-        },
-        "path": ["8", "10", "14", "13"],
-    },
-]
-target = 13
+    snippet: `class Node:
+    def __init__(self, value):
+        self.value = value
+        self.left = None
+        self.right = None
 
-for state in states:
-    data = state["data"]
-    path = state["path"]
+
+def insert(node, value):
+    if node is None:
+        return Node(value)
+    if value < node.value:
+        node.left = insert(node.left, value)
+    else:
+        node.right = insert(node.right, value)
+    return node
+
+
+def snapshot(node, current=None):
+    if node is None:
+        return {"label": "∅", "children": []}
+    label = str(node.value)
+    if current is node:
+        label = f"[{label}]"
+    children = []
+    if node.left is not None:
+        children.append(snapshot(node.left, current))
+    if node.right is not None:
+        children.append(snapshot(node.right, current))
+    return {"label": label, "children": children}
+
+
+root = None
+for value in [8, 3, 10, 1, 6, 9, 14, 4, 7, 13]:
+    root = insert(root, value)
+
+target = 13
+path = []
+current = root
+data = snapshot(root, current)
+
+while current is not None:
+    path.append(str(current.value))
+    data = snapshot(root, current)
+    if current.value == target:
+        break
+    if target < current.value:
+        current = current.left
+    else:
+        current = current.right
+
+data = snapshot(root, current)
 `,
     watchVariables: ["data", "target", "path"],
     variableConfigs: {
@@ -598,34 +662,76 @@ for state in states:
   {
     key: "bst-delete-trace",
     title: "BST Delete Trace",
-    description: "Shows a binary search tree before and after deleting a node with two children.",
-    snippet: `states = [
-    {
-        "data": {
-            "label": "8",
-            "children": [
-                {"label": "3", "children": [{"label": "1", "children": []}, {"label": "6", "children": [{"label": "4", "children": []}, {"label": "7", "children": []}]}]},
-                {"label": "10", "children": [{"label": "9", "children": []}, {"label": "14", "children": [{"label": "13", "children": []}]}]},
-            ],
-        },
-        "focus": ["3"],
-    },
-    {
-        "data": {
-            "label": "8",
-            "children": [
-                {"label": "4", "children": [{"label": "1", "children": []}, {"label": "6", "children": [{"label": "7", "children": []}]}]},
-                {"label": "10", "children": [{"label": "9", "children": []}, {"label": "14", "children": [{"label": "13", "children": []}]}]},
-            ],
-        },
-        "focus": ["4"],
-    },
-]
-deleted = 3
+    description: "Deletes a BST node with two children and keeps a focus trace.",
+    snippet: `class Node:
+    def __init__(self, value):
+        self.value = value
+        self.left = None
+        self.right = None
 
-for state in states:
-    data = state["data"]
-    focus = state["focus"]
+
+def insert(node, value):
+    if node is None:
+        return Node(value)
+    if value < node.value:
+        node.left = insert(node.left, value)
+    else:
+        node.right = insert(node.right, value)
+    return node
+
+
+def snapshot(node, focus_values=()):
+    if node is None:
+        return {"label": "∅", "children": []}
+    label = str(node.value)
+    if str(node.value) in focus_values:
+        label = f"[{label}]"
+    children = []
+    if node.left is not None:
+        children.append(snapshot(node.left, focus_values))
+    if node.right is not None:
+        children.append(snapshot(node.right, focus_values))
+    return {"label": label, "children": children}
+
+
+def leftmost(node):
+    while node.left is not None:
+        node = node.left
+    return node
+
+
+def delete(node, value):
+    global data, focus
+    if node is None:
+        return None
+    focus = focus + [str(node.value)]
+    data = snapshot(root, focus)
+    if value < node.value:
+        node.left = delete(node.left, value)
+        return node
+    if value > node.value:
+        node.right = delete(node.right, value)
+        return node
+    if node.left is None:
+        return node.right
+    if node.right is None:
+        return node.left
+    successor = leftmost(node.right)
+    node.value = successor.value
+    data = snapshot(root, focus + [str(successor.value)])
+    node.right = delete(node.right, successor.value)
+    return node
+
+
+root = None
+for value in [8, 3, 10, 1, 6, 9, 14, 4, 7, 13]:
+    root = insert(root, value)
+
+deleted = 3
+focus = []
+data = snapshot(root)
+root = delete(root, deleted)
+data = snapshot(root, focus)
 `,
     watchVariables: ["data", "deleted", "focus"],
     variableConfigs: {
@@ -638,35 +744,84 @@ for state in states:
   {
     key: "avl-rotation-trace",
     title: "AVL Rotation Trace",
-    description: "Shows AVL balancing states, including a rotation-driven rebalance.",
-    snippet: `steps = [
-    {"label": "30 (1)", "children": []},
-    {"label": "30 (2)", "children": [{"label": "20 (1)", "children": []}]},
-    {
-        "label": "20 (2)",
-        "children": [
-            {"label": "10 (1)", "children": []},
-            {"label": "30 (1)", "children": []},
-        ],
-    },
-    {
-        "label": "20 (3)",
-        "children": [
-            {"label": "10 (1)", "children": []},
-            {"label": "30 (2)", "children": [{"label": "25 (1)", "children": []}]},
-        ],
-    },
-    {
-        "label": "25 (3)",
-        "children": [
-            {"label": "20 (2)", "children": [{"label": "10 (1)", "children": []}]},
-            {"label": "30 (2)", "children": [{"label": "28 (1)", "children": []}]},
-        ],
-    },
-]
+    description: "Shows AVL balancing through real insertions and rotations.",
+    snippet: `class Node:
+    def __init__(self, value):
+        self.value = value
+        self.left = None
+        self.right = None
+        self.height = 1
 
-for data in steps:
-    pass
+
+def height(node):
+    return 0 if node is None else node.height
+
+
+def update(node):
+    node.height = max(height(node.left), height(node.right)) + 1
+
+
+def rotate_left(node):
+    pivot = node.right
+    node.right = pivot.left
+    pivot.left = node
+    update(node)
+    update(pivot)
+    return pivot
+
+
+def rotate_right(node):
+    pivot = node.left
+    node.left = pivot.right
+    pivot.right = node
+    update(node)
+    update(pivot)
+    return pivot
+
+
+def balance(node):
+    if node is None:
+        return None
+    update(node)
+    factor = height(node.left) - height(node.right)
+    if factor > 1:
+        if height(node.left.left) < height(node.left.right):
+            node.left = rotate_left(node.left)
+        return rotate_right(node)
+    if factor < -1:
+        if height(node.right.right) < height(node.right.left):
+            node.right = rotate_right(node.right)
+        return rotate_left(node)
+    return node
+
+
+def insert(node, value):
+    if node is None:
+        return Node(value)
+    if value < node.value:
+        node.left = insert(node.left, value)
+    else:
+        node.right = insert(node.right, value)
+    return balance(node)
+
+
+def snapshot(node):
+    if node is None:
+        return {"label": "∅", "children": []}
+    children = []
+    if node.left is not None:
+        children.append(snapshot(node.left))
+    if node.right is not None:
+        children.append(snapshot(node.right))
+    return {"label": f"{node.value} ({node.height})", "children": children}
+
+
+root = None
+data = {"label": "∅", "children": []}
+
+for value in [30, 20, 10, 25, 28]:
+    root = insert(root, value)
+    data = snapshot(root)
 `,
     watchVariables: ["data"],
     variableConfigs: variable("tree", 4),
@@ -675,25 +830,50 @@ for data in steps:
   {
     key: "union-find-trace",
     title: "Union-Find Trace",
-    description: "Shows parent and rank updates across a few union operations.",
-    snippet: `states = [
-    {"parent": [0, 1, 2, 3, 4, 5], "rank": [0, 0, 0, 0, 0, 0], "groups": [0, 1, 2, 3, 4, 5]},
-    {"parent": [0, 0, 2, 3, 4, 5], "rank": [1, 0, 0, 0, 0, 0], "groups": [0, 0, 2, 3, 4, 5]},
-    {"parent": [0, 0, 0, 3, 4, 5], "rank": [1, 0, 0, 0, 0, 0], "groups": [0, 0, 0, 3, 4, 5]},
-    {"parent": [0, 0, 0, 3, 3, 5], "rank": [1, 0, 0, 1, 0, 0], "groups": [0, 0, 0, 3, 3, 5]},
-    {"parent": [0, 0, 0, 0, 3, 5], "rank": [2, 0, 0, 1, 0, 0], "groups": [0, 0, 0, 0, 0, 5]},
-]
+    description: "Shows parent and rank updates across real union operations.",
+    snippet: `parent = list(range(6))
+rank = [0] * 6
+groups = parent[:]
+operations = []
 
-for state in states:
-    parent = state["parent"]
-    rank = state["rank"]
-    groups = state["groups"]
+
+def find(x):
+    while parent[x] != x:
+        parent[x] = parent[parent[x]]
+        x = parent[x]
+    return x
+
+
+def union(a, b):
+    root_a = find(a)
+    root_b = find(b)
+    if root_a == root_b:
+        operations.append(f"skip {a}-{b}")
+        return
+    if rank[root_a] < rank[root_b]:
+        parent[root_a] = root_b
+    elif rank[root_a] > rank[root_b]:
+        parent[root_b] = root_a
+    else:
+        parent[root_b] = root_a
+        rank[root_a] += 1
+    operations.append(f"union {a}-{b}")
+
+
+def snapshot_groups():
+    return [find(index) for index in range(len(parent))]
+
+
+for a, b in [(0, 1), (1, 2), (3, 4), (2, 3)]:
+    union(a, b)
+    groups = snapshot_groups()
 `,
-    watchVariables: ["parent", "rank", "groups"],
+    watchVariables: ["parent", "rank", "groups", "operations"],
     variableConfigs: {
       parent: { viewKind: "array_cells", depth: 2, viewOptions: { color } },
       rank: { viewKind: "bar", depth: 1, viewOptions: { color } },
       groups: { viewKind: "array_cells", depth: 2, viewOptions: { color } },
+      operations: { viewKind: "array_cells", depth: 2, viewOptions: { color } },
     },
     tags: ["union-find", "graph", "data structure", "curriculum"],
   },
@@ -727,7 +907,6 @@ for index in [1, 3, 5, 8]:
     prefix_sums.append(prefix_sum(index))
 `,
     watchVariables: ["values", "tree", "prefix_sums"],
-    savedManifest: PREGENERATED_EXAMPLE_MANIFESTS["fenwick-tree-trace"],
     variableConfigs: {
       values: { viewKind: "array_cells", depth: 2, viewOptions: { color } },
       tree: { viewKind: "array_cells", depth: 2, viewOptions: { color } },
@@ -772,7 +951,6 @@ update(1, 0, len(values) - 1, 4, 7)
 values[4] = 7
 `,
     watchVariables: ["values", "tree"],
-    savedManifest: PREGENERATED_EXAMPLE_MANIFESTS["segment-tree-trace"],
     variableConfigs: {
       values: { viewKind: "array_cells", depth: 2, viewOptions: { color } },
       tree: { viewKind: "array_cells", depth: 2, viewOptions: { color } },
@@ -781,23 +959,47 @@ values[4] = 7
   },
 
   // Graph algorithms and traversal
-  { key: "graph", title: "Graph", description: "Graph view using node/edge mapping.", snippet: `data = {\n  "nodes": [{"id": "A"}, {"id": "B"}, {"id": "C"}],\n  "edges": [{"source": "A", "target": "B", "label": "ab"}, {"source": "B", "target": "C", "label": "bc"}],\n  "directed": True,\n}\n`, watchVariables: ["data"], savedManifest: PREGENERATED_EXAMPLE_MANIFESTS.graph, variableConfigs: variable("graph", 2), tags: ["graph", "data structure", "intro"] },
+  {
+    key: "graph",
+    title: "Graph",
+    description: "Graph view built incrementally from node and edge updates.",
+    snippet: `data = {
+  "nodes": [],
+  "edges": [],
+  "directed": True,
+}
+
+for node in ["A", "B", "C", "D"]:
+    data["nodes"].append({"id": node})
+
+for source, target, label in [("A", "B", "ab"), ("B", "C", "bc"), ("A", "D", "ad")]:
+    data["edges"].append({"source": source, "target": target, "label": label})
+`,
+    watchVariables: ["data"],
+    variableConfigs: variable("graph", 2),
+    tags: ["graph", "data structure", "intro"],
+  },
   {
     key: "nested-graph-structure",
     title: "Nested Graph Mapping",
-    description: "Graph mapping with nested node payloads and labeled edges.",
-    snippet: `data = {
-  "nodes": [
-    {"id": "A", "label": {"name": "Alpha", "weight": 3}},
-    {"id": "B", "label": {"name": "Beta", "weight": 5}},
-    {"id": "C", "label": {"name": "Gamma", "weight": 8}},
-  ],
-  "edges": [
-    {"source": "A", "target": "B", "label": "ab"},
-    {"source": "B", "target": "C", "label": "bc"},
-  ],
+    description: "Graph mapping with nested node payloads added over a real build sequence.",
+    snippet: `node_specs = [
+  ("A", {"name": "Alpha", "weight": 3}),
+  ("B", {"name": "Beta", "weight": 5}),
+  ("C", {"name": "Gamma", "weight": 8}),
+]
+edge_specs = [("A", "B", "ab"), ("B", "C", "bc")]
+data = {
+  "nodes": [],
+  "edges": [],
   "directed": True,
 }
+
+for node_id, payload in node_specs:
+    data["nodes"].append({"id": node_id, "label": payload})
+
+for source, target, label in edge_specs:
+    data["edges"].append({"source": source, "target": target, "label": label})
 `,
     watchVariables: ["data"],
     variableConfigs: variable("graph", 3),
@@ -865,21 +1067,59 @@ for value in range(1, amount + 1):
     "E": [],
     "F": [],
 }
+graph_state = {
+    "nodes": list(graph.keys()),
+    "edges": [],
+    "directed": True,
+}
 stack = ["A"]
 visited = []
 order = []
+parent = {"A": None}
+current_node = None
+
+
+def refresh_nodes():
+    graph_state["nodes"] = [
+        {"id": node, "label": f"[{node}]"} if node == current_node else node
+        for node in graph
+    ]
+
+for source, neighbors in graph.items():
+    for target in neighbors:
+        graph_state["edges"].append({
+            "source": source,
+            "target": target,
+            "label": "",
+            "color": "#cbd5e1",
+        })
 
 while stack:
     node = stack.pop()
+    current_node = node
+    refresh_nodes()
     if node in visited:
         continue
     visited.append(node)
     order.append(node)
     for nxt in reversed(graph[node]):
+        if nxt not in parent:
+            parent[nxt] = node
         stack.append(nxt)
+        graph_state["edges"] = [
+            {
+                "source": source,
+                "target": target,
+                "label": "",
+                "color": "#2563eb" if parent.get(target) == source else "#cbd5e1",
+            }
+            for source, neighbors in graph.items()
+            for target in neighbors
+        ]
 `,
-    watchVariables: ["stack", "visited", "order"],
+    watchVariables: ["graph_state", "stack", "visited", "order"],
     variableConfigs: {
+      graph_state: { viewKind: "graph", depth: 3, viewOptions: { color } },
       stack: { viewKind: "array_cells", depth: 2, viewOptions: { color } },
       visited: { viewKind: "array_cells", depth: 2, viewOptions: { color } },
       order: { viewKind: "array_cells", depth: 2, viewOptions: { color } },
@@ -898,9 +1138,23 @@ while stack:
     "E": ["F"],
     "F": [],
 }
+graph_state = {
+    "nodes": list(graph.keys()),
+    "edges": [],
+    "directed": True,
+}
 in_degree = {"A": 0, "B": 0, "C": 2, "D": 1, "E": 1, "F": 2}
 queue = ["A", "B"]
 order = []
+
+for source, neighbors in graph.items():
+    for target in neighbors:
+        graph_state["edges"].append({
+            "source": source,
+            "target": target,
+            "label": "",
+            "color": "#cbd5e1",
+        })
 
 while queue:
     node = queue.pop(0)
@@ -909,9 +1163,20 @@ while queue:
         in_degree[nxt] -= 1
         if in_degree[nxt] == 0:
             queue.append(nxt)
+        graph_state["edges"] = [
+            {
+                "source": source,
+                "target": target,
+                "label": "",
+                "color": "#2563eb" if target in order or target in queue else "#cbd5e1",
+            }
+            for source, neighbors in graph.items()
+            for target in neighbors
+        ]
 `,
-    watchVariables: ["in_degree", "queue", "order"],
+    watchVariables: ["graph_state", "in_degree", "queue", "order"],
     variableConfigs: {
+      graph_state: { viewKind: "graph", depth: 3, viewOptions: { color } },
       in_degree: { viewKind: "table", depth: 2, viewOptions: { color } },
       queue: { viewKind: "array_cells", depth: 2, viewOptions: { color } },
       order: { viewKind: "array_cells", depth: 2, viewOptions: { color } },
@@ -930,8 +1195,24 @@ while queue:
     "E": ["D"],
     "F": [],
 }
+graph_state = {
+    "nodes": list(graph.keys()),
+    "edges": [],
+    "directed": False,
+}
 visited = []
 components = []
+component_index = {}
+
+for source, neighbors in graph.items():
+    for target in neighbors:
+        if source < target:
+            graph_state["edges"].append({
+                "source": source,
+                "target": target,
+                "label": "",
+                "color": "#cbd5e1",
+            })
 
 for start in graph:
     if start in visited:
@@ -944,49 +1225,1066 @@ for start in graph:
             continue
         visited.append(node)
         component.append(node)
+        component_index[node] = len(components)
         for nxt in reversed(graph[node]):
             if nxt not in visited:
                 stack.append(nxt)
+        graph_state["edges"] = [
+            {
+                "source": source,
+                "target": target,
+                "label": "",
+                "color": "#2563eb" if (
+                    component_index.get(source) is not None
+                    and component_index.get(source) == component_index.get(target)
+                ) else "#cbd5e1",
+            }
+            for source, neighbors in graph.items()
+            for target in neighbors
+            if source < target
+        ]
     components.append(component)
 `,
-    watchVariables: ["visited", "components"],
+    watchVariables: ["graph_state", "visited", "components"],
     variableConfigs: {
+      graph_state: { viewKind: "graph", depth: 3, viewOptions: { color } },
       visited: { viewKind: "array_cells", depth: 2, viewOptions: { color } },
       components: { viewKind: "matrix", depth: 2, viewOptions: { color } },
     },
     tags: ["graph", "traversal", "algorithm", "curriculum"],
   },
   {
+    key: "a-star-search",
+    title: "A* Search",
+    description: "Heuristic graph search with evolving frontier scores and a discovered path tree.",
+    snippet: `graph = {
+    "S": {"A": 1, "B": 4},
+    "A": {"C": 2, "D": 5},
+    "B": {"D": 1},
+    "C": {"G": 5},
+    "D": {"G": 3},
+    "G": {},
+}
+heuristic = {"S": 6, "A": 4, "B": 4, "C": 3, "D": 2, "G": 0}
+graph_state = {
+    "nodes": list(graph.keys()),
+    "edges": [],
+    "directed": True,
+}
+open_set = [("S", 0)]
+g_score = {"S": 0}
+parent = {"S": None}
+expanded = []
+goal = "G"
+current_node = None
+
+
+def refresh_nodes():
+    graph_state["nodes"] = [
+        {"id": node, "label": f"[{node}]"} if node == current_node else node
+        for node in graph
+    ]
+
+
+def rebuild_tree():
+    graph_state["edges"] = [
+        {"source": source, "target": node, "label": str(g_score[node])}
+        for node, source in parent.items()
+        if source is not None
+    ]
+
+
+while open_set:
+    open_set.sort(key=lambda item: item[1] + heuristic[item[0]])
+    node, current_cost = open_set.pop(0)
+    current_node = node
+    refresh_nodes()
+    if node in expanded:
+        continue
+    expanded.append(node)
+    if node == goal:
+        break
+    for nxt, weight in graph[node].items():
+        next_cost = current_cost + weight
+        if nxt not in g_score or next_cost < g_score[nxt]:
+            g_score[nxt] = next_cost
+            parent[nxt] = node
+            open_set.append((nxt, next_cost))
+            rebuild_tree()
+`,
+    watchVariables: ["graph_state", "open_set", "g_score", "expanded"],
+    variableConfigs: {
+      graph_state: { viewKind: "graph", depth: 3, viewOptions: { color } },
+      open_set: { viewKind: "array_cells", depth: 2, viewOptions: { color } },
+      g_score: { viewKind: "table", depth: 2, viewOptions: { color } },
+      expanded: { viewKind: "array_cells", depth: 2, viewOptions: { color } },
+    },
+    tags: ["search", "heuristic", "graph", "algorithm", "curriculum"],
+  },
+  {
+    key: "uniform-cost-search",
+    title: "Uniform Cost Search",
+    description: "Best-first expansion by path cost only, with frontier and parent updates.",
+    snippet: `graph = {
+    "S": {"A": 1, "B": 4},
+    "A": {"C": 2, "D": 5},
+    "B": {"D": 1},
+    "C": {"G": 5},
+    "D": {"G": 2},
+    "G": {},
+}
+graph_state = {
+    "nodes": list(graph.keys()),
+    "edges": [],
+    "directed": True,
+}
+frontier = [("S", 0)]
+dist = {"S": 0}
+parent = {"S": None}
+expanded = []
+goal = "G"
+current_node = None
+
+
+def refresh_nodes():
+    graph_state["nodes"] = [
+        {"id": node, "label": f"[{node}]"} if node == current_node else node
+        for node in graph
+    ]
+
+
+def rebuild_tree():
+    graph_state["edges"] = [
+        {"source": source, "target": node, "label": str(dist[node])}
+        for node, source in parent.items()
+        if source is not None
+    ]
+
+
+while frontier:
+    frontier.sort(key=lambda item: item[1])
+    node, current_cost = frontier.pop(0)
+    current_node = node
+    refresh_nodes()
+    if node in expanded:
+        continue
+    expanded.append(node)
+    if node == goal:
+        break
+    for nxt, weight in graph[node].items():
+        next_cost = current_cost + weight
+        if nxt not in dist or next_cost < dist[nxt]:
+            dist[nxt] = next_cost
+            parent[nxt] = node
+            frontier.append((nxt, next_cost))
+            rebuild_tree()
+`,
+    watchVariables: ["graph_state", "frontier", "dist", "expanded"],
+    variableConfigs: {
+      graph_state: { viewKind: "graph", depth: 3, viewOptions: { color } },
+      frontier: { viewKind: "array_cells", depth: 2, viewOptions: { color } },
+      dist: { viewKind: "table", depth: 2, viewOptions: { color } },
+      expanded: { viewKind: "array_cells", depth: 2, viewOptions: { color } },
+    },
+    tags: ["search", "uniform cost", "graph", "algorithm", "curriculum"],
+  },
+  {
+    key: "greedy-best-first-search",
+    title: "Greedy Best-First Search",
+    description: "Heuristic-only frontier ordering with the explored tree updated step by step.",
+    snippet: `graph = {
+    "S": {"A": 1, "B": 1},
+    "A": {"C": 1, "D": 1},
+    "B": {"E": 1},
+    "C": {"G": 1},
+    "D": {},
+    "E": {"G": 1},
+    "G": {},
+}
+heuristic = {"S": 5, "A": 3, "B": 2, "C": 1, "D": 4, "E": 1, "G": 0}
+graph_state = {
+    "nodes": list(graph.keys()),
+    "edges": [],
+    "directed": True,
+}
+frontier = ["S"]
+parent = {"S": None}
+expanded = []
+current_node = None
+
+
+def refresh_nodes():
+    graph_state["nodes"] = [
+        {"id": node, "label": f"[{node}]"} if node == current_node else node
+        for node in graph
+    ]
+
+
+def rebuild_tree():
+    graph_state["edges"] = [
+        {"source": source, "target": node, "label": str(heuristic[node])}
+        for node, source in parent.items()
+        if source is not None
+    ]
+
+
+while frontier:
+    frontier.sort(key=lambda node: heuristic[node])
+    node = frontier.pop(0)
+    current_node = node
+    refresh_nodes()
+    if node in expanded:
+        continue
+    expanded.append(node)
+    if node == "G":
+        break
+    for nxt in graph[node]:
+        if nxt in expanded or nxt in frontier:
+            continue
+        if nxt not in parent:
+            parent[nxt] = node
+        frontier.append(nxt)
+        rebuild_tree()
+`,
+    watchVariables: ["graph_state", "frontier", "expanded"],
+    variableConfigs: {
+      graph_state: { viewKind: "graph", depth: 3, viewOptions: { color } },
+      frontier: { viewKind: "array_cells", depth: 2, viewOptions: { color } },
+      expanded: { viewKind: "array_cells", depth: 2, viewOptions: { color } },
+    },
+    tags: ["search", "greedy", "heuristic", "graph", "algorithm", "curriculum"],
+  },
+  {
+    key: "a-star-with-visited-memory",
+    title: "A* with Visited Memory",
+    description: "A* graph search with an explicit closed set to avoid re-expanding visited states.",
+    snippet: `graph = {
+    "S": {"A": 1, "B": 4},
+    "A": {"C": 2, "D": 5},
+    "B": {"D": 1},
+    "C": {"G": 5},
+    "D": {"G": 3},
+    "G": {},
+}
+heuristic = {"S": 6, "A": 4, "B": 4, "C": 3, "D": 2, "G": 0}
+graph_state = {
+    "nodes": list(graph.keys()),
+    "edges": [],
+    "directed": True,
+}
+frontier = [("S", 0)]
+g_score = {"S": 0}
+parent = {"S": None}
+closed_set = []
+current_node = None
+
+
+def refresh_nodes():
+    graph_state["nodes"] = [
+        {"id": node, "label": f"[{node}]"} if node == current_node else node
+        for node in graph
+    ]
+
+
+def rebuild_tree():
+    graph_state["edges"] = [
+        {"source": source, "target": node, "label": str(g_score[node])}
+        for node, source in parent.items()
+        if source is not None
+    ]
+
+
+while frontier:
+    frontier.sort(key=lambda item: item[1] + heuristic[item[0]])
+    node, current_cost = frontier.pop(0)
+    current_node = node
+    refresh_nodes()
+    if node in closed_set:
+        continue
+    closed_set.append(node)
+    if node == "G":
+        break
+    for nxt, weight in graph[node].items():
+        if nxt in closed_set:
+            continue
+        next_cost = current_cost + weight
+        if nxt not in g_score or next_cost < g_score[nxt]:
+            g_score[nxt] = next_cost
+            parent[nxt] = node
+            frontier.append((nxt, next_cost))
+            rebuild_tree()
+`,
+    watchVariables: ["graph_state", "frontier", "g_score", "closed_set"],
+    variableConfigs: {
+      graph_state: { viewKind: "graph", depth: 3, viewOptions: { color } },
+      frontier: { viewKind: "array_cells", depth: 2, viewOptions: { color } },
+      g_score: { viewKind: "table", depth: 2, viewOptions: { color } },
+      closed_set: { viewKind: "array_cells", depth: 2, viewOptions: { color } },
+    },
+    tags: ["search", "heuristic", "a*", "graph", "algorithm", "curriculum"],
+  },
+  {
+    key: "depth-limited-search",
+    title: "Depth-Limited Search",
+    description: "Depth-first search with a hard depth bound that stops deeper expansion.",
+    snippet: `graph = {
+    "A": ["B", "C"],
+    "B": ["D", "E"],
+    "C": ["F"],
+    "D": ["G"],
+    "E": [],
+    "F": [],
+    "G": [],
+}
+graph_state = {
+    "nodes": list(graph.keys()),
+    "edges": [],
+    "directed": True,
+}
+stack = [("A", 0)]
+limit = 2
+visited = []
+cutoff = []
+current_node = None
+current_depth = 0
+
+
+def refresh_nodes():
+    graph_state["nodes"] = [
+        {"id": node, "label": f"[{node}]"} if node == current_node else node
+        for node in graph
+    ]
+
+for source, neighbors in graph.items():
+    for target in neighbors:
+        graph_state["edges"].append({
+            "source": source,
+            "target": target,
+            "label": "",
+            "color": "#cbd5e1",
+        })
+
+while stack:
+    node, depth = stack.pop()
+    current_node = node
+    current_depth = depth
+    refresh_nodes()
+    visited.append(f"{node}@{depth}")
+    if depth == limit:
+        if graph[node]:
+            cutoff.append(node)
+            graph_state["edges"] = [
+                {
+                    "source": source,
+                    "target": target,
+                    "label": "",
+                    "color": "#f59e0b" if source == node else "#cbd5e1",
+                }
+                for source, neighbors in graph.items()
+                for target in neighbors
+            ]
+        continue
+    for nxt in reversed(graph[node]):
+        stack.append((nxt, depth + 1))
+    graph_state["edges"] = [
+        {
+            "source": source,
+            "target": target,
+            "label": "",
+            "color": "#2563eb" if source == node else "#cbd5e1",
+        }
+        for source, neighbors in graph.items()
+        for target in neighbors
+    ]
+`,
+    watchVariables: ["graph_state", "current_node", "current_depth", "stack", "visited", "cutoff", "limit"],
+    variableConfigs: {
+      graph_state: { viewKind: "graph", depth: 3, viewOptions: { color } },
+      current_node: { viewKind: "auto", depth: null, viewOptions: { color } },
+      current_depth: { viewKind: "auto", depth: null, viewOptions: { color } },
+      stack: { viewKind: "array_cells", depth: 2, viewOptions: { color } },
+      visited: { viewKind: "array_cells", depth: 2, viewOptions: { color } },
+      cutoff: { viewKind: "array_cells", depth: 2, viewOptions: { color } },
+      limit: { viewKind: "auto", depth: null, viewOptions: { color } },
+    },
+    tags: ["search", "depth-limited", "dfs", "algorithm", "curriculum"],
+  },
+  {
+    key: "iterative-deepening-search",
+    title: "Iterative Deepening Search",
+    description: "Repeated depth-limited searches with increasing limits until the goal is reached.",
+    snippet: `graph = {
+    "A": ["B", "C"],
+    "B": ["D", "E"],
+    "C": ["F"],
+    "D": ["G"],
+    "E": [],
+    "F": [],
+    "G": [],
+}
+graph_state = {
+    "nodes": list(graph.keys()),
+    "edges": [],
+    "directed": True,
+}
+limits = []
+layers = []
+found = None
+goal = "G"
+current_limit = 0
+visited_this_round = []
+current_node = None
+
+
+def refresh_nodes():
+    graph_state["nodes"] = [
+        {"id": node, "label": f"[{node}]"} if node == current_node else node
+        for node in graph
+    ]
+
+for source, neighbors in graph.items():
+    for target in neighbors:
+        graph_state["edges"].append({
+            "source": source,
+            "target": target,
+            "label": "",
+            "color": "#cbd5e1",
+        })
+
+for limit in range(4):
+    current_limit = limit
+    limits.append(limit)
+    stack = [("A", 0)]
+    order = []
+    visited_this_round = []
+    while stack:
+        node, depth = stack.pop()
+        current_node = node
+        refresh_nodes()
+        order.append(f"{node}@{depth}")
+        visited_this_round.append(node)
+        if node == goal:
+            found = node
+            break
+        if depth == limit:
+            continue
+        for nxt in reversed(graph[node]):
+            stack.append((nxt, depth + 1))
+        graph_state["edges"] = [
+            {
+                "source": source,
+                "target": target,
+                "label": "",
+                "color": "#2563eb" if source in visited_this_round else "#cbd5e1",
+            }
+            for source, neighbors in graph.items()
+            for target in neighbors
+        ]
+    layers.append(order)
+    if found is not None:
+        break
+`,
+    watchVariables: ["graph_state", "current_limit", "visited_this_round", "limits", "layers", "found"],
+    variableConfigs: {
+      graph_state: { viewKind: "graph", depth: 3, viewOptions: { color } },
+      current_limit: { viewKind: "auto", depth: null, viewOptions: { color } },
+      visited_this_round: { viewKind: "array_cells", depth: 2, viewOptions: { color } },
+      limits: { viewKind: "array_cells", depth: 2, viewOptions: { color } },
+      layers: { viewKind: "matrix", depth: 2, viewOptions: { color } },
+      found: { viewKind: "auto", depth: null, viewOptions: { color } },
+    },
+    tags: ["search", "iterative deepening", "dfs", "algorithm", "curriculum"],
+  },
+  {
+    key: "hill-climbing-trace",
+    title: "Hill Climbing Trace",
+    description: "Steepest-ascent hill climbing on a 4-Queens board, showing the current state and chosen move.",
+    snippet: `size = 4
+state = [0, 0, 0, 0]
+board = []
+current_conflicts = 0
+best_move = "start"
+decision = "start"
+
+
+def make_board(positions):
+    rows = []
+    for row in range(size):
+        cells = []
+        for column in range(size):
+            cells.append("Q" if positions[column] == row else ".")
+        rows.append(cells)
+    return rows
+
+
+def conflicts(positions):
+    total = 0
+    for left in range(size):
+        for right in range(left + 1, size):
+            same_row = positions[left] == positions[right]
+            same_diag = abs(positions[left] - positions[right]) == abs(left - right)
+            if same_row or same_diag:
+                total += 1
+    return total
+
+
+board = make_board(state)
+current_conflicts = conflicts(state)
+
+while True:
+    best_state = list(state)
+    best_score = current_conflicts
+    best_move = "stay"
+
+    for column in range(size):
+        original_row = state[column]
+        for row in range(size):
+            if row == original_row:
+                continue
+            candidate = list(state)
+            candidate[column] = row
+            candidate_score = conflicts(candidate)
+            if candidate_score < best_score:
+                best_state = candidate
+                best_score = candidate_score
+                best_move = f"col {column}: {original_row}->{row}"
+
+    if best_score >= current_conflicts:
+        decision = "stop at local optimum"
+        break
+
+    state = best_state
+    current_conflicts = best_score
+    board = make_board(state)
+    decision = f"{best_move}, conflicts={current_conflicts}"
+`,
+    watchVariables: ["board", "state", "current_conflicts", "decision"],
+    variableConfigs: {
+      board: { viewKind: "matrix", depth: 2, viewOptions: { color } },
+      state: { viewKind: "array_cells", depth: 2, viewOptions: { color } },
+      current_conflicts: { viewKind: "auto", depth: null, viewOptions: { color } },
+      decision: { viewKind: "auto", depth: null, viewOptions: { color } },
+    },
+    tags: ["local search", "hill climbing", "algorithm", "curriculum"],
+  },
+  {
+    key: "bidirectional-search",
+    title: "Bidirectional Search",
+    description: "Two-frontier search that grows from both start and goal until the waves meet.",
+    snippet: `graph = {
+    "A": ["B", "C"],
+    "B": ["A", "D"],
+    "C": ["A", "E"],
+    "D": ["B", "F"],
+    "E": ["C", "F"],
+    "F": ["D", "E", "G"],
+    "G": ["F"],
+}
+graph_state = {
+    "nodes": list(graph.keys()),
+    "edges": [],
+    "directed": False,
+}
+forward_queue = ["A"]
+backward_queue = ["G"]
+forward_seen = ["A"]
+backward_seen = ["G"]
+meet = None
+forward_node = None
+backward_node = None
+
+
+def refresh_nodes():
+    graph_state["nodes"] = [
+        {
+            "id": node,
+            "label": (
+                f"[{node}]"
+                if node == meet
+                else f"[{node}]"
+                if node == forward_node or node == backward_node
+                else node
+            ),
+        }
+        if node == meet or node == forward_node or node == backward_node
+        else node
+        for node in graph
+    ]
+
+for source, neighbors in graph.items():
+    for target in neighbors:
+        if source < target:
+            graph_state["edges"].append({
+                "source": source,
+                "target": target,
+                "label": "",
+                "color": "#cbd5e1",
+            })
+
+while forward_queue and backward_queue and meet is None:
+    forward_node = forward_queue.pop(0)
+    refresh_nodes()
+    for nxt in graph[forward_node]:
+        if nxt not in forward_seen:
+            forward_seen.append(nxt)
+            forward_queue.append(nxt)
+        if nxt in backward_seen:
+            meet = nxt
+            refresh_nodes()
+            break
+    graph_state["edges"] = [
+        {
+            "source": source,
+            "target": target,
+            "label": "",
+            "color": "#7c3aed" if meet is not None and (source == meet or target == meet) else (
+                "#2563eb" if source in forward_seen and target in forward_seen else (
+                    "#dc2626" if source in backward_seen and target in backward_seen else "#cbd5e1"
+                )
+            ),
+        }
+        for source, neighbors in graph.items()
+        for target in neighbors
+        if source < target
+    ]
+    if meet is not None:
+        break
+
+    backward_node = backward_queue.pop(0)
+    refresh_nodes()
+    for nxt in graph[backward_node]:
+        if nxt not in backward_seen:
+            backward_seen.append(nxt)
+            backward_queue.append(nxt)
+        if nxt in forward_seen:
+            meet = nxt
+            refresh_nodes()
+            break
+    graph_state["edges"] = [
+        {
+            "source": source,
+            "target": target,
+            "label": "",
+            "color": "#7c3aed" if meet is not None and (source == meet or target == meet) else (
+                "#2563eb" if source in forward_seen and target in forward_seen else (
+                    "#dc2626" if source in backward_seen and target in backward_seen else "#cbd5e1"
+                )
+            ),
+        }
+        for source, neighbors in graph.items()
+        for target in neighbors
+        if source < target
+    ]
+`,
+    watchVariables: ["graph_state", "forward_node", "backward_node", "forward_queue", "backward_queue", "forward_seen", "backward_seen", "meet"],
+    variableConfigs: {
+      graph_state: { viewKind: "graph", depth: 3, viewOptions: { color } },
+      forward_node: { viewKind: "auto", depth: null, viewOptions: { color } },
+      backward_node: { viewKind: "auto", depth: null, viewOptions: { color } },
+      forward_queue: { viewKind: "array_cells", depth: 2, viewOptions: { color } },
+      backward_queue: { viewKind: "array_cells", depth: 2, viewOptions: { color } },
+      forward_seen: { viewKind: "array_cells", depth: 2, viewOptions: { color } },
+      backward_seen: { viewKind: "array_cells", depth: 2, viewOptions: { color } },
+      meet: { viewKind: "auto", depth: null, viewOptions: { color } },
+    },
+    tags: ["search", "bidirectional", "graph", "algorithm", "curriculum"],
+  },
+  {
+    key: "beam-search",
+    title: "Beam Search",
+    description: "Width-limited heuristic search that keeps only the best frontier candidates at each layer.",
+    snippet: `graph = {
+    "S": ["A", "B", "C"],
+    "A": ["D", "E"],
+    "B": ["F", "G"],
+    "C": ["H"],
+    "D": [],
+    "E": ["G"],
+    "F": [],
+    "G": ["Goal"],
+    "H": [],
+    "Goal": [],
+}
+heuristic = {"S": 6, "A": 4, "B": 3, "C": 5, "D": 6, "E": 2, "F": 5, "G": 1, "H": 4, "Goal": 0}
+graph_state = {
+    "nodes": list(graph.keys()),
+    "edges": [],
+    "directed": True,
+}
+beam = ["S"]
+visited = []
+layers = [list(beam)]
+beam_width = 2
+candidates = []
+dropped = []
+current_node = None
+
+
+def refresh_nodes():
+    graph_state["nodes"] = [
+        {"id": node, "label": f"[{node}]"} if node == current_node else node
+        for node in graph
+    ]
+
+for source, neighbors in graph.items():
+    for target in neighbors:
+        graph_state["edges"].append({
+            "source": source,
+            "target": target,
+            "label": str(heuristic[target]),
+            "color": "#cbd5e1",
+        })
+
+while beam:
+    if "Goal" in beam:
+        break
+    candidates = []
+    for node in beam:
+        current_node = node
+        refresh_nodes()
+        if node not in visited:
+            visited.append(node)
+        for nxt in graph[node]:
+            if nxt not in visited and nxt not in candidates:
+                candidates.append(nxt)
+    candidates.sort(key=lambda node: heuristic[node])
+    dropped = candidates[beam_width:]
+    beam = candidates[:beam_width]
+    graph_state["edges"] = [
+        {
+            "source": source,
+            "target": target,
+            "label": str(heuristic[target]),
+            "color": "#2563eb" if target in beam else ("#f59e0b" if target in dropped else "#cbd5e1"),
+        }
+        for source, neighbors in graph.items()
+        for target in neighbors
+    ]
+    if beam:
+        layers.append(list(beam))
+`,
+    watchVariables: ["graph_state", "beam_width", "candidates", "beam", "dropped", "visited", "layers"],
+    variableConfigs: {
+      graph_state: { viewKind: "graph", depth: 3, viewOptions: { color } },
+      beam_width: { viewKind: "auto", depth: null, viewOptions: { color } },
+      candidates: { viewKind: "array_cells", depth: 2, viewOptions: { color } },
+      beam: { viewKind: "array_cells", depth: 2, viewOptions: { color } },
+      dropped: { viewKind: "array_cells", depth: 2, viewOptions: { color } },
+      visited: { viewKind: "array_cells", depth: 2, viewOptions: { color } },
+      layers: { viewKind: "matrix", depth: 2, viewOptions: { color } },
+    },
+    tags: ["search", "beam search", "heuristic", "graph", "algorithm", "curriculum"],
+  },
+  {
+    key: "simulated-annealing",
+    title: "Simulated Annealing",
+    description: "Probabilistic local search that sometimes accepts worse states while the temperature cools.",
+    snippet: `states = [2, 8, 5, 9, 6, 7, 4]
+current_index = 0
+temperature = 10
+path = [current_index]
+accepted_scores = [states[current_index]]
+decisions = []
+candidate_index = None
+delta = 0
+acceptance_probability = 1.0
+accepted = True
+
+while temperature > 1 and current_index + 1 < len(states):
+    candidate_index = current_index + 1
+    delta = states[candidate_index] - states[current_index]
+    threshold = temperature / 2
+    acceptance_probability = round(min(1.0, threshold / max(1, abs(delta))), 3)
+
+    if delta >= 0:
+        accept = True
+        accepted = True
+        decisions.append(f"better->{candidate_index}")
+    else:
+        accept = abs(delta) <= threshold
+        accepted = accept
+        decisions.append(f"worse->{candidate_index}:{'accept' if accept else 'reject'}")
+
+    if accept:
+        current_index = candidate_index
+        path.append(current_index)
+        accepted_scores.append(states[current_index])
+
+    temperature -= 2
+`,
+    watchVariables: ["states", "current_index", "candidate_index", "temperature", "delta", "acceptance_probability", "accepted", "path", "accepted_scores", "decisions"],
+    variableConfigs: {
+      states: { viewKind: "bar", depth: 1, viewOptions: { color } },
+      current_index: { viewKind: "auto", depth: null, viewOptions: { color } },
+      candidate_index: { viewKind: "auto", depth: null, viewOptions: { color } },
+      temperature: { viewKind: "auto", depth: null, viewOptions: { color } },
+      delta: { viewKind: "auto", depth: null, viewOptions: { color } },
+      acceptance_probability: { viewKind: "auto", depth: null, viewOptions: { color } },
+      accepted: { viewKind: "auto", depth: null, viewOptions: { color } },
+      path: { viewKind: "array_cells", depth: 2, viewOptions: { color } },
+      accepted_scores: { viewKind: "array_cells", depth: 2, viewOptions: { color } },
+      decisions: { viewKind: "array_cells", depth: 2, viewOptions: { color } },
+    },
+    tags: ["local search", "simulated annealing", "heuristic", "algorithm", "curriculum"],
+  },
+  {
+    key: "minimax-tree",
+    title: "Minimax Tree",
+    description: "Adversarial game-tree evaluation with recursive minimax updates.",
+    snippet: `data = {
+    "name": "A",
+    "role": "MAX",
+    "value": None,
+    "children": [
+        {
+            "name": "B",
+            "role": "MIN",
+            "value": None,
+            "children": [
+                {"name": "L1", "value": 3, "children": []},
+                {"name": "L2", "value": 5, "children": []},
+            ],
+        },
+        {
+            "name": "C",
+            "role": "MIN",
+            "value": None,
+            "children": [
+                {"name": "L3", "value": 2, "children": []},
+                {"name": "L4", "value": 9, "children": []},
+            ],
+        },
+    ],
+}
+view = {"label": "loading", "children": []}
+decision = "start"
+
+
+def build_view(node, active=None):
+    if not node["children"]:
+        label = str(node["value"])
+        if node is active:
+            label = f"[{label}]"
+        return {"label": label, "children": []}
+    value_text = "?" if node["value"] is None else str(node["value"])
+    label = f"{node['role']} {node['name']}={value_text}"
+    if node is active:
+        label = f"[{label}]"
+    return {
+        "label": label,
+        "children": [build_view(child, active) for child in node["children"]],
+    }
+
+
+def minimax(node, maximizing):
+    global view, decision
+    role = "MAX" if maximizing else "MIN"
+    decision = f"visit {role} node {node['name']}"
+    view = build_view(data, node)
+    if not node["children"]:
+        value = node["value"]
+        decision = f"return leaf {value}"
+        return value
+    scores = []
+    for child in node["children"]:
+        scores.append(minimax(child, not maximizing))
+    value = max(scores) if maximizing else min(scores)
+    node["value"] = value
+    decision = f"{role} node {node['name']} chooses {value} from {scores}"
+    view = build_view(data, node)
+    return value
+
+
+score = minimax(data, True)
+`,
+    watchVariables: ["view", "decision", "score"],
+    variableConfigs: {
+      view: { viewKind: "tree", depth: 4, viewOptions: { color } },
+      decision: { viewKind: "auto", depth: null, viewOptions: { color } },
+      score: { viewKind: "auto", depth: null, viewOptions: { color } },
+    },
+    tags: ["adversarial", "minimax", "tree", "algorithm", "curriculum"],
+  },
+  {
+    key: "alpha-beta-pruning",
+    title: "Alpha-Beta Pruning",
+    description: "Minimax with alpha-beta pruning, including cut-off events in the trace.",
+    snippet: `data = {
+    "name": "A",
+    "role": "MAX",
+    "value": None,
+    "alpha": None,
+    "beta": None,
+    "pruned": False,
+    "children": [
+        {
+            "name": "B",
+            "role": "MIN",
+            "value": None,
+            "alpha": None,
+            "beta": None,
+            "pruned": False,
+            "children": [
+                {"name": "L1", "value": 3, "alpha": None, "beta": None, "pruned": False, "children": []},
+                {"name": "L2", "value": 5, "alpha": None, "beta": None, "pruned": False, "children": []},
+                {"name": "L3", "value": 6, "alpha": None, "beta": None, "pruned": False, "children": []},
+            ],
+        },
+        {
+            "name": "C",
+            "role": "MIN",
+            "value": None,
+            "alpha": None,
+            "beta": None,
+            "pruned": False,
+            "children": [
+                {"name": "L4", "value": 2, "alpha": None, "beta": None, "pruned": False, "children": []},
+                {"name": "L5", "value": 9, "alpha": None, "beta": None, "pruned": False, "children": []},
+                {"name": "L6", "value": 1, "alpha": None, "beta": None, "pruned": False, "children": []},
+            ],
+        },
+    ],
+}
+view = {"label": "loading", "children": []}
+decision = "start"
+
+
+def build_view(node, active=None):
+    if not node["children"]:
+        label = str(node["value"])
+        if node["pruned"]:
+            label = f"x {label}"
+        if node is active:
+            label = f"[{label}]"
+        return {"label": label, "children": []}
+    value_text = "?" if node["value"] is None else str(node["value"])
+    alpha_text = "-" if node["alpha"] is None else str(node["alpha"])
+    beta_text = "-" if node["beta"] is None else str(node["beta"])
+    label = f"{node['role']} {node['name']}={value_text} a={alpha_text} b={beta_text}"
+    if node["pruned"]:
+        label = f"x {label}"
+    if node is active:
+        label = f"[{label}]"
+    return {
+        "label": label,
+        "children": [build_view(child, active) for child in node["children"]],
+    }
+
+
+def alpha_beta(node, alpha, beta, maximizing):
+    global view, decision
+    role = "MAX" if maximizing else "MIN"
+    node["alpha"] = alpha
+    node["beta"] = beta
+    decision = f"visit {role} node {node['name']}"
+    view = build_view(data, node)
+    if not node["children"]:
+        value = node["value"]
+        decision = f"return leaf {value}"
+        return value
+
+    if maximizing:
+        value = -999
+        for index, child in enumerate(node["children"]):
+            child_value = alpha_beta(child, alpha, beta, False)
+            value = max(value, child_value)
+            alpha = max(alpha, value)
+            node["alpha"] = alpha
+            node["beta"] = beta
+            if alpha >= beta:
+                for skipped in node["children"][index + 1:]:
+                    skipped["pruned"] = True
+                decision = f"prune remaining children of {node['name']}"
+                view = build_view(data, node)
+                break
+    else:
+        value = 999
+        for index, child in enumerate(node["children"]):
+            child_value = alpha_beta(child, alpha, beta, True)
+            value = min(value, child_value)
+            beta = min(beta, value)
+            node["alpha"] = alpha
+            node["beta"] = beta
+            if alpha >= beta:
+                for skipped in node["children"][index + 1:]:
+                    skipped["pruned"] = True
+                decision = f"prune remaining children of {node['name']}"
+                view = build_view(data, node)
+                break
+
+    node["value"] = value
+    node["alpha"] = alpha
+    node["beta"] = beta
+    decision = f"{role} node {node['name']} keeps {value}"
+    view = build_view(data, node)
+    return value
+
+
+score = alpha_beta(data, -999, 999, True)
+`,
+    watchVariables: ["view", "decision", "score"],
+    variableConfigs: {
+      view: { viewKind: "tree", depth: 4, viewOptions: { color } },
+      decision: { viewKind: "auto", depth: null, viewOptions: { color } },
+      score: { viewKind: "auto", depth: null, viewOptions: { color } },
+    },
+    tags: ["adversarial", "alpha-beta", "minimax", "tree", "algorithm", "curriculum"],
+  },
+  {
     key: "kruskal-mst",
     title: "Kruskal MST",
     description: "Minimum spanning tree growth over a small undirected graph.",
-    snippet: `states = [
-    {
-        "graph_state": {"nodes": [{"id": "A"}, {"id": "B"}, {"id": "C"}, {"id": "D"}], "edges": [], "directed": False},
-        "chosen": [],
-    },
-    {
-        "graph_state": {"nodes": [{"id": "A"}, {"id": "B"}, {"id": "C"}, {"id": "D"}], "edges": [{"source": "A", "target": "B", "label": "1"}], "directed": False},
-        "chosen": ["A-B:1"],
-    },
-    {
-        "graph_state": {"nodes": [{"id": "A"}, {"id": "B"}, {"id": "C"}, {"id": "D"}], "edges": [{"source": "A", "target": "B", "label": "1"}, {"source": "B", "target": "C", "label": "2"}], "directed": False},
-        "chosen": ["A-B:1", "B-C:2"],
-    },
-    {
-        "graph_state": {"nodes": [{"id": "A"}, {"id": "B"}, {"id": "C"}, {"id": "D"}], "edges": [{"source": "A", "target": "B", "label": "1"}, {"source": "B", "target": "C", "label": "2"}, {"source": "C", "target": "D", "label": "3"}], "directed": False},
-        "chosen": ["A-B:1", "B-C:2", "C-D:3"],
-    },
+    snippet: `nodes = ["A", "B", "C", "D"]
+edges = [
+    ("A", "B", 1),
+    ("B", "C", 2),
+    ("C", "D", 3),
+    ("A", "C", 4),
+    ("B", "D", 5),
 ]
+graph_state = {
+    "nodes": list(nodes),
+    "edges": [],
+    "directed": False,
+}
+chosen = []
+parent = {node: node for node in nodes}
+rank = {node: 0 for node in nodes}
 
-for state in states:
-    graph_state = state["graph_state"]
-    chosen = state["chosen"]
+
+def find(node):
+    while parent[node] != node:
+        parent[node] = parent[parent[node]]
+        node = parent[node]
+    return node
+
+
+def union(left, right):
+    root_left = find(left)
+    root_right = find(right)
+    if root_left == root_right:
+        return False
+    if rank[root_left] < rank[root_right]:
+        parent[root_left] = root_right
+    elif rank[root_left] > rank[root_right]:
+        parent[root_right] = root_left
+    else:
+        parent[root_right] = root_left
+        rank[root_left] += 1
+    return True
+
+
+for source, target, weight in sorted(edges, key=lambda item: item[2]):
+    if not union(source, target):
+        continue
+    graph_state["edges"].append({"source": source, "target": target, "label": str(weight)})
+    chosen.append(f"{source}-{target}:{weight}")
 `,
-    watchVariables: ["graph_state", "chosen"],
+    watchVariables: ["graph_state", "chosen", "parent"],
     variableConfigs: {
       graph_state: { viewKind: "graph", depth: 3, viewOptions: { color } },
       chosen: { viewKind: "array_cells", depth: 2, viewOptions: { color } },
+      parent: { viewKind: "table", depth: 2, viewOptions: { color } },
     },
     tags: ["graph", "mst", "kruskal", "curriculum"],
   },
@@ -1003,7 +2301,7 @@ edges = [
     ("C", "D", 3),
 ]
 graph_state = {
-    "nodes": [{"id": node} for node in nodes],
+    "nodes": list(nodes),
     "edges": [],
     "directed": False,
 }
@@ -1043,10 +2341,25 @@ while len(visited) < len(nodes):
     "C": {"B": 2, "D": 5},
     "D": {},
 }
+graph_state = {
+    "nodes": list(graph.keys()),
+    "edges": [],
+    "directed": True,
+}
 dist = {node: None for node in graph}
 dist["A"] = 0
 visited_order = []
 unvisited = set(graph)
+parent = {"A": None}
+
+for source, neighbors in graph.items():
+    for target, weight in neighbors.items():
+        graph_state["edges"].append({
+            "source": source,
+            "target": target,
+            "label": str(weight),
+            "color": "#cbd5e1",
+        })
 
 while unvisited:
     reachable = [node for node in unvisited if dist[node] is not None]
@@ -1059,9 +2372,21 @@ while unvisited:
         next_distance = dist[current] + weight
         if dist[nxt] is None or next_distance < dist[nxt]:
             dist[nxt] = next_distance
+            parent[nxt] = current
+            graph_state["edges"] = [
+                {
+                    "source": source,
+                    "target": target,
+                    "label": str(edge_weight),
+                    "color": "#2563eb" if parent.get(target) == source else "#cbd5e1",
+                }
+                for source, neighbors in graph.items()
+                for target, edge_weight in neighbors.items()
+            ]
 `,
-    watchVariables: ["dist", "visited_order"],
+    watchVariables: ["graph_state", "dist", "visited_order"],
     variableConfigs: {
+      graph_state: { viewKind: "graph", depth: 3, viewOptions: { color } },
       dist: { viewKind: "table", depth: 2, viewOptions: { color } },
       visited_order: { viewKind: "array_cells", depth: 2, viewOptions: { color } },
     },
@@ -1079,9 +2404,23 @@ while unvisited:
     "E": ["F"],
     "F": [],
 }
+graph_state = {
+    "nodes": list(graph.keys()),
+    "edges": [],
+    "directed": True,
+}
 queue = ["A"]
 dist = {"A": 0, "B": None, "C": None, "D": None, "E": None, "F": None}
 parent = {"A": None, "B": None, "C": None, "D": None, "E": None, "F": None}
+
+for source, neighbors in graph.items():
+    for target in neighbors:
+        graph_state["edges"].append({
+            "source": source,
+            "target": target,
+            "label": "",
+            "color": "#cbd5e1",
+        })
 
 while queue:
     node = queue.pop(0)
@@ -1091,9 +2430,20 @@ while queue:
         dist[nxt] = dist[node] + 1
         parent[nxt] = node
         queue.append(nxt)
+        graph_state["edges"] = [
+            {
+                "source": source,
+                "target": target,
+                "label": "",
+                "color": "#2563eb" if parent.get(target) == source else "#cbd5e1",
+            }
+            for source, neighbors in graph.items()
+            for target in neighbors
+        ]
 `,
-    watchVariables: ["queue", "dist", "parent"],
+    watchVariables: ["graph_state", "queue", "dist", "parent"],
     variableConfigs: {
+      graph_state: { viewKind: "graph", depth: 3, viewOptions: { color } },
       queue: { viewKind: "array_cells", depth: 2, viewOptions: { color } },
       dist: { viewKind: "table", depth: 2, viewOptions: { color } },
       parent: { viewKind: "table", depth: 2, viewOptions: { color } },
@@ -1111,8 +2461,22 @@ while queue:
     ("B", "D", 6),
     ("C", "D", 3),
 ]
+graph_state = {
+    "nodes": ["A", "B", "C", "D"],
+    "edges": [],
+    "directed": True,
+}
 dist = {"A": 0, "B": None, "C": None, "D": None}
 rounds = []
+parent = {"A": None}
+
+for source, target, weight in edges:
+    graph_state["edges"].append({
+        "source": source,
+        "target": target,
+        "label": str(weight),
+        "color": "#cbd5e1",
+    })
 
 for _ in range(3):
     for source, target, weight in edges:
@@ -1121,10 +2485,21 @@ for _ in range(3):
         next_distance = dist[source] + weight
         if dist[target] is None or next_distance < dist[target]:
             dist[target] = next_distance
+            parent[target] = source
+            graph_state["edges"] = [
+                {
+                    "source": edge_source,
+                    "target": edge_target,
+                    "label": str(edge_weight),
+                    "color": "#2563eb" if parent.get(edge_target) == edge_source else "#cbd5e1",
+                }
+                for edge_source, edge_target, edge_weight in edges
+            ]
     rounds.append(dict(dist))
 `,
-    watchVariables: ["dist", "rounds"],
+    watchVariables: ["graph_state", "dist", "rounds"],
     variableConfigs: {
+      graph_state: { viewKind: "graph", depth: 3, viewOptions: { color } },
       dist: { viewKind: "table", depth: 2, viewOptions: { color } },
       rounds: { viewKind: "array_cells", depth: 3, viewOptions: { color } },
     },
@@ -1215,7 +2590,6 @@ sorted_suffixes = [f"{index}:{suffix}" for index, suffix in pairs]
 order = [index for index, _suffix in pairs]
 `,
     watchVariables: ["suffixes", "sorted_suffixes", "order"],
-    savedManifest: PREGENERATED_EXAMPLE_MANIFESTS["suffix-array-basics"],
     variableConfigs: {
       suffixes: { viewKind: "array_cells", depth: 2, viewOptions: { color } },
       sorted_suffixes: { viewKind: "array_cells", depth: 2, viewOptions: { color } },
@@ -1320,29 +2694,43 @@ for i in range(1, len(text_a) + 1):
     key: "trie-insert-search",
     title: "Trie Insert Search",
     description: "Trie growth and a simple search path summary for inserted words.",
-    snippet: `states = [
-    {
-        "root": {"label": "*", "children": [{"label": "c", "children": [{"label": "a", "children": [{"label": "t*", "children": []}]}]}]},
-        "path": ["c", "a", "t"],
-        "words": ["cat"],
-    },
-    {
-        "root": {"label": "*", "children": [{"label": "c", "children": [{"label": "a", "children": [{"label": "t*", "children": []}, {"label": "r*", "children": []}]}]}]},
-        "path": ["c", "a", "r"],
-        "words": ["cat", "car"],
-    },
-    {
-        "root": {"label": "*", "children": [{"label": "c", "children": [{"label": "a", "children": [{"label": "t*", "children": []}, {"label": "r*", "children": []}]}]}, {"label": "d", "children": [{"label": "o", "children": [{"label": "g*", "children": []}]}]}]},
-        "path": ["d", "o", "g"],
-        "words": ["cat", "car", "dog"],
-    },
-]
-target = "car"
+    snippet: `trie = {}
+root = {"label": "*", "children": []}
+path = []
+words = []
 
-for state in states:
-    root = state["root"]
-    path = state["path"]
-    words = state["words"]
+
+def insert(word):
+    node = trie
+    for char in word:
+        node = node.setdefault(char, {})
+    node["$"] = {}
+
+
+def snapshot(node, label="*"):
+    children = []
+    for char in sorted(key for key in node if key != "$"):
+        child_label = char
+        if "$" in node[char]:
+            child_label += "*"
+        children.append(snapshot(node[char], child_label))
+    return {"label": label, "children": children}
+
+
+for word in ["cat", "car", "dog"]:
+    insert(word)
+    words.append(word)
+    root = snapshot(trie)
+
+target = "car"
+node = trie
+path = []
+for char in target:
+    if char not in node:
+        break
+    path.append(char)
+    node = node[char]
+    root = snapshot(trie)
 `,
     watchVariables: ["root", "path", "words", "target"],
     variableConfigs: {
@@ -1352,6 +2740,201 @@ for state in states:
       target: { viewKind: "auto", depth: null, viewOptions: { color } },
     },
     tags: ["string", "tree", "algorithm", "curriculum"],
+  },
+  {
+    key: "decision-tree-learning",
+    title: "Decision Tree Learning: Information Gain",
+    description: "Computes information gain for a toy dataset and builds a one-split decision tree.",
+    snippet: `import math
+
+samples = [
+    {"outlook": "sunny", "windy": False, "play": "no"},
+    {"outlook": "sunny", "windy": True, "play": "no"},
+    {"outlook": "overcast", "windy": False, "play": "yes"},
+    {"outlook": "rain", "windy": False, "play": "yes"},
+    {"outlook": "rain", "windy": True, "play": "no"},
+]
+dataset_rows = [[row["outlook"], row["windy"], row["play"]] for row in samples]
+features = ["outlook", "windy"]
+gains = {}
+conditional_entropy = {}
+partitions = {}
+model = {"label": "?", "children": []}
+split_summary = []
+leaf_counts = {}
+
+
+def entropy(rows):
+    counts = {}
+    for row in rows:
+        label = row["play"]
+        counts[label] = counts.get(label, 0) + 1
+    total = len(rows)
+    value = 0.0
+    for count in counts.values():
+        probability = count / total
+        value -= probability * math.log2(probability)
+    return round(value, 3)
+
+
+base_entropy = entropy(samples)
+for feature in features:
+    groups = {}
+    for row in samples:
+        groups.setdefault(str(row[feature]), []).append(row)
+    conditional = 0.0
+    for rows in groups.values():
+        conditional += len(rows) / len(samples) * entropy(rows)
+    gains[feature] = round(base_entropy - conditional, 3)
+    partitions[feature] = groups
+
+best_feature = max(gains, key=gains.get)
+conditional_entropy = {
+    feature: round(base_entropy - gain, 3)
+    for feature, gain in gains.items()
+}
+model = {"label": f"{best_feature} gain={gains[best_feature]}", "children": []}
+for feature_value, rows in sorted(partitions[best_feature].items()):
+    positive = sum(1 for row in rows if row["play"] == "yes")
+    negative = len(rows) - positive
+    prediction = "yes" if positive >= negative else "no"
+    leaf_counts[feature_value] = len(rows)
+    split_summary.append(f"{feature_value}: {positive} yes / {negative} no")
+    model["children"].append({"label": f"{feature_value} ({len(rows)}) -> {prediction}", "children": []})
+`,
+    watchVariables: ["dataset_rows", "gains", "best_feature", "split_summary", "model"],
+    variableConfigs: {
+      dataset_rows: { viewKind: "matrix", depth: 2, viewOptions: { color } },
+      gains: { viewKind: "table", depth: 2, viewOptions: { color } },
+      best_feature: { viewKind: "auto", depth: null, viewOptions: { color } },
+      split_summary: { viewKind: "array_cells", depth: 2, viewOptions: { color } },
+      model: { viewKind: "tree", depth: 3, viewOptions: { color } },
+    },
+    tags: ["machine learning", "decision tree", "algorithm", "curriculum"],
+  },
+  {
+    key: "decision-tree-pruning-max-depth",
+    title: "Decision Tree Pruning: Max Depth Limit",
+    description: "Applies a max-depth constraint and stops deeper splits once the limit is reached.",
+    snippet: `samples = [
+    {"experience": "senior", "interview": "good", "skills": "high", "hire": "yes"},
+    {"experience": "advanced", "interview": "bad", "skills": "high", "hire": "yes"},
+    {"experience": "junior", "interview": "good", "skills": "mid", "hire": "yes"},
+    {"experience": "junior", "interview": "bad", "skills": "high", "hire": "no"},
+    {"experience": "junior", "interview": "bad", "skills": "mid", "hire": "no"},
+]
+dataset_rows = [[row["experience"], row["interview"], row["skills"], row["hire"]] for row in samples]
+max_depth = 1
+active_depth = 0
+stops = []
+model = {"label": "experience", "children": []}
+
+groups = {}
+for row in samples:
+    groups.setdefault(row["experience"], []).append(row)
+
+for value, rows in sorted(groups.items()):
+    active_depth = 1
+    labels = [row["hire"] for row in rows]
+    if active_depth >= max_depth:
+        yes_count = labels.count("yes")
+        no_count = labels.count("no")
+        prediction = "yes" if yes_count >= no_count else "no"
+        stops.append(f"{value}: stop at depth {active_depth}")
+        model["children"].append({"label": f"{value}->{prediction}", "children": []})
+    else:
+        model["children"].append({"label": value, "children": []})
+`,
+    watchVariables: ["dataset_rows", "max_depth", "active_depth", "stops", "model"],
+    variableConfigs: {
+      dataset_rows: { viewKind: "matrix", depth: 2, viewOptions: { color } },
+      max_depth: { viewKind: "auto", depth: null, viewOptions: { color } },
+      active_depth: { viewKind: "auto", depth: null, viewOptions: { color } },
+      stops: { viewKind: "array_cells", depth: 2, viewOptions: { color } },
+      model: { viewKind: "tree", depth: 3, viewOptions: { color } },
+    },
+    tags: ["machine learning", "decision tree", "pruning", "curriculum"],
+  },
+  {
+    key: "decision-tree-pruning-min-sample-leaves",
+    title: "Decision Tree Pruning: Min Samples per Leaf",
+    description: "Blocks leaves that would end up below a minimum sample threshold.",
+    snippet: `samples = [
+    {"experience": "senior", "interview": "good", "skills": "high", "hire": "yes"},
+    {"experience": "senior", "interview": "good", "skills": "mid", "hire": "yes"},
+    {"experience": "advanced", "interview": "good", "skills": "high", "hire": "yes"},
+    {"experience": "advanced", "interview": "good", "skills": "mid", "hire": "yes"},
+    {"experience": "junior", "interview": "good", "skills": "mid", "hire": "yes"},
+    {"experience": "junior", "interview": "bad", "skills": "high", "hire": "no"},
+    {"experience": "junior", "interview": "bad", "skills": "mid", "hire": "no"},
+]
+dataset_rows = [[row["experience"], row["interview"], row["skills"], row["hire"]] for row in samples]
+min_samples_leaf = 2
+leaf_sizes = {}
+stops = []
+model = {"label": "experience", "children": []}
+
+groups = {}
+for row in samples:
+    groups.setdefault(row["experience"], []).append(row)
+
+for value, rows in sorted(groups.items()):
+    leaf_sizes[value] = len(rows)
+    if len(rows) < min_samples_leaf:
+        stops.append(f"{value}: prune leaf of size {len(rows)}")
+        continue
+    yes_count = sum(1 for row in rows if row["hire"] == "yes")
+    no_count = len(rows) - yes_count
+    prediction = "yes" if yes_count >= no_count else "no"
+    model["children"].append({"label": f"{value}->{prediction}", "children": []})
+`,
+    watchVariables: ["dataset_rows", "min_samples_leaf", "leaf_sizes", "stops", "model"],
+    variableConfigs: {
+      dataset_rows: { viewKind: "matrix", depth: 2, viewOptions: { color } },
+      min_samples_leaf: { viewKind: "auto", depth: null, viewOptions: { color } },
+      leaf_sizes: { viewKind: "table", depth: 2, viewOptions: { color } },
+      stops: { viewKind: "array_cells", depth: 2, viewOptions: { color } },
+      model: { viewKind: "tree", depth: 3, viewOptions: { color } },
+    },
+    tags: ["machine learning", "decision tree", "pruning", "curriculum"],
+  },
+  {
+    key: "linear-regression-gradient-descent",
+    title: "Linear Regression Gradient Descent",
+    description: "Fits a simple linear model while tracking predictions and loss.",
+    snippet: `points = [[1, 2], [2, 3], [3, 5], [4, 4]]
+weights = {"m": 0.0, "b": 0.0}
+predictions = []
+loss_history = []
+learning_rate = 0.1
+residuals = []
+gradient = {"m": 0.0, "b": 0.0}
+iteration = 0
+line_equation = "y = 0.0x + 0.0"
+
+for iteration in range(1, 5):
+    predictions = [round(weights["m"] * x + weights["b"], 3) for x, _y in points]
+    errors = [prediction - y for prediction, (_x, y) in zip(predictions, points)]
+    residuals = [round(error, 3) for error in errors]
+    loss = sum(error * error for error in errors) / len(points)
+    loss_history.append(round(loss, 3))
+    grad_m = sum(2 * error * x for error, (x, _y) in zip(errors, points)) / len(points)
+    grad_b = sum(2 * error for error in errors) / len(points)
+    gradient = {"m": round(grad_m, 3), "b": round(grad_b, 3)}
+    line_equation = f"y = {weights['m']}x + {weights['b']}"
+    weights["m"] = round(weights["m"] - learning_rate * grad_m, 3)
+    weights["b"] = round(weights["b"] - learning_rate * grad_b, 3)
+`,
+    watchVariables: ["points", "iteration", "line_equation", "weights", "gradient", "loss_history"],
+    variableConfigs: {
+      points: { viewKind: "matrix", depth: 2, viewOptions: { color } },
+      iteration: { viewKind: "auto", depth: null, viewOptions: { color } },
+      line_equation: { viewKind: "auto", depth: null, viewOptions: { color } },
+      weights: { viewKind: "table", depth: 2, viewOptions: { color } },
+      gradient: { viewKind: "table", depth: 2, viewOptions: { color } },
+      loss_history: { viewKind: "bar", depth: 1, viewOptions: { color } },
+    },
+    tags: ["machine learning", "linear regression", "regression", "algorithm", "curriculum"],
   },
   { key: "image", title: "Image", description: "Image view requires a browser-accessible asset path; this example is a placeholder.", snippet: `data = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='80'><rect width='120' height='80' fill='%23e0f2fe'/><text x='18' y='46' font-size='20' fill='%230f172a'>CodeFlow</text></svg>"\n`, watchVariables: ["data"], variableConfigs: variable("image", 1), tags: ["image", "asset required", "special"] },
 ];
