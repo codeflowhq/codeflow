@@ -27,7 +27,7 @@ export const DEFAULT_TYPE_VIEW_DEFAULTS: GlobalConfig["typeViewDefaults"] = {
 };
 
 export const defaultGlobalConfig: GlobalConfig = {
-  stepLimit: 12,
+  stepLimit: 128,
   maxDepth: 3,
   maxItemsPerView: 50,
   recursionDepthDefault: -1,

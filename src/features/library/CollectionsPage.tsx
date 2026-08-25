@@ -1,22 +1,25 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button, Card, Empty, Input, Select, Space, Tag, Typography } from "antd";
 
 import CollectionPreviewSurface from "./components/CollectionPreviewSurface";
 import type { CollectionRecord, ExampleRecord } from "../../shared/types/visualization";
 import { defaultGlobalConfig } from "../../configDefaults";
 import { buildVisualizationRuntimeConfig } from "../../runtime/runtime-config";
-import { runVisualizationInBrowser } from "../../runtime/python-bridge";
+import { initializeBrowserRuntime, runVisualizationInBrowser } from "../../runtime/python-bridge";
 import type { ManifestEntry } from "../../shared/types/visualization";
 import FeatureBoundary from "../../shared/ui/FeatureBoundary";
 
 const { Search } = Input;
 const { Text, Title } = Typography;
+const MAX_CONCURRENT_EXAMPLE_PREVIEWS = 3;
 const EXAMPLE_TOPIC_ORDER = [
   "All topics",
   "Arrays & Sorting",
   "Linear Structures & Maps",
   "Trees & Range Structures",
   "Graphs & Graph Algorithms",
+  "Search & Game AI",
+  "Machine Learning",
   "Recursion",
   "Strings",
   "Special Media",
@@ -28,6 +31,12 @@ const getExampleTopic = (example: ExampleRecord): ExampleTopic => {
   const tags = new Set(example.tags ?? []);
   if (tags.has("image") || tags.has("special") || tags.has("asset required")) {
     return "Special Media";
+  }
+  if (tags.has("machine learning") || tags.has("decision tree") || tags.has("linear regression") || tags.has("regression")) {
+    return "Machine Learning";
+  }
+  if (tags.has("search") || tags.has("heuristic") || tags.has("local search") || tags.has("adversarial") || tags.has("minimax") || tags.has("alpha-beta") || tags.has("hill climbing")) {
+    return "Search & Game AI";
   }
   if (tags.has("recursion") || tags.has("call trace")) {
     return "Recursion";
@@ -61,6 +70,12 @@ const CollectionsPage = ({ collections, examples, onDeleteCollection, onLoadColl
   const [query, setQuery] = useState("");
   const [topicFilter, setTopicFilter] = useState<ExampleTopic>("All topics");
   const [examplePreviews, setExamplePreviews] = useState<Record<string, ManifestEntry[]>>({});
+  const [examplePreviewStatus, setExamplePreviewStatus] = useState<Record<string, "loading" | "ready" | "error">>({});
+  const [visibleExampleKeys, setVisibleExampleKeys] = useState<Record<string, true>>({});
+  const previewObserverRef = useRef<IntersectionObserver | null>(null);
+  const previewNodeRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const inFlightExamplePreviewKeysRef = useRef(new Set<string>());
+  const isMountedRef = useRef(true);
 
   const savedLabels = useMemo(() => {
     const values = new Set<string>();
@@ -121,38 +136,131 @@ const CollectionsPage = ({ collections, examples, onDeleteCollection, onLoadColl
       .map((topic) => ({ topic, examples: groups.get(topic) ?? [] }))
       .filter((group) => group.examples.length > 0);
   }, [filteredExamples]);
+  const visibleExampleKeySet = useMemo(() => new Set(Object.keys(visibleExampleKeys)), [visibleExampleKeys]);
 
   useEffect(() => {
-    let cancelled = false;
-    const nextExample = filteredExamples.find((example) => !example.savedManifest && !examplePreviews[example.key]);
-    if (!nextExample) {
+    void initializeBrowserRuntime().catch(() => undefined);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (typeof IntersectionObserver === "undefined") {
+      return undefined;
+    }
+    const observer = new IntersectionObserver((entries) => {
+      const intersectingKeys = entries.flatMap((entry) => {
+        if (!entry.isIntersecting) {
+          return [];
+        }
+        const key = (entry.target as HTMLDivElement).dataset.exampleKey;
+        return key ? [key] : [];
+      });
+      if (intersectingKeys.length === 0) {
+        return;
+      }
+      setVisibleExampleKeys((prev) => {
+        let changed = false;
+        const next = { ...prev };
+        intersectingKeys.forEach((key) => {
+          if (next[key] !== true) {
+            next[key] = true;
+            changed = true;
+          }
+        });
+        return changed ? next : prev;
+      });
+    }, { rootMargin: "240px 0px" });
+    previewObserverRef.current = observer;
+    Object.values(previewNodeRefs.current).forEach((node) => {
+      if (node) {
+        observer.observe(node);
+      }
+    });
+    return () => {
+      observer.disconnect();
+      if (previewObserverRef.current === observer) {
+        previewObserverRef.current = null;
+      }
+    };
+  }, []);
+
+  const registerPreviewNode = useCallback((key: string, node: HTMLDivElement | null) => {
+    const previousNode = previewNodeRefs.current[key];
+    if (previousNode && previewObserverRef.current) {
+      previewObserverRef.current.unobserve(previousNode);
+    }
+    if (node) {
+      previewNodeRefs.current[key] = node;
+      if (typeof IntersectionObserver === "undefined") {
+        setVisibleExampleKeys((prev) => (prev[key] === true ? prev : { ...prev, [key]: true }));
+        return;
+      }
+      previewObserverRef.current?.observe(node);
+      return;
+    }
+    delete previewNodeRefs.current[key];
+  }, []);
+
+  useEffect(() => {
+    const loadingCount = Object.values(examplePreviewStatus).filter((status) => status === "loading").length;
+    const availableSlots = MAX_CONCURRENT_EXAMPLE_PREVIEWS - loadingCount;
+    if (availableSlots <= 0) {
+      return;
+    }
+    const nextExamples = filteredExamples
+      .filter((example) => (
+        visibleExampleKeySet.has(example.key)
+        && examplePreviewStatus[example.key] == null
+        && !inFlightExamplePreviewKeysRef.current.has(example.key)
+      ))
+      .slice(0, availableSlots);
+    if (nextExamples.length === 0) {
       return;
     }
 
-    void (async () => {
-      try {
-        const result = await runVisualizationInBrowser({
-          snippet: nextExample.snippet,
-          watch: nextExample.watchVariables?.length ? nextExample.watchVariables : ["data"],
-          config: buildVisualizationRuntimeConfig({
-            globalConfig: { ...defaultGlobalConfig, ...(nextExample.globalConfig ?? {}) },
-            variableConfigs: nextExample.variableConfigs ?? {},
-          }),
-        });
-        if (!cancelled) {
-          setExamplePreviews((prev) => ({ ...prev, [nextExample.key]: result.manifest }));
-        }
-      } catch {
-        if (!cancelled) {
-          setExamplePreviews((prev) => ({ ...prev, [nextExample.key]: [] }));
-        }
-      }
-    })();
+    nextExamples.forEach((example) => {
+      inFlightExamplePreviewKeysRef.current.add(example.key);
+    });
+    setExamplePreviewStatus((prev) => {
+      const next = { ...prev };
+      nextExamples.forEach((example) => {
+        next[example.key] = "loading";
+      });
+      return next;
+    });
 
-    return () => {
-      cancelled = true;
-    };
-  }, [examplePreviews, filteredExamples]);
+    nextExamples.forEach((example) => {
+      void (async () => {
+        const finalize = (status: "ready" | "error", manifest: ManifestEntry[]) => {
+          inFlightExamplePreviewKeysRef.current.delete(example.key);
+          if (!isMountedRef.current) {
+            return;
+          }
+          setExamplePreviews((prev) => ({ ...prev, [example.key]: manifest }));
+          setExamplePreviewStatus((prev) => ({ ...prev, [example.key]: status }));
+        };
+
+        try {
+          const result = await runVisualizationInBrowser({
+            snippet: example.snippet,
+            watch: example.watchVariables?.length ? example.watchVariables : ["data"],
+            config: buildVisualizationRuntimeConfig({
+              globalConfig: { ...defaultGlobalConfig, ...(example.globalConfig ?? {}) },
+              variableConfigs: example.variableConfigs ?? {},
+            }),
+          });
+          finalize("ready", result.manifest);
+        } catch {
+          finalize("error", []);
+        }
+      })();
+    });
+  }, [examplePreviewStatus, filteredExamples, visibleExampleKeySet]);
 
   return (
     <div className="collections-page-shell">
@@ -245,9 +353,19 @@ const CollectionsPage = ({ collections, examples, onDeleteCollection, onLoadColl
                         </Button>
                       </Space>
                     </div>
-                    <div className="collection-record-preview">
+                    <div
+                      className="collection-record-preview"
+                      data-example-key={example.key}
+                      ref={(node) => {
+                        registerPreviewNode(example.key, node);
+                      }}
+                    >
                       <FeatureBoundary title="The example preview failed to render.">
-                        <CollectionPreviewSurface savedManifest={example.savedManifest ?? examplePreviews[example.key]} />
+                        <CollectionPreviewSurface
+                          savedManifest={examplePreviews[example.key]}
+                          isLoading={examplePreviewStatus[example.key] === "loading"}
+                          emptyMessage="Preview unavailable."
+                        />
                       </FeatureBoundary>
                     </div>
                   </div>

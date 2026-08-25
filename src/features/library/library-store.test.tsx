@@ -8,7 +8,7 @@ import { EMPTY_LAYOUT_STATE } from "../visualization/layout-state";
 import type { GlobalConfig, ManifestEntry, VariableConfig, VisualizationLayoutState } from "../../shared/types/visualization";
 
 const baseGlobalConfig: GlobalConfig = {
-  stepLimit: 12,
+  stepLimit: 128,
   maxDepth: 3,
   maxItemsPerView: 50,
   recursionDepthDefault: -1,

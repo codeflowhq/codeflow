@@ -149,7 +149,7 @@ const SettingsPage = ({
                 min={1}
                 max={500}
                 value={globalConfig.stepLimit}
-                onChange={(value) => setGlobalConfig((prev) => ({ ...prev, stepLimit: value ?? 12 }))}
+                onChange={(value) => setGlobalConfig((prev) => ({ ...prev, stepLimit: value ?? 128 }))}
               />
             </div>
           </div>

@@ -34,6 +34,12 @@ const buildManifest = (): ManifestEntry[] => [
 ];
 
 describe("CollectionPreviewSurface", () => {
+  it("shows a loading state while a preview is being generated", () => {
+    render(<CollectionPreviewSurface isLoading savedManifest={[]} />);
+
+    expect(screen.getByText("Loading preview…")).toBeTruthy();
+  });
+
   it("shows an empty preview state when no manifest was saved", () => {
     render(<CollectionPreviewSurface savedManifest={[]} />);
 
@@ -43,6 +49,12 @@ describe("CollectionPreviewSurface", () => {
     expect(
       screen.queryByRole("button", { name: "Previous preview" }),
     ).toBeNull();
+  });
+
+  it("supports a custom empty-state message", () => {
+    render(<CollectionPreviewSurface savedManifest={[]} emptyMessage="Preview unavailable." />);
+
+    expect(screen.getByText("Preview unavailable.")).toBeTruthy();
   });
 
   it("does not render navigation arrows for a single preview item", () => {

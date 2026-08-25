@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useCollections } from "./useCollections";
 
 const baseGlobalConfig = {
-  stepLimit: 12,
+  stepLimit: 128,
   maxDepth: 3,
   maxItemsPerView: 50,
   recursionDepthDefault: -1,

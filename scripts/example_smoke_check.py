@@ -200,7 +200,7 @@ def main() -> int:
                 watch_variables=case["watch"],
                 output="manifest",
                 payload=True,
-                max_steps=12,
+                max_steps=128,
             )
         except Exception as exc:  # pragma: no cover - explicit smoke failure path
             failures.append(f"{name}: ERROR {type(exc).__name__}: {exc}")

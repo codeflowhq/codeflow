@@ -35,13 +35,13 @@ describe("buildTypeDefaultRows", () => {
 describe("updateTypeViewDefault", () => {
   it("updates one type default without dropping existing config", () => {
     const next = updateTypeViewDefault(
-      { ...({ stepLimit: 12, maxDepth: 3, maxItemsPerView: 50, recursionDepthDefault: -1, showTitles: false, customConverters: "", runtimePackages: "", runtimeWheels: "", typeViewDefaults: { tree: "tree" } }) },
+      { ...({ stepLimit: 128, maxDepth: 3, maxItemsPerView: 50, recursionDepthDefault: -1, showTitles: false, customConverters: "", runtimePackages: "", runtimeWheels: "", typeViewDefaults: { tree: "tree" } }) },
       "graph",
       "graph",
     );
 
     expect(next).toEqual({
-      stepLimit: 12,
+      stepLimit: 128,
       maxDepth: 3,
       maxItemsPerView: 50,
       recursionDepthDefault: -1,

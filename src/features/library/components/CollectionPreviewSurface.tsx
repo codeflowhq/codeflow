@@ -12,16 +12,30 @@ const { Text } = Typography;
 
 type CollectionPreviewSurfaceProps = {
   savedManifest?: ManifestEntry[];
+  emptyMessage?: string;
+  isLoading?: boolean;
 };
 
-const CollectionPreviewSurface = ({ savedManifest }: CollectionPreviewSurfaceProps) => {
+const CollectionPreviewSurface = ({
+  savedManifest,
+  emptyMessage = "No visualization was saved with this project yet.",
+  isLoading = false,
+}: CollectionPreviewSurfaceProps) => {
   const previewEntries = getCollectionPreviewEntries(savedManifest);
   const [activeIndex, setActiveIndex] = useState(0);
+
+  if (isLoading) {
+    return (
+      <div className="collection-preview-card collection-preview-empty">
+        <Text type="secondary">Loading preview…</Text>
+      </div>
+    );
+  }
 
   if (!previewEntries.length) {
     return (
       <div className="collection-preview-card collection-preview-empty">
-        <Text type="secondary">No visualization was saved with this project yet.</Text>
+        <Text type="secondary">{emptyMessage}</Text>
       </div>
     );
   }
