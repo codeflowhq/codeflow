@@ -121,7 +121,7 @@ describe("buildVisualizationRuntimeConfig", () => {
         data: {
           viewKind: "graph",
           depth: 0,
-          viewOptions: { color: "#123456" },
+          viewOptions: { color: "#123456", graphDirection: "TB" },
         },
         queue: {
           viewKind: "image",
@@ -138,6 +138,8 @@ describe("buildVisualizationRuntimeConfig", () => {
         view_options: {
           color: "#123456",
           barColor: "#123456",
+          graphDirection: "TB",
+          showIndices: false,
         },
       },
       queue: {
@@ -146,6 +148,8 @@ describe("buildVisualizationRuntimeConfig", () => {
         view_options: {
           color: "#abcdef",
           barColor: "#abcdef",
+          graphDirection: undefined,
+          showIndices: false,
         },
       },
     });
@@ -191,6 +195,7 @@ describe("buildVisualizationRuntimeConfig", () => {
           view_options: {
             color: "#64748b",
             barColor: "#64748b",
+            graphDirection: undefined,
           },
         },
       },

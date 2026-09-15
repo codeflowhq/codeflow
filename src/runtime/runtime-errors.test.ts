@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { normalizeGraphRenderError, normalizeRuntimeError, normalizeUnexpectedAppError } from "./runtime-errors";
+import { isGraphvizTeardownError, normalizeGraphRenderError, normalizeRuntimeError, normalizeUnexpectedAppError } from "./runtime-errors";
 
 describe("normalizeRuntimeError", () => {
   it("maps known runtime dependency failures", () => {
@@ -57,5 +57,12 @@ describe("normalizeUnexpectedAppError", () => {
   it("falls back to a generic application message", () => {
     expect(normalizeUnexpectedAppError({ broken: true }))
       .toBe("Something went wrong in the app. Reload the page and try again.");
+  });
+});
+
+describe("isGraphvizTeardownError", () => {
+  it("identifies the d3-graphviz error caused by an interrupted transition", () => {
+    expect(isGraphvizTeardownError(new Error("transition 12 not found"))).toBe(true);
+    expect(isGraphvizTeardownError(new Error("syntax error in line 3"))).toBe(false);
   });
 });

@@ -12,6 +12,8 @@ import FeatureBoundary from "../../shared/ui/FeatureBoundary";
 const { Search } = Input;
 const { Text, Title } = Typography;
 const MAX_CONCURRENT_EXAMPLE_PREVIEWS = 3;
+const MAX_CONCURRENT_DOT_PREVIEWS = 1;
+const PREVIEW_STEP_LIMIT = 24;
 const EXAMPLE_TOPIC_ORDER = [
   "All topics",
   "Arrays & Sorting",
@@ -26,6 +28,10 @@ const EXAMPLE_TOPIC_ORDER = [
 ] as const;
 
 type ExampleTopic = typeof EXAMPLE_TOPIC_ORDER[number];
+
+const producesDotPreview = (example: ExampleRecord) => Object.values(example.variableConfigs ?? {}).some(
+  (config) => config.viewKind === "graph" || config.viewKind === "tree",
+);
 
 const getExampleTopic = (example: ExampleRecord): ExampleTopic => {
   const tags = new Set(example.tags ?? []);
@@ -207,18 +213,34 @@ const CollectionsPage = ({ collections, examples, onDeleteCollection, onLoadColl
   }, []);
 
   useEffect(() => {
-    const loadingCount = Object.values(examplePreviewStatus).filter((status) => status === "loading").length;
+    const loadingExamples = examples.filter((example) => examplePreviewStatus[example.key] === "loading");
+    const loadingCount = loadingExamples.length;
+    const loadingDotCount = loadingExamples.filter(producesDotPreview).length;
     const availableSlots = MAX_CONCURRENT_EXAMPLE_PREVIEWS - loadingCount;
     if (availableSlots <= 0) {
       return;
     }
-    const nextExamples = filteredExamples
-      .filter((example) => (
+    let availableDotSlots = MAX_CONCURRENT_DOT_PREVIEWS - loadingDotCount;
+    const nextExamples: ExampleRecord[] = [];
+    for (const example of filteredExamples) {
+      if (nextExamples.length >= availableSlots) {
+        break;
+      }
+      if (!(
         visibleExampleKeySet.has(example.key)
         && examplePreviewStatus[example.key] == null
         && !inFlightExamplePreviewKeysRef.current.has(example.key)
-      ))
-      .slice(0, availableSlots);
+      )) {
+        continue;
+      }
+      if (producesDotPreview(example)) {
+        if (availableDotSlots <= 0) {
+          continue;
+        }
+        availableDotSlots -= 1;
+      }
+      nextExamples.push(example);
+    }
     if (nextExamples.length === 0) {
       return;
     }
@@ -226,12 +248,17 @@ const CollectionsPage = ({ collections, examples, onDeleteCollection, onLoadColl
     nextExamples.forEach((example) => {
       inFlightExamplePreviewKeysRef.current.add(example.key);
     });
-    setExamplePreviewStatus((prev) => {
-      const next = { ...prev };
-      nextExamples.forEach((example) => {
-        next[example.key] = "loading";
+    queueMicrotask(() => {
+      if (!isMountedRef.current) {
+        return;
+      }
+      setExamplePreviewStatus((prev) => {
+        const next = { ...prev };
+        nextExamples.forEach((example) => {
+          next[example.key] = "loading";
+        });
+        return next;
       });
-      return next;
     });
 
     nextExamples.forEach((example) => {
@@ -250,7 +277,11 @@ const CollectionsPage = ({ collections, examples, onDeleteCollection, onLoadColl
             snippet: example.snippet,
             watch: example.watchVariables?.length ? example.watchVariables : ["data"],
             config: buildVisualizationRuntimeConfig({
-              globalConfig: { ...defaultGlobalConfig, ...(example.globalConfig ?? {}) },
+              globalConfig: {
+                ...defaultGlobalConfig,
+                ...(example.globalConfig ?? {}),
+                stepLimit: PREVIEW_STEP_LIMIT,
+              },
               variableConfigs: example.variableConfigs ?? {},
             }),
           });
@@ -260,7 +291,7 @@ const CollectionsPage = ({ collections, examples, onDeleteCollection, onLoadColl
         }
       })();
     });
-  }, [examplePreviewStatus, filteredExamples, visibleExampleKeySet]);
+  }, [examplePreviewStatus, examples, filteredExamples, visibleExampleKeySet]);
 
   return (
     <div className="collections-page-shell">

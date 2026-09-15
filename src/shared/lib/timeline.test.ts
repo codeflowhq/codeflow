@@ -48,7 +48,7 @@ describe("timeline helpers", () => {
     expect(buildTimelineFrames([])).toEqual([]);
   });
 
-  it("keeps only the first occurrence for duplicate timeline keys", () => {
+  it("keeps the final event for duplicate timeline keys", () => {
     const frames = buildTimelineFrames([
       {
         variable: "data",
@@ -85,11 +85,11 @@ describe("timeline helpers", () => {
     expect(frames).toHaveLength(1);
     expect(frames[0]).toMatchObject({
       timelineKey: "1:1",
-      executionOrder: 1,
-      eventOrder: 1,
-      order: 1,
-      index: 1,
-      stepId: "step 1",
+      executionOrder: 9,
+      eventOrder: 9,
+      order: 9,
+      index: 9,
+      stepId: "step 1 duplicate",
     });
   });
 

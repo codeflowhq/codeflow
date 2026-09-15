@@ -12,6 +12,7 @@ export const VIEW_KIND_OPTIONS: ViewKind[] = [
   "linked_list",
   "heap_dual",
   "bar",
+  "plot",
   "tree",
   "graph",
   "image",
@@ -43,11 +44,12 @@ export const defaultVariableConfig: VariableConfig = {
   depth: null,
   viewOptions: {
     color: "#64748b",
+    showIndices: false,
   },
 };
 
 export const TYPE_VIEW_DEFAULT_ROWS: Array<{ key: string; label: string; viewKindOptions: Array<ViewKind | "auto"> }> = [
-  { key: "list[any]", label: "List / array", viewKindOptions: ["auto", "array_cells", "bar", "table"] },
+  { key: "list[any]", label: "List / array", viewKindOptions: ["auto", "array_cells", "bar", "plot", "table"] },
   { key: "tuple[list]", label: "Matrix", viewKindOptions: ["auto", "matrix", "table"] },
   { key: "dict[str, any]", label: "Dictionary / object", viewKindOptions: ["auto", "table", "hash_table"] },
   { key: "linked_list", label: "Linked list", viewKindOptions: ["auto", "linked_list"] },

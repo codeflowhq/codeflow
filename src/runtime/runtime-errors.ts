@@ -33,7 +33,6 @@ const FRIENDLY_PATTERNS: FriendlyPattern[] = [
   { pattern: /heap_dual_node view expects list input/i, message: "Heap dual view only works with list data." },
   { pattern: /array_cells_node view expects a list-like input/i, message: "The selected array view only works with list-like data." },
   { pattern: /TypeError:/i, message: "The selected view does not match the current variable value." },
-  { pattern: /ValueError:/i, message: "The current config is not valid for this visualization." },
   { pattern: /Failed to download remote image/i, message: "The image URL could not be loaded in the browser runtime." },
   { pattern: /Cannot download from a non-remote location/i, message: "A runtime wheel path is invalid for the browser environment." },
   { pattern: /Requested 'numpy/i, message: "A runtime package version conflicts with the browser environment." },
@@ -45,6 +44,8 @@ const GRAPH_RENDER_PATTERNS: FriendlyPattern[] = [
   { pattern: /transition .* not found/i, message: "The graph animation state was reset. Run again." },
   { pattern: /DOMParser/i, message: "This SVG output could not be displayed." },
 ];
+
+const GRAPHVIZ_TEARDOWN_PATTERN = /transition .* not found/i;
 
 const COMPACT_ERROR_PREFIX = /^Status:\s*/i;
 
@@ -102,3 +103,7 @@ export const normalizeUnexpectedAppError = (error: unknown): string => {
   const usefulLine = extractUsefulLine(compact);
   return usefulLine?.replace(/^[A-Za-z_.]*Error:\s*/i, "") || "Something went wrong in the app. Reload the page and try again.";
 };
+
+export const isGraphvizTeardownError = (error: unknown): boolean => (
+  GRAPHVIZ_TEARDOWN_PATTERN.test(getRawMessage(error, ""))
+);

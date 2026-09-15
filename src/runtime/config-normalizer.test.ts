@@ -74,17 +74,17 @@ describe("normalizeVariableConfigs", () => {
       data: {
         viewKind: "unknown" as "graph",
         depth: -4,
-        viewOptions: { color: "  " },
+        viewOptions: { color: "  ", graphDirection: "bad" as "LR" },
       },
       queue: {
         viewKind: "image",
         depth: 30,
-        viewOptions: { color: " #123456 " },
+        viewOptions: { color: " #123456 ", graphDirection: "TB" },
       },
       item: {
         viewKind: "bar",
         depth: null,
-        viewOptions: { color: "#abcdef" },
+        viewOptions: { color: "#abcdef", graphDirection: "LR" },
       },
     });
 
@@ -92,17 +92,17 @@ describe("normalizeVariableConfigs", () => {
       data: {
         viewKind: "auto",
         depth: 0,
-        viewOptions: { color: "#64748b" },
+        viewOptions: { color: "#64748b", graphDirection: undefined, showIndices: false },
       },
       queue: {
         viewKind: "image",
         depth: 20,
-        viewOptions: { color: "#123456" },
+        viewOptions: { color: "#123456", graphDirection: "TB", showIndices: false },
       },
       item: {
         viewKind: "bar",
         depth: null,
-        viewOptions: { color: "#abcdef" },
+        viewOptions: { color: "#abcdef", graphDirection: "LR", showIndices: false },
       },
     });
   });

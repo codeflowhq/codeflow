@@ -81,55 +81,52 @@ const SvgPanel = ({ svg, onSvgChange }: SvgPanelProps) => {
 
     try {
       const prevSvg = container.querySelector("svg");
-    const prevPositions = new Map<string | undefined, DOMRect>();
-    if (prevSvg instanceof SVGSVGElement) {
-      collectElements(prevSvg).forEach((element) => {
-        prevPositions.set((element as AnimatableSvgGroup).dataset.animKey, element.getBoundingClientRect());
-      });
-    }
+      const prevPositions = new Map<string | undefined, DOMRect>();
+      if (prevSvg instanceof SVGSVGElement) {
+        collectElements(prevSvg).forEach((element) => {
+          prevPositions.set(element.dataset.animKey, element.getBoundingClientRect());
+        });
+      }
 
-    const parser = new DOMParser();
-    const nextDoc = parser.parseFromString(svg, "image/svg+xml");
-    const nextSvg = nextDoc.querySelector("svg");
-    if (!(nextSvg instanceof SVGSVGElement)) {
-      container.innerHTML = svg;
-      return;
-    }
+      const parser = new DOMParser();
+      const nextDoc = parser.parseFromString(svg, "image/svg+xml");
+      const nextSvg = nextDoc.querySelector("svg");
+      if (!(nextSvg instanceof SVGSVGElement)) {
+        container.innerHTML = svg;
+        return;
+      }
 
-    container.innerHTML = nextSvg.outerHTML;
-    const currentSvg = container.querySelector("svg");
-    if (!(currentSvg instanceof SVGSVGElement)) {
-      onSvgChangeRef.current?.(null);
-      return;
-    }
+      container.innerHTML = nextSvg.outerHTML;
+      const currentSvg = container.querySelector("svg");
+      if (!(currentSvg instanceof SVGSVGElement)) {
+        onSvgChangeRef.current?.(null);
+        return;
+      }
 
-    onSvgChangeRef.current?.(currentSvg.outerHTML);
+      onSvgChangeRef.current?.(currentSvg.outerHTML);
 
-    collectElements(currentSvg).forEach((element) => {
-      const newRect = element.getBoundingClientRect();
-      const prevRect = prevPositions.get(element.dataset.animKey);
-      element.style.transition = "none";
+      collectElements(currentSvg).forEach((element) => {
+        const newRect = element.getBoundingClientRect();
+        const prevRect = prevPositions.get(element.dataset.animKey);
+        element.style.transition = "none";
 
-      if (prevRect) {
-        const dx = prevRect.left - newRect.left;
-        const dy = prevRect.top - newRect.top;
-        element.style.transformOrigin = "0 0";
-        element.style.transformBox = "fill-box";
-        if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) {
-          element.style.transform = `translate(${dx}px, ${dy}px)`;
-          animateElement(element, { transform: "translate(0px, 0px)" });
+        if (prevRect) {
+          const dx = prevRect.left - newRect.left;
+          const dy = prevRect.top - newRect.top;
+          element.style.transformOrigin = "0 0";
+          element.style.transformBox = "fill-box";
+          if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) {
+            element.style.transform = `translate(${dx}px, ${dy}px)`;
+            animateElement(element, { transform: "translate(0px, 0px)" });
+          }
         } else {
           element.style.opacity = "0";
-          animateElement(element, { opacity: "1" });
+          element.style.transformOrigin = "0 0";
+          element.style.transformBox = "fill-box";
+          element.style.transform = "translateY(8px)";
+          animateElement(element, { opacity: "1", transform: "translateY(0)" });
         }
-      } else {
-        element.style.opacity = "0";
-        element.style.transformOrigin = "0 0";
-        element.style.transformBox = "fill-box";
-        element.style.transform = "translateY(8px)";
-        animateElement(element, { opacity: "1", transform: "translateY(0)" });
-      }
-    });
+      });
     } catch (error) {
       container.innerHTML = "";
       onSvgChangeRef.current?.(null);

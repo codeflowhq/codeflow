@@ -7,12 +7,15 @@ export type ViewKind =
   | "linked_list"
   | "heap_dual"
   | "bar"
+  | "plot"
   | "tree"
   | "graph"
   | "image";
 
 export type VariableViewOptions = {
   color: string;
+  graphDirection?: "LR" | "TB";
+  showIndices?: boolean;
 };
 
 export type VariableConfig = {

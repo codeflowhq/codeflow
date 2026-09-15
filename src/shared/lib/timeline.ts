@@ -45,7 +45,10 @@ export const buildTimelineFrames = (manifestEntries: ManifestEntry[]): TimelineF
       const executionOrder = Number(step.executionId ?? step.meta?.execution_id ?? step.index ?? 0);
       const order = Number(step.order ?? step.meta?.order ?? 0);
       const timelineKey = buildTimelineKey(step);
-      if (!frames.has(timelineKey)) {
+      const existing = frames.get(timelineKey);
+      // Several watched values can change on one source line. Render the line's
+      // final event so synthetic mutations such as `frontier.pop(0)` are visible.
+      if (!existing || eventOrder >= existing.eventOrder) {
         frames.set(timelineKey, {
           timelineKey,
           eventOrder,

@@ -15,11 +15,48 @@ const WINDOW_CHROME_WIDTH = 16;
 const WINDOW_CHROME_HEIGHT = 40;
 const AUTO_WINDOW_MAX_RATIO = 0.58;
 const AUTO_WINDOW_MAX_WIDTH = 420;
+const MASONRY_COLUMNS = 2;
+const MASONRY_MAX_CONTENT_PADDING = 16;
 
 type ContentSize = {
   width: number;
   height: number;
 };
+
+const parseSvgDimension = (value: string | undefined) => {
+  const match = value?.match(/^\s*(\d+(?:\.\d+)?)/);
+  return match ? Number(match[1]) : null;
+};
+
+const getMaxSvgStepWidth = (entry: ManifestEntry) => Math.max(
+  0,
+  ...entry.steps.map((step) => {
+    if (!step.svg) {
+      return 0;
+    }
+    const svgTag = step.svg.match(/<svg\b[^>]*>/i)?.[0];
+    if (!svgTag) {
+      return 0;
+    }
+    const viewBox = svgTag.match(/\bviewBox\s*=\s*["']([^"']+)["']/i)?.[1];
+    const viewBoxWidth = viewBox
+      ?.trim()
+      .split(/\s+/)
+      .map(Number)[2];
+    if (viewBoxWidth && viewBoxWidth > 0) {
+      return viewBoxWidth;
+    }
+    const width = svgTag.match(/\bwidth\s*=\s*["']([^"']+)["']/i)?.[1];
+    return parseSvgDimension(width) ?? 0;
+  }),
+);
+
+const getMaxDotNodeCount = (entry: ManifestEntry) => Math.max(
+  0,
+  ...entry.steps.map((step) => (
+    step.dot?.match(/^\s*(?!(?:graph|node|edge)\b)(?:"[^"]+"|[A-Za-z0-9_]+)\s+\[/gm)?.length ?? 0
+  )),
+);
 
 const estimateWindowHeight = (entry: ManifestEntry, contentSize?: ContentSize) => {
   const measuredHeight = contentSize ? contentSize.height + WINDOW_CHROME_HEIGHT : null;
@@ -224,6 +261,31 @@ const VisualCanvas = ({
       .filter((entry): entry is ManifestEntry => Boolean(entry));
   }, [effectiveMasonryOrder, manifest]);
 
+  const masonrySingleColumnWidth = useMemo(() => {
+    if (canvasWidth <= 0) {
+      return MIN_WINDOW_WIDTH;
+    }
+    return Math.max(
+      MIN_WINDOW_WIDTH,
+      Math.floor((canvasWidth - WINDOW_GAP) / MASONRY_COLUMNS),
+    );
+  }, [canvasWidth]);
+
+  const getMasonryItemLayout = useCallback((entry: ManifestEntry) => {
+    // DOT size is unavailable until Graphviz runs. Use the largest trace
+    // snapshot so cards do not reflow while playback adds nodes.
+    if (entry.kind === "dot") {
+      return { span: getMaxDotNodeCount(entry) > 9 ? 2 as const : 1 as const };
+    }
+    const intrinsicWidth = entry.kind === "svg" ? getMaxSvgStepWidth(entry) : null;
+    const measuredWidth = intrinsicWidth
+      ? intrinsicWidth + WINDOW_CHROME_WIDTH + MASONRY_MAX_CONTENT_PADDING
+      : null;
+    return {
+      span: measuredWidth && measuredWidth > masonrySingleColumnWidth ? 2 as const : 1 as const,
+    };
+  }, [masonrySingleColumnWidth]);
+
   const moveMasonryVariable = useCallback((targetVariable: string) => {
     if (!draggedMasonryVariable || draggedMasonryVariable === targetVariable) {
       return;
@@ -265,35 +327,40 @@ const VisualCanvas = ({
 
   if (layoutMode === "masonry") {
     return (
-      <div className="visual-canvas visual-canvas-masonry">
-        {masonryEntries.map((entry) => (
-          <div
-            key={entry.variable}
-            className="visual-canvas-masonry-item"
-            draggable
-            onDragStart={() => setDraggedMasonryVariable(entry.variable)}
-            onDragEnd={() => setDraggedMasonryVariable(null)}
-            onDragOver={(event) => {
-              event.preventDefault();
-              moveMasonryVariable(entry.variable);
-            }}
-            onDrop={(event) => {
-              event.preventDefault();
-              moveMasonryVariable(entry.variable);
-              setDraggedMasonryVariable(null);
-            }}
-          >
-            <VariablePanel
-              entry={entry}
-              activeTimelineKey={activeTimelineKey}
-              activeTimelineEventOrder={activeTimelineEventOrder}
-              panelConfig={variableConfigs[entry.variable]}
-              onOpenConfig={() => onOpenConfig(entry.variable)}
-              onRemoveVariable={onRemoveVariable ? () => onRemoveVariable(entry.variable) : undefined}
-              onExportSourceChange={(svg) => setExportSource(entry.variable, svg)}
-            />
-          </div>
-        ))}
+      <div ref={handleCanvasRef} className="visual-canvas visual-canvas-masonry">
+        {masonryEntries.map((entry) => {
+          const itemLayout = getMasonryItemLayout(entry);
+          return (
+            <div
+              key={entry.variable}
+              className="visual-canvas-masonry-item"
+              data-span={itemLayout.span}
+              draggable
+              onDragStart={() => setDraggedMasonryVariable(entry.variable)}
+              onDragEnd={() => setDraggedMasonryVariable(null)}
+              onDragOver={(event) => {
+                event.preventDefault();
+                moveMasonryVariable(entry.variable);
+              }}
+              onDrop={(event) => {
+                event.preventDefault();
+                moveMasonryVariable(entry.variable);
+                setDraggedMasonryVariable(null);
+              }}
+            >
+              <VariablePanel
+                entry={entry}
+                activeTimelineKey={activeTimelineKey}
+                activeTimelineEventOrder={activeTimelineEventOrder}
+                panelConfig={variableConfigs[entry.variable]}
+                onOpenConfig={() => onOpenConfig(entry.variable)}
+                onRemoveVariable={onRemoveVariable ? () => onRemoveVariable(entry.variable) : undefined}
+                onExportSourceChange={(svg) => setExportSource(entry.variable, svg)}
+                layoutMode="masonry"
+              />
+            </div>
+          );
+        })}
       </div>
     );
   }
@@ -347,6 +414,7 @@ const VisualCanvas = ({
               onRemoveVariable={onRemoveVariable ? () => onRemoveVariable(entry.variable) : undefined}
               onContentSizeChange={(size) => handleContentSizeChange(entry.variable, size)}
               onExportSourceChange={(svg) => setExportSource(entry.variable, svg)}
+              layoutMode="windows"
             />
           </Rnd>
         );

@@ -88,6 +88,14 @@ export const useVariableConfigState = ({ defaultVariableConfig, messageApi }: Us
               ?? (prev[variableName]?.viewOptions as { barColor?: string } | undefined)?.barColor
               ?? (draft.viewOptions as { barColor?: string } | undefined)?.barColor
               ?? defaultVariableConfig.viewOptions.color,
+            graphDirection:
+              draft.viewOptions?.graphDirection
+              ?? prev[variableName]?.viewOptions?.graphDirection
+              ?? defaultVariableConfig.viewOptions.graphDirection,
+            showIndices:
+              draft.viewOptions?.showIndices
+              ?? prev[variableName]?.viewOptions?.showIndices
+              ?? defaultVariableConfig.viewOptions.showIndices,
           },
         };
       }

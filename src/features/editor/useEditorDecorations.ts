@@ -20,6 +20,7 @@ type MonacoEditor = {
   onMouseDown: (handler: (event: { target: { position?: unknown } }) => void) => { dispose: () => void };
   getModel: () => MonacoModel | null;
   deltaDecorations: (oldDecorations: string[], decorations: unknown[]) => string[];
+  revealLineInCenter: (lineNumber: number) => void;
   updateOptions: (options: { readOnly: boolean; mouseStyle: "copy" | "text" }) => void;
   isDisposed?: () => boolean;
 };
@@ -53,10 +54,12 @@ export const useEditorDecorations = ({
   const [editorApi, setEditorApi] = useState<EditorApi | null>(null);
   const clickDisposableRef = useRef<{ dispose: () => void } | null>(null);
   const currentDecorationsRef = useRef<string[]>([]);
+  const revealedExecutionLineRef = useRef<number | null>(null);
 
   const selectableIdentifierSet = useMemo(() => new Set(selectableIdentifiers), [selectableIdentifiers]);
 
   const handleEditorMount = useCallback<EditorMountHandler>((editor, monaco) => {
+    revealedExecutionLineRef.current = null;
     setEditorApi({ editor: editor as unknown as MonacoEditor, monaco: monaco as unknown as MonacoApi });
   }, []);
 
@@ -93,6 +96,9 @@ export const useEditorDecorations = ({
   useEffect(() => {
     const editor = editorApi?.editor;
     const monaco = editorApi?.monaco;
+    if (activeExecutionLine == null) {
+      revealedExecutionLineRef.current = null;
+    }
     if (!editor || !monaco || (typeof editor.isDisposed === "function" && editor.isDisposed())) {
       return;
     }
@@ -138,6 +144,10 @@ export const useEditorDecorations = ({
     try {
       currentDecorationsRef.current = editor.deltaDecorations(currentDecorationsRef.current, decorations);
       editor.updateOptions({ readOnly: readOnlyEnabled, mouseStyle: selectionEnabled ? "copy" : "text" });
+      if (activeExecutionLine != null && revealedExecutionLineRef.current !== activeExecutionLine) {
+        editor.revealLineInCenter(activeExecutionLine);
+        revealedExecutionLineRef.current = activeExecutionLine;
+      }
     } catch {
       // Monaco can dispose between React passes during remount; skip stale updates.
     }

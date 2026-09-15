@@ -105,7 +105,7 @@ const shouldSkipDynamicPackage = (value: unknown): boolean => {
 };
 
 const defaultFetchImpl: FetchLike = async (input) => {
-  const response = await fetch(input);
+  const response = await fetch(input, { cache: "no-store" });
   return {
     ok: response.ok,
     json: async () => response.json() as Promise<RuntimeConfig>,

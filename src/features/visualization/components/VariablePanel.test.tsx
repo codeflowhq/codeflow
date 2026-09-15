@@ -144,6 +144,42 @@ describe("VariablePanel", () => {
     expect(size.height).toBeGreaterThan(0);
   });
 
+  it("passes responsive sizing to renderers in windows mode", async () => {
+    render(
+      <VariablePanel
+        entry={{ ...baseEntry, kind: "dot", steps: [{ ...baseEntry.steps[0], dot: "digraph G {}", svg: undefined }] }}
+        activeTimelineKey="1:1"
+        activeTimelineEventOrder={1}
+        layoutMode="windows"
+        onOpenConfig={vi.fn()}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(graphvizPanelMock).toHaveBeenCalledWith(
+        expect.objectContaining({ animationMode: "graph", sizingMode: "responsive" }),
+      );
+    });
+  });
+
+  it("keeps bar views on the dedicated swap animation", async () => {
+    render(
+      <VariablePanel
+        entry={{ ...baseEntry, kind: "dot", steps: [{ ...baseEntry.steps[0], dot: "digraph G {}", svg: undefined }] }}
+        panelConfig={{ viewKind: "bar", depth: 2, viewOptions: { color: "#64748b" } }}
+        activeTimelineKey="1:1"
+        activeTimelineEventOrder={1}
+        onOpenConfig={vi.fn()}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(graphvizPanelMock).toHaveBeenCalledWith(
+        expect.objectContaining({ animationMode: "bar" }),
+      );
+    });
+  });
+
   it("falls back by event order instead of timeline key ordering", async () => {
     const suffixEntry: ManifestEntry = {
       variable: "suffixes",
@@ -187,5 +223,47 @@ describe("VariablePanel", () => {
     expect(svgPanelMock).not.toHaveBeenCalledWith(
       expect.objectContaining({ svg: "<svg id='loop' />" }),
     );
+  });
+
+  it("uses the final same-line event when the timeline selects a synthetic mutation", async () => {
+    const frontierEntry: ManifestEntry = {
+      variable: "frontier",
+      kind: "svg",
+      steps: [
+        {
+          stepId: "step 2 before pop",
+          timelineKey: "2:2",
+          eventOrder: 4,
+          executionId: 2,
+          order: 2,
+          index: 0,
+          svg: "<svg id='before-pop' />",
+        },
+        {
+          stepId: "step 2 after pop",
+          timelineKey: "2:2",
+          eventOrder: 5,
+          executionId: 2,
+          order: 2,
+          index: 1,
+          svg: "<svg id='after-pop' />",
+        },
+      ],
+    };
+
+    render(
+      <VariablePanel
+        entry={frontierEntry}
+        activeTimelineKey="2:2"
+        activeTimelineEventOrder={5}
+        onOpenConfig={vi.fn()}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(svgPanelMock).toHaveBeenCalledWith(
+        expect.objectContaining({ svg: "<svg id='after-pop' />" }),
+      );
+    });
   });
 });

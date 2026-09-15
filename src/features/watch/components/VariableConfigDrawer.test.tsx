@@ -100,4 +100,64 @@ describe("VariableConfigDrawer", () => {
     expect(screen.getByRole("option", { name: "table" })).toBeTruthy();
     expect(screen.queryByRole("option", { name: "array_cells" })).toBeNull();
   });
+
+  it("shows graph direction for tree and graph views", async () => {
+    Object.defineProperty(window, "matchMedia", {
+      writable: true,
+      value: vi.fn().mockImplementation(() => ({
+        matches: false,
+        media: "",
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      })),
+    });
+    Object.defineProperty(globalThis, "ResizeObserver", {
+      writable: true,
+      value: ResizeObserverMock,
+    });
+
+    render(
+      <VariableConfigDrawer
+        open
+        variableName="tree"
+        availableVariables={["tree"]}
+        variableConfig={{ viewKind: "tree", depth: 3, viewOptions: { color: "#64748b", graphDirection: "TB" } }}
+        defaultVariableConfig={defaultVariableConfig}
+        defaultDepthValue={3}
+        viewKindOptionsByVariable={{ tree: ["auto", "tree"] }}
+        onClose={vi.fn()}
+        onApply={vi.fn()}
+        pendingWatchVariables={[]}
+        onSelectVariable={vi.fn()}
+      />,
+    );
+
+    expect(await screen.findByText("Graph direction")).toBeTruthy();
+    expect(screen.getByText("Top to bottom")).toBeTruthy();
+  });
+
+  it("lets array views opt in to index labels", async () => {
+    render(
+      <VariableConfigDrawer
+        open
+        variableName="data"
+        availableVariables={["data"]}
+        variableConfig={{ viewKind: "array_cells", depth: 2, viewOptions: { color: "#64748b" } }}
+        defaultVariableConfig={defaultVariableConfig}
+        defaultDepthValue={3}
+        viewKindOptionsByVariable={{ data: ["auto", "array_cells"] }}
+        onClose={vi.fn()}
+        onApply={vi.fn()}
+        pendingWatchVariables={[]}
+        onSelectVariable={vi.fn()}
+      />,
+    );
+
+    expect(await screen.findByText("Nested array indices")).toBeTruthy();
+    expect(screen.getByText("Hidden")).toBeTruthy();
+  });
 });

@@ -40,6 +40,10 @@ const normalizeColor = (value: unknown): string => {
   return trimmed || defaultVariableConfig.viewOptions.color;
 };
 
+const normalizeGraphDirection = (value: unknown): "LR" | "TB" | undefined => (
+  value === "TB" ? "TB" : value === "LR" ? "LR" : undefined
+);
+
 export const normalizeGlobalConfig = (config: GlobalConfig): GlobalConfig => ({
   stepLimit: clampInteger(config.stepLimit, defaultGlobalConfig.stepLimit, 1, 500),
   maxDepth: clampInteger(config.maxDepth, defaultGlobalConfig.maxDepth, 1, 20),
@@ -69,6 +73,8 @@ export const normalizeVariableConfigs = (
         : clampInteger(config.depth, defaultGlobalConfig.maxDepth, 0, 20),
       viewOptions: {
         color: normalizeColor(config?.viewOptions?.color),
+        graphDirection: normalizeGraphDirection(config?.viewOptions?.graphDirection),
+        showIndices: Boolean(config?.viewOptions?.showIndices),
       },
     },
   ]),

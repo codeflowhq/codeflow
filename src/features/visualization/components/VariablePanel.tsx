@@ -3,7 +3,7 @@ import { Button, Card, Empty, Space, Typography } from "antd";
 import { Suspense, lazy, useEffect, useMemo, useRef } from "react";
 
 import { buildTimelineKey, isTimelineStepAtOrBefore, isTimelineStepAtOrBeforeEventOrder, resolveTimelineEventOrder } from "../../../shared/lib/timeline-keys";
-import type { ManifestEntry, ManifestStep, VariableConfig } from "../../../shared/types/visualization";
+import type { ManifestEntry, ManifestStep, VariableConfig, VisualizationLayoutMode } from "../../../shared/types/visualization";
 
 const GraphvizPanel = lazy(() => import("../renderers/GraphvizPanel"));
 const SvgPanel = lazy(() => import("../renderers/SvgPanel"));
@@ -19,6 +19,7 @@ type VariablePanelProps = {
   onRemoveVariable?: () => void;
   onContentSizeChange?: (size: { width: number; height: number }) => void;
   onExportSourceChange?: (svg: string | null) => void;
+  layoutMode?: VisualizationLayoutMode;
 };
 
 const getSvgContentSize = (svgElement: SVGSVGElement) => {
@@ -58,14 +59,11 @@ const VariablePanel = ({
   onRemoveVariable,
   onContentSizeChange,
   onExportSourceChange,
+  layoutMode = "masonry",
 }: VariablePanelProps) => {
   const currentStep = useMemo<ManifestStep | undefined>(() => {
     if (!entry.steps.length) {
       return undefined;
-    }
-    const exact = entry.steps.find((step) => buildTimelineKey(step) === activeTimelineKey);
-    if (exact) {
-      return exact;
     }
     if (
       activeTimelineEventOrder != null
@@ -73,9 +71,18 @@ const VariablePanel = ({
     ) {
       return [...entry.steps].reverse().find((step) => isTimelineStepAtOrBeforeEventOrder(step, activeTimelineEventOrder));
     }
+    const exact = entry.steps.find((step) => buildTimelineKey(step) === activeTimelineKey);
+    if (exact) {
+      return exact;
+    }
     return [...entry.steps].reverse().find((step) => isTimelineStepAtOrBefore(step, activeTimelineKey));
   }, [activeTimelineEventOrder, activeTimelineKey, entry.steps]);
-  void panelConfig;
+  const usesFixedGraphViewport = layoutMode === "masonry" && panelConfig?.viewKind != null && panelConfig.viewKind !== "auto";
+  const graphAnimationMode = entry.kind !== "dot"
+    ? "none"
+    : panelConfig?.viewKind === "bar"
+      ? "bar"
+      : "graph";
   const bodyRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -83,12 +90,13 @@ const VariablePanel = ({
     if (!body || !onContentSizeChange) {
       return undefined;
     }
-
     const reportSize = () => {
       const svgElement = body.querySelector("svg");
       const svgSize = svgElement instanceof SVGSVGElement ? getSvgContentSize(svgElement) : null;
-      const width = Math.ceil((svgSize?.width ?? body.scrollWidth) + 12);
-      const height = Math.ceil((svgSize?.height ?? body.scrollHeight) + 8);
+      const measuredWidth = Math.max(svgSize?.width ?? 0, body.scrollWidth);
+      const measuredHeight = Math.max(svgSize?.height ?? 0, body.scrollHeight);
+      const width = Math.ceil(measuredWidth + 12);
+      const height = Math.ceil(measuredHeight + 8);
       onContentSizeChange({ width, height });
     };
 
@@ -98,7 +106,7 @@ const VariablePanel = ({
     resizeObserver.observe(body);
 
     const mutationObserver = new MutationObserver(() => {
-      window.requestAnimationFrame(reportSize);
+      reportSize();
     });
     mutationObserver.observe(body, {
       attributes: true,
@@ -110,7 +118,7 @@ const VariablePanel = ({
       resizeObserver.disconnect();
       mutationObserver.disconnect();
     };
-  }, [activeTimelineKey, currentStep?.dot, currentStep?.svg, onContentSizeChange]);
+  }, [activeTimelineKey, currentStep?.dot, currentStep?.svg, layoutMode, onContentSizeChange]);
 
   useEffect(() => {
     if (!currentStep) {
@@ -142,12 +150,23 @@ const VariablePanel = ({
       <div ref={bodyRef} className="visual-window-body">
           {entry.kind === "dot" && currentStep?.dot ? (
             <Suspense fallback={<div className="panel-loading">Loading graph…</div>}>
-              <GraphvizPanel dot={currentStep.dot} debugName={entry.variable} animate onSvgChange={onExportSourceChange} />
+              <GraphvizPanel
+                dot={currentStep.dot}
+                debugName={entry.variable}
+                animate
+                animationMode={graphAnimationMode}
+                sizingMode={layoutMode === "windows" ? "responsive" : "intrinsic"}
+                fixedViewport={usesFixedGraphViewport}
+                onSvgChange={onExportSourceChange}
+              />
             </Suspense>
           ) : null}
           {entry.kind === "svg" && currentStep?.svg ? (
             <Suspense fallback={<div className="panel-loading">Loading svg…</div>}>
-              <SvgPanel svg={currentStep.svg} onSvgChange={onExportSourceChange} />
+              <SvgPanel
+                svg={currentStep.svg}
+                onSvgChange={onExportSourceChange}
+              />
             </Suspense>
           ) : null}
           {!currentStep ? (

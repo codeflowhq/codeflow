@@ -110,6 +110,8 @@ function App() {
   const [sessionRuntimeWheels, setSessionRuntimeWheels] = useState<SessionRuntimeWheel[]>([]);
   const [lastRunSignature, setLastRunSignature] = useState("");
   const [guideOpen, setGuideOpen] = useState(false);
+  const [configurationRunRequestId, setConfigurationRunRequestId] = useState(0);
+  const handledConfigurationRunRequestId = useRef(0);
   const lastModalErrorRef = useRef<{ content: string; timestamp: number } | null>(null);
   const navigation = useNavigationState();
 
@@ -386,6 +388,25 @@ function App() {
       return false;
     }
   }, [buildRunSignature, configState, messageApi, runSignature, runVisualization, showErrorModal]);
+
+  const handleApplyVariableConfigs = useCallback((drafts: Record<string, VariableConfig>) => {
+    configState.applyVariableConfigs(drafts);
+    setConfigurationRunRequestId((previous) => previous + 1);
+  }, [configState]);
+
+  useEffect(() => {
+    if (
+      configurationRunRequestId === 0
+      || handledConfigurationRunRequestId.current === configurationRunRequestId
+    ) {
+      return;
+    }
+    handledConfigurationRunRequestId.current = configurationRunRequestId;
+    const timeoutId = window.setTimeout(() => {
+      void handleRunVisualization();
+    }, 0);
+    return () => window.clearTimeout(timeoutId);
+  }, [configurationRunRequestId, handleRunVisualization]);
 
   const handleRuntimeWheelUpload = useCallback((files: FileList | null) => {
     if (!files || files.length === 0) {
@@ -718,7 +739,7 @@ function App() {
             viewKindOptionsByVariable={viewKindOptionsByVariable}
             pendingWatchVariables={configState.pendingWatchVariables}
             onClose={configState.closeConfigDrawer}
-            onApply={configState.applyVariableConfigs}
+            onApply={handleApplyVariableConfigs}
             onSelectVariable={configState.openVariableConfig}
           />
         </FeatureBoundary>

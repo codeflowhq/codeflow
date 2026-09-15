@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Alert, Button, Form, InputNumber, Menu, Modal, Select, Space, Tag, Typography } from "antd";
+import { Alert, Button, Form, InputNumber, Menu, Modal, Select, Space, Switch, Tag, Typography } from "antd";
 
 import type { VariableConfig, ViewKind } from "../../../shared/types/visualization";
 import { viewSelectionSupportsColor, viewSelectionSupportsDepth } from "../../../shared/lib/view-capabilities";
@@ -15,6 +15,10 @@ const PRESET_VIEW_COLORS = [
   "#ca8a04",
   "#475569",
 ] as const;
+const GRAPH_DIRECTION_OPTIONS = [
+  { label: "Left to right", value: "LR" as const },
+  { label: "Top to bottom", value: "TB" as const },
+];
 
 type VariableConfigDrawerProps = {
   open: boolean;
@@ -89,6 +93,8 @@ const VariableConfigDrawer = ({
     [resolvedViewKind, viewKindOptions],
   );
   const autoOnlyDisplay = viewKindOptions.length === 1 && viewKindOptions[0] === "auto";
+  const supportsGraphDirection = resolvedViewKind === "tree" || resolvedViewKind === "graph";
+  const supportsIndices = resolvedViewKind === "array_cells";
 
   const updateDraft = (updater: (current: VariableConfig) => VariableConfig) => {
     if (!variableName) {
@@ -230,6 +236,39 @@ const VariableConfigDrawer = ({
                         );
                       })}
                     </div>
+                  </Form.Item>
+                ) : null}
+                {supportsGraphDirection ? (
+                  <Form.Item label="Graph direction">
+                    <Select
+                      value={selectedDraft.viewOptions?.graphDirection ?? "LR"}
+                      options={GRAPH_DIRECTION_OPTIONS}
+                      onChange={(value: "LR" | "TB") =>
+                        updateDraft((prev) => ({
+                          ...prev,
+                          viewOptions: {
+                            ...(prev.viewOptions ?? defaultVariableConfig.viewOptions),
+                            graphDirection: value,
+                          },
+                        }))}
+                    />
+                  </Form.Item>
+                ) : null}
+                {supportsIndices ? (
+                  <Form.Item label="Nested array indices">
+                    <Switch
+                      checked={selectedDraft.viewOptions?.showIndices ?? false}
+                      checkedChildren="Shown"
+                      unCheckedChildren="Hidden"
+                      onChange={(showIndices) =>
+                        updateDraft((prev) => ({
+                          ...prev,
+                          viewOptions: {
+                            ...(prev.viewOptions ?? defaultVariableConfig.viewOptions),
+                            showIndices,
+                          },
+                        }))}
+                    />
                   </Form.Item>
                 ) : null}
               </div>

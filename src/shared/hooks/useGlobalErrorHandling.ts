@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 
-import { normalizeUnexpectedAppError } from "../../runtime/runtime-errors";
+import { isGraphvizTeardownError, normalizeUnexpectedAppError } from "../../runtime/runtime-errors";
 
 type ErrorHandler = (title: string, content: string) => void;
 
@@ -37,10 +37,18 @@ export const useGlobalErrorHandling = (onError?: ErrorHandler) => {
     };
 
     const handleWindowError = (event: ErrorEvent) => {
+      if (isGraphvizTeardownError(event.error ?? event.message)) {
+        event.preventDefault();
+        return;
+      }
       notify("Unexpected error", event.error ?? event.message);
     };
 
     const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      if (isGraphvizTeardownError(event.reason)) {
+        event.preventDefault();
+        return;
+      }
       notify("Unhandled error", event.reason);
       event.preventDefault();
     };

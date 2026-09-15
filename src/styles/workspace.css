@@ -102,7 +102,6 @@
   .collection-card-grid,
   .collection-record-layout,
   .library-grid,
-  .visual-canvas-masonry,
   .inline-variable-browser-detail,
   .compact-form-grid {
     grid-template-columns: 1fr;
