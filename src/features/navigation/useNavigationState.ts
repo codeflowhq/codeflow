@@ -12,6 +12,7 @@ import type { TopMenuKey, VizMenuKey } from "../../shared/types/visualization";
 const WORKSPACE_PATH = "/workspace";
 const SETTINGS_PATH = "/settings";
 const COLLECTIONS_PATH = "/collections";
+const REDIRECT_PATH_PARAM = "p";
 
 type NavigationSnapshot = {
   topMenuKey: TopMenuKey;
@@ -46,10 +47,19 @@ const buildNavigationPath = ({ topMenuKey, vizMenuKey }: NavigationSnapshot): st
 const buildLocationUrl = (pathname: string): string =>
   `${pathname}${window.location.search}${window.location.hash}`;
 
+const restoreRedirectedPath = (): void => {
+  const redirectedPath = new URLSearchParams(window.location.search).get(REDIRECT_PATH_PARAM);
+  if (!redirectedPath || !redirectedPath.startsWith("/") || redirectedPath.startsWith("//")) {
+    return;
+  }
+  window.history.replaceState(window.history.state, "", redirectedPath);
+};
+
 export const useNavigationState = () => {
-  const [navigationState, setNavigationState] = useState<NavigationSnapshot>(() =>
-    parseNavigationPath(window.location.pathname),
-  );
+  const [navigationState, setNavigationState] = useState<NavigationSnapshot>(() => {
+    restoreRedirectedPath();
+    return parseNavigationPath(window.location.pathname);
+  });
   const stateRef = useRef(navigationState);
 
   useEffect(() => {

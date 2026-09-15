@@ -27,6 +27,16 @@ describe("useNavigationState", () => {
     expect(result.current.vizMenuKey).toBe("main");
   });
 
+  it("restores a Pages deep link from the 404 redirect", () => {
+    window.history.replaceState({}, "", "/?p=%2Fcollections%3Flabel%3Dsearch");
+
+    const { result } = renderHook(() => useNavigationState());
+
+    expect(result.current.topMenuKey).toBe("library");
+    expect(window.location.pathname).toBe("/collections");
+    expect(window.location.search).toBe("?label=search");
+  });
+
   it("pushes URL updates for navigation actions", () => {
     const { result } = renderHook(() => useNavigationState());
 
