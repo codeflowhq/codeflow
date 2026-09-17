@@ -194,7 +194,11 @@ const VariableConfigDrawer = ({
                   <Select
                     value={resolvedViewKind}
                     options={viewKindOptions.map((value) => ({ label: value, value }))}
-                    onChange={(value: ViewKind) => updateDraft((prev) => ({ ...prev, viewKind: value }))}
+                    onChange={(value: ViewKind) => updateDraft((prev) => ({
+                      ...prev,
+                      viewKind: value,
+                      viewOptions: { ...prev.viewOptions },
+                    }))}
                   />
                 </Form.Item>
                 {supportsDepth ? (

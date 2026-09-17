@@ -17,7 +17,8 @@ const COLOR_CAPABLE_VIEW_KINDS: ReadonlySet<ViewKind> = new Set([
   "matrix",
   "table",
   "bar",
-  "plot",
+  "line",
+  "scatter",
 ]);
 
 export const viewKindSupportsColor = (viewKind: ViewKind) => COLOR_CAPABLE_VIEW_KINDS.has(viewKind);

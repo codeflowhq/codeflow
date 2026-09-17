@@ -57,6 +57,7 @@ _require_browser_dependencies()
 
 from code_visualizer import visualize_algorithm
 from code_visualizer.shared import default_visualizer_config
+from code_visualizer.shared.config import OverlayGroup
 from code_visualizer.shared.view_kinds import ensure_view_kind
 
 
@@ -131,6 +132,21 @@ def run_visualization(payload_json: str):
             config.view_graph_direction_map[variable_name] = graph_direction
         if "showIndices" in view_options:
             config.view_show_indices_map[variable_name] = bool(view_options["showIndices"])
+
+    for index, raw_group in enumerate(config_payload.get("overlay_groups") or []):
+        if not isinstance(raw_group, dict):
+            continue
+        variables = tuple(dict.fromkeys(raw_group.get("variables") or ()))
+        layer_order = tuple(dict.fromkeys(raw_group.get("layer_order") or ()))
+        if len(variables) < 2 or set(variables) != set(layer_order):
+            continue
+        config.view_overlay_groups.append(
+            OverlayGroup(
+                name=str(raw_group.get("id") or f"overlay-{index}"),
+                variables=variables,
+                layer_order=layer_order,
+            )
+        )
 
     execution_limit = config_payload.get("execution_line_limit", DEFAULT_EXECUTION_LINE_LIMIT)
     try:

@@ -255,7 +255,7 @@ export const useLibraryStore = ({
     persistGlobalConfig((prev) => ({ ...defaultGlobalConfig, ...prev, ...(example.globalConfig ?? {}) }));
     persistVariableConfigs(example.variableConfigs ?? {});
     persistManifest(example.savedManifest ?? []);
-    persistLayoutState(cloneLayoutState(EMPTY_LAYOUT_STATE));
+    persistLayoutState(cloneLayoutState(example.layoutState ?? EMPTY_LAYOUT_STATE));
     setActiveProjectId(null);
     setActiveProjectName(example.title);
     setActiveProjectDescription(example.description ?? "");

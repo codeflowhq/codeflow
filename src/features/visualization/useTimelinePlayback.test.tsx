@@ -129,6 +129,29 @@ describe("useTimelinePlayback", () => {
     vi.useRealTimers();
   });
 
+  it("uses the selected playback speed", () => {
+    vi.useFakeTimers();
+
+    const { result } = renderHook(() => useTimelinePlayback(manifest));
+
+    act(() => {
+      result.current.setPlaybackSpeed(2);
+      result.current.setIsPlaying(true);
+    });
+
+    act(() => {
+      vi.advanceTimersByTime(399);
+    });
+    expect(result.current.activeTimelineKey).toBe("1:1");
+
+    act(() => {
+      vi.advanceTimersByTime(1);
+    });
+    expect(result.current.activeTimelineKey).toBe("2:2");
+
+    vi.useRealTimers();
+  });
+
   it("stops on the only frame when playback has a single timeline step", () => {
     vi.useFakeTimers();
 

@@ -36,6 +36,7 @@ const variableConfigs: Record<string, VariableConfig> = {
 const createLayoutState = (): VisualizationLayoutState => ({
   mode: "windows",
   masonryOrder: ["data", "i"],
+  overlayGroups: [],
   windows: {
     layouts: {
       data: { x: 10, y: 20, width: 300, height: 200 },
@@ -112,6 +113,7 @@ describe("useLibraryStore", () => {
     expect(stored[0].layoutState).toEqual({
       mode: "windows",
       masonryOrder: ["data", "i"],
+      overlayGroups: [],
       windows: {
         layouts: {
           data: { x: 10, y: 20, width: 300, height: 200 },

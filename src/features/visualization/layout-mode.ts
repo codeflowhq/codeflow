@@ -5,7 +5,7 @@ import type {
   VisualizationLayoutState,
   VisualizationWindowLayout,
 } from "../../shared/types/visualization";
-import { cloneLayoutState, EMPTY_LAYOUT_STATE, sanitizeLayoutState } from "./layout-state";
+import { cloneLayoutState, EMPTY_LAYOUT_STATE, mergeOverlayGroups, removeOverlayVariable, sanitizeLayoutState } from "./layout-state";
 
 const LAYOUT_STATE_STORAGE_KEY = "codeflow.visualization.layout-state";
 
@@ -47,6 +47,31 @@ export const useLayoutModeState = () => {
     setLayoutState((prev) => ({ ...prev, masonryOrder }));
   };
 
+  const createOverlayGroup = (variables: string[]) => {
+    const uniqueVariables = [...new Set(variables)];
+    if (uniqueVariables.length < 2) {
+      return;
+    }
+    setLayoutState((prev) => ({
+      ...prev,
+      overlayGroups: mergeOverlayGroups(prev.overlayGroups, uniqueVariables),
+    }));
+  };
+
+  const removeOverlayGroup = (groupId: string) => {
+    setLayoutState((prev) => ({
+      ...prev,
+      overlayGroups: prev.overlayGroups.filter((group) => group.id !== groupId),
+    }));
+  };
+
+  const removeVariableFromOverlayGroups = (variable: string) => {
+    setLayoutState((prev) => ({
+      ...prev,
+      overlayGroups: removeOverlayVariable(prev.overlayGroups, variable),
+    }));
+  };
+
   const setWindowLayout = (variable: string, layout: VisualizationWindowLayout) => {
     setLayoutState((prev) => ({
       ...prev,
@@ -85,6 +110,9 @@ export const useLayoutModeState = () => {
     windowZIndices: layoutState.windows.zIndices,
     setLayoutMode,
     setMasonryOrder,
+    createOverlayGroup,
+    removeOverlayGroup,
+    removeVariableFromOverlayGroups,
     setWindowLayout,
     setWindowZIndex,
     replaceLayoutState,

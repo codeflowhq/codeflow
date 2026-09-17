@@ -16,12 +16,13 @@ describe("buildCollectionRecord", () => {
       globalConfig: { stepLimit: 128, maxDepth: 3, maxItemsPerView: 50, recursionDepthDefault: -1, showTitles: false, customConverters: "", runtimePackages: "", runtimeWheels: "", typeViewDefaults: {} },
       variableConfigs: { data: { viewKind: "auto", depth: 2, viewOptions: { color: "#64748b" } } },
       savedManifest: [{ variable: "data", kind: "svg", steps: [{ stepId: "step 1", timelineKey: "1:1", executionId: 1, order: 1, index: 0, svg: "<svg />" }] }],
-      layoutState: { mode: "masonry", masonryOrder: ["data"], windows: { layouts: {}, zIndices: {} } },
+      layoutState: { mode: "masonry", masonryOrder: ["data"], overlayGroups: [], windows: { layouts: {}, zIndices: {} } },
     });
 
     expect(record).toEqual({
       id: "test-id",
       name: "Example",
+      description: undefined,
       labels: ["demo", "array"],
       savedAt: "2026-05-10T03:00:00.000Z",
       sourceCode: "data = [1]",
@@ -29,7 +30,7 @@ describe("buildCollectionRecord", () => {
       globalConfig: { stepLimit: 128, maxDepth: 3, maxItemsPerView: 50, recursionDepthDefault: -1, showTitles: false, customConverters: "", runtimePackages: "", runtimeWheels: "", typeViewDefaults: {} },
       variableConfigs: { data: { viewKind: "auto", depth: 2, viewOptions: { color: "#64748b" } } },
       savedManifest: [{ variable: "data", kind: "svg", steps: [{ stepId: "step 1", timelineKey: "1:1", executionId: 1, order: 1, index: 0, svg: "<svg />" }] }],
-      layoutState: { mode: "masonry", masonryOrder: ["data"], windows: { layouts: {}, zIndices: {} } },
+      layoutState: { mode: "masonry", masonryOrder: ["data"], overlayGroups: [], windows: { layouts: {}, zIndices: {} } },
     });
 
     randomUuid.mockRestore();
@@ -39,7 +40,7 @@ describe("buildCollectionRecord", () => {
 
 
 it("clones layout state in saved collection records", () => {
-  const layoutState = { mode: "windows" as const, masonryOrder: ["data"], windows: { layouts: { data: { x: 1, y: 2, width: 3, height: 4 } }, zIndices: { data: 5 } } };
+  const layoutState = { mode: "windows" as const, masonryOrder: ["data"], overlayGroups: [], windows: { layouts: { data: { x: 1, y: 2, width: 3, height: 4 } }, zIndices: { data: 5 } } };
   const record = buildCollectionRecord({
     name: "Layout Clone",
     sourceCode: "data = [1]",
@@ -57,6 +58,7 @@ it("clones layout state in saved collection records", () => {
   expect(record.layoutState).toEqual({
     mode: "windows",
     masonryOrder: ["data"],
+    overlayGroups: [],
     windows: { layouts: { data: { x: 1, y: 2, width: 3, height: 4 } }, zIndices: { data: 5 } },
   });
 });

@@ -1,12 +1,13 @@
 import {
   ArrowLeftOutlined,
   ArrowRightOutlined,
+  DownOutlined,
   PauseCircleOutlined,
   PlayCircleOutlined,
   StepBackwardOutlined,
   StepForwardOutlined,
 } from "@ant-design/icons";
-import { Button, Slider, Space, Tooltip, Typography } from "antd";
+import { Button, Dropdown, Slider, Space, Tooltip, Typography } from "antd";
 
 import type { TimelineState } from "../workspace/workspace-types";
 import type { VisualizationLayoutMode } from "../../shared/types/visualization";
@@ -69,6 +70,23 @@ const TimelineControls = ({
               {primaryActionLabel}
             </Button>
           </Tooltip>
+          <Dropdown
+            menu={{
+              items: [
+                { key: "0.5", label: "0.5x Slow" },
+                { key: "1", label: "1x Medium" },
+                { key: "2", label: "2x Fast" },
+              ],
+              onClick: ({ key }) => timelineState.setPlaybackSpeed(Number(key) as typeof timelineState.playbackSpeed),
+            }}
+            trigger={["click"]}
+          >
+            <Tooltip title={`${timelineState.playbackSpeed}x playback speed`}>
+              <Button aria-label="Playback speed" style={{ minWidth: 56, paddingInline: 8 }}>
+                {timelineState.playbackSpeed}x <DownOutlined />
+              </Button>
+            </Tooltip>
+          </Dropdown>
           <Tooltip title="Next"><Button disabled={!hasTimeline} aria-label="Go to next timeline step" icon={<ArrowRightOutlined />} onClick={() => timelineState.stepTo(1)} /></Tooltip>
           <Tooltip title="Last step"><Button disabled={!hasTimeline} aria-label="Jump to last timeline step" icon={<StepForwardOutlined />} onClick={() => timelineState.setActiveTimelineKey(timelineState.timelineFrames[timelineState.timelineFrames.length - 1]?.timelineKey ?? "")} /></Tooltip>
         </Space>

@@ -7,7 +7,8 @@ export type ViewKind =
   | "linked_list"
   | "heap_dual"
   | "bar"
-  | "plot"
+  | "line"
+  | "scatter"
   | "tree"
   | "graph"
   | "image";
@@ -106,9 +107,16 @@ export type VisualizationWindowLayout = {
   height: number;
 };
 
+export type OverlayGroup = {
+  id: string;
+  variables: string[];
+  layerOrder: string[];
+};
+
 export type VisualizationLayoutState = {
   mode: VisualizationLayoutMode;
   masonryOrder: string[];
+  overlayGroups: OverlayGroup[];
   windows: {
     layouts: Record<string, VisualizationWindowLayout>;
     zIndices: Record<string, number>;
@@ -131,6 +139,11 @@ export type RuntimeVisualizationConfig = {
     view_kind: ViewKind | "auto";
     depth?: number;
     view_options: VariableViewOptions & { barColor?: string };
+  }>;
+  overlay_groups?: Array<{
+    id: string;
+    variables: string[];
+    layer_order: string[];
   }>;
 };
 
@@ -159,6 +172,7 @@ export type ExampleRecord = {
   watchVariables?: string[];
   globalConfig?: Partial<GlobalConfig>;
   variableConfigs?: Record<string, VariableConfig>;
+  layoutState?: VisualizationLayoutState;
   savedManifest?: ManifestEntry[];
   tags?: string[];
 };

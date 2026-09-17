@@ -283,6 +283,7 @@ const CollectionsPage = ({ collections, examples, onDeleteCollection, onLoadColl
                 stepLimit: PREVIEW_STEP_LIMIT,
               },
               variableConfigs: example.variableConfigs ?? {},
+              overlayGroups: example.layoutState?.overlayGroups ?? [],
             }),
           });
           finalize("ready", result.manifest);

@@ -3,7 +3,13 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { buildTimelineFrames, type TimelineFrame } from "../../shared/lib/timeline";
 import type { ManifestEntry } from "../../shared/types/visualization";
 
-const TIMELINE_PLAYBACK_INTERVAL_MS = 800;
+const PLAYBACK_INTERVAL_MS = {
+  0.5: 1600,
+  1: 800,
+  2: 400,
+} as const;
+
+export type PlaybackSpeed = keyof typeof PLAYBACK_INTERVAL_MS;
 
 const resolveTimelineIndex = (
   timelineFrames: TimelineFrame[],
@@ -19,6 +25,7 @@ const resolveTimelineIndex = (
 export const useTimelinePlayback = (manifest: ManifestEntry[]) => {
   const [requestedTimelineKey, setActiveTimelineKey] = useState("");
   const [isPlaying, setIsPlaying] = useState(false);
+  const [playbackSpeed, setPlaybackSpeed] = useState<PlaybackSpeed>(1);
 
   const timelineFrames = useMemo(() => buildTimelineFrames(manifest), [manifest]);
   const activeTimelineKey = useMemo(() => {
@@ -47,9 +54,9 @@ export const useTimelinePlayback = (manifest: ManifestEntry[]) => {
         }
         return timelineFrames[currentIndex + 1].timelineKey;
       });
-    }, TIMELINE_PLAYBACK_INTERVAL_MS);
+    }, PLAYBACK_INTERVAL_MS[playbackSpeed]);
     return () => window.clearInterval(timer);
-  }, [isPlaying, timelineFrames]);
+  }, [isPlaying, playbackSpeed, timelineFrames]);
 
   const stepTo = useCallback(
     (offset: number) => {
@@ -67,8 +74,10 @@ export const useTimelinePlayback = (manifest: ManifestEntry[]) => {
     activeTimelineIndex,
     activeTimelineKey,
     isPlaying,
+    playbackSpeed,
     setActiveTimelineKey,
     setIsPlaying,
+    setPlaybackSpeed,
     stepTo,
     timelineFrames,
   };

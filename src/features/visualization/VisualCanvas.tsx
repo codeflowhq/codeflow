@@ -1,9 +1,11 @@
-import { Button, Card, Empty, Space, Typography } from "antd";
+import { Button, Card, Checkbox, Empty, Space, Typography } from "antd";
+import { DisconnectOutlined, MergeCellsOutlined } from "@ant-design/icons";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Rnd } from "react-rnd";
 
-import type { ManifestEntry, VariableConfig, VisualizationLayoutMode, VisualizationLayoutState, VisualizationWindowLayout } from "../../shared/types/visualization";
+import type { ManifestEntry, OverlayGroup, VariableConfig, VisualizationLayoutMode, VisualizationLayoutState, VisualizationWindowLayout } from "../../shared/types/visualization";
 import type { ExportSourceCache } from "./useExportState";
+import { mergeOverlayGroups } from "./layout-state";
 import VariablePanel from "./components/VariablePanel";
 
 const DEFAULT_WINDOW_WIDTH = 280;
@@ -122,13 +124,15 @@ type VisualCanvasProps = {
   emptyStateMessage?: string;
   onOpenConfig: (variable: string) => void;
   onRemoveVariable?: (variable: string) => void;
-  onRunVisualization: () => Promise<boolean>;
+  onRunVisualization: (overlayGroups?: OverlayGroup[]) => Promise<boolean>;
   onOpenGuide: () => void;
   canRun: boolean;
   layoutMode: VisualizationLayoutMode;
   layoutState: VisualizationLayoutState;
   setExportSource: (variable: string, svg: string | null) => void;
   setMasonryOrder: (order: string[]) => void;
+  createOverlayGroup?: (variables: string[]) => void;
+  removeOverlayGroup?: (groupId: string) => void;
   setWindowLayout: (variable: string, layout: VisualizationWindowLayout) => void;
   setWindowZIndex: (variable: string, zIndex: number) => void;
 };
@@ -151,6 +155,8 @@ const VisualCanvas = ({
   layoutState,
   setExportSource,
   setMasonryOrder,
+  createOverlayGroup,
+  removeOverlayGroup,
   setWindowLayout,
   setWindowZIndex,
 }: VisualCanvasProps) => {
@@ -158,8 +164,73 @@ const VisualCanvas = ({
   const [draggedMasonryVariable, setDraggedMasonryVariable] = useState<string | null>(null);
   const [canvasWidth, setCanvasWidth] = useState(0);
   const [boundsElement, setBoundsElement] = useState<HTMLDivElement | null>(null);
+  const [selectedOverlayVariables, setSelectedOverlayVariables] = useState<string[]>([]);
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const manifestVariables = useMemo(() => manifest.map((entry) => entry.variable), [manifest]);
+  const overlayCandidates = useMemo(() => Object.entries(variableConfigs)
+    .filter(([, config]) => config.viewKind === "line" || config.viewKind === "scatter")
+    .map(([variable]) => variable), [variableConfigs]);
+  const activeOverlaySelection = selectedOverlayVariables.filter((name) => overlayCandidates.includes(name));
+  const overlayGroups = (layoutState.overlayGroups ?? []).filter((group) => (
+    group.variables.length >= 2
+    && group.variables.every((variable) => overlayCandidates.includes(variable))
+  ));
+  const selectedGroup = overlayGroups.find((group) => (
+    activeOverlaySelection.some((variable) => group.variables.includes(variable))
+  ));
+  const hasVisibleOverlayLayer = manifestVariables.some((variable) => overlayCandidates.includes(variable));
+
+  const toggleOverlayVariable = (variable: string, checked: boolean) => {
+    setSelectedOverlayVariables((current) => (
+      checked ? [...new Set([...current, variable])] : current.filter((name) => name !== variable)
+    ));
+  };
+
+  const overlayControls = hasVisibleOverlayLayer || overlayGroups.length > 0 ? (
+    <div className="visual-overlay-controls">
+      <div className="visual-overlay-summary">
+        <Text strong>Overlay layers</Text>
+        <Text type="secondary">
+          {selectedGroup
+            ? `${selectedGroup.layerOrder.length} layers grouped`
+            : `${activeOverlaySelection.length} selected`}
+        </Text>
+      </div>
+      <Space wrap size={6}>
+        <Button
+          type="primary"
+          size="small"
+          icon={<MergeCellsOutlined />}
+          aria-label="Overlay"
+          disabled={activeOverlaySelection.length < 2}
+          onClick={() => {
+            const nextGroups = mergeOverlayGroups(overlayGroups, activeOverlaySelection);
+            createOverlayGroup?.(activeOverlaySelection);
+            setSelectedOverlayVariables([activeOverlaySelection[0]]);
+            void onRunVisualization(nextGroups);
+          }}
+        >
+          Overlay
+        </Button>
+        <Button
+          size="small"
+          icon={<DisconnectOutlined />}
+          aria-label="Ungroup"
+          disabled={!selectedGroup}
+          onClick={() => {
+            if (selectedGroup) {
+              const nextGroups = overlayGroups.filter((group) => group.id !== selectedGroup.id);
+              removeOverlayGroup?.(selectedGroup.id);
+              setSelectedOverlayVariables([]);
+              void onRunVisualization(nextGroups);
+            }
+          }}
+        >
+          Ungroup
+        </Button>
+      </Space>
+    </div>
+  ) : null;
   useEffect(() => {
     const currentExportSources = exportSources[activeTimelineKey] ?? {};
     Object.keys(currentExportSources).forEach((variable) => {
@@ -328,6 +399,7 @@ const VisualCanvas = ({
   if (layoutMode === "masonry") {
     return (
       <div ref={handleCanvasRef} className="visual-canvas visual-canvas-masonry">
+        {overlayControls ? <div style={{ gridColumn: "1 / -1" }}>{overlayControls}</div> : null}
         {masonryEntries.map((entry) => {
           const itemLayout = getMasonryItemLayout(entry);
           return (
@@ -350,6 +422,14 @@ const VisualCanvas = ({
             >
               <VariablePanel
                 entry={entry}
+                panelTitle={overlayGroups.find((group) => group.variables[0] === entry.variable)?.layerOrder.join(" + ")}
+                selectionControl={overlayCandidates.includes(entry.variable) ? (
+                  <Checkbox
+                    aria-label={`Select ${entry.variable} for overlay`}
+                    checked={activeOverlaySelection.includes(entry.variable)}
+                    onChange={(event) => toggleOverlayVariable(entry.variable, event.target.checked)}
+                  />
+                ) : null}
                 activeTimelineKey={activeTimelineKey}
                 activeTimelineEventOrder={activeTimelineEventOrder}
                 panelConfig={variableConfigs[entry.variable]}
@@ -366,8 +446,10 @@ const VisualCanvas = ({
   }
 
   return (
-    <div ref={handleCanvasRef} className="visual-canvas" style={{ height: canvasHeight, width: "100%" }}>
-      {manifest.map((entry, index) => {
+    <>
+      {overlayControls}
+      <div ref={handleCanvasRef} className="visual-canvas" style={{ height: canvasHeight, width: "100%" }}>
+        {manifest.map((entry, index) => {
         const fallbackLayout = effectiveWindowLayouts[entry.variable] ?? buildDefaultWindowLayout(entry, index, canvasWidth || DEFAULT_WINDOW_WIDTH);
         return (
           <Rnd
@@ -407,6 +489,14 @@ const VisualCanvas = ({
           >
             <VariablePanel
               entry={entry}
+              panelTitle={overlayGroups.find((group) => group.variables[0] === entry.variable)?.layerOrder.join(" + ")}
+              selectionControl={overlayCandidates.includes(entry.variable) ? (
+                <Checkbox
+                  aria-label={`Select ${entry.variable} for overlay`}
+                  checked={activeOverlaySelection.includes(entry.variable)}
+                  onChange={(event) => toggleOverlayVariable(entry.variable, event.target.checked)}
+                />
+              ) : null}
               activeTimelineKey={activeTimelineKey}
               activeTimelineEventOrder={activeTimelineEventOrder}
               panelConfig={variableConfigs[entry.variable]}
@@ -418,8 +508,9 @@ const VisualCanvas = ({
             />
           </Rnd>
         );
-      })}
-    </div>
+        })}
+      </div>
+    </>
   );
 };
 

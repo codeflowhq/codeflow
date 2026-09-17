@@ -1,6 +1,7 @@
 import { DeleteOutlined, SettingOutlined } from "@ant-design/icons";
 import { Button, Card, Empty, Space, Typography } from "antd";
 import { Suspense, lazy, useEffect, useMemo, useRef } from "react";
+import type { ReactNode } from "react";
 
 import { buildTimelineKey, isTimelineStepAtOrBefore, isTimelineStepAtOrBeforeEventOrder, resolveTimelineEventOrder } from "../../../shared/lib/timeline-keys";
 import type { ManifestEntry, ManifestStep, VariableConfig, VisualizationLayoutMode } from "../../../shared/types/visualization";
@@ -20,6 +21,8 @@ type VariablePanelProps = {
   onContentSizeChange?: (size: { width: number; height: number }) => void;
   onExportSourceChange?: (svg: string | null) => void;
   layoutMode?: VisualizationLayoutMode;
+  panelTitle?: string;
+  selectionControl?: ReactNode;
 };
 
 const getSvgContentSize = (svgElement: SVGSVGElement) => {
@@ -60,6 +63,8 @@ const VariablePanel = ({
   onContentSizeChange,
   onExportSourceChange,
   layoutMode = "masonry",
+  panelTitle,
+  selectionControl,
 }: VariablePanelProps) => {
   const currentStep = useMemo<ManifestStep | undefined>(() => {
     if (!entry.steps.length) {
@@ -130,9 +135,10 @@ const VariablePanel = ({
     <Card
       className="variable-panel-card"
       size="small"
-      title={<div className="variable-window-drag-handle variable-window-title-handle"><Text strong>{entry.variable}</Text></div>}
+      title={<div className="variable-window-drag-handle variable-window-title-handle"><Text strong>{panelTitle ?? entry.variable}</Text></div>}
       extra={(
         <Space size={4}>
+          {selectionControl}
           {onRemoveVariable ? (
             <Button
               type="text"

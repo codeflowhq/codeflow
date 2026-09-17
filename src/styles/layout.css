@@ -7,6 +7,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
   height: 56px;
   line-height: 56px;
   padding-inline: 20px;
@@ -310,10 +311,31 @@
 
 .visual-canvas-masonry-item {
   min-height: 0;
+  position: relative;
 }
 
 .visual-canvas-masonry-item[data-span="2"] {
   grid-column: 1 / -1;
+}
+
+.visual-overlay-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 48px;
+  padding: 8px 10px;
+  border: 1px solid #dbe4f0;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #f8fafc 0%, #eef6ff 100%);
+  box-shadow: 0 4px 14px rgb(15 23 42 / 5%);
+}
+
+.visual-overlay-summary {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+  white-space: nowrap;
 }
 
 .visual-empty-card {

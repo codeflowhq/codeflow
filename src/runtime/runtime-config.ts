@@ -1,4 +1,4 @@
-import type { GlobalConfig, RuntimeVisualizationConfig, VariableConfig } from "../shared/types/visualization";
+import type { GlobalConfig, OverlayGroup, RuntimeVisualizationConfig, VariableConfig } from "../shared/types/visualization";
 
 import {
   DEFAULT_AUTO_RECURSION_DEPTH_CAP,
@@ -16,13 +16,23 @@ export const buildVisualizationRuntimeConfig = ({
   globalConfig,
   sessionRuntimeWheels = [],
   variableConfigs,
+  overlayGroups = [],
 }: {
   globalConfig: GlobalConfig;
   sessionRuntimeWheels?: string[];
   variableConfigs: Record<string, VariableConfig>;
+  overlayGroups?: OverlayGroup[];
 }): RuntimeVisualizationConfig => {
   const normalizedGlobalConfig = normalizeGlobalConfig(globalConfig);
   const normalizedVariableConfigs = normalizeVariableConfigs(variableConfigs);
+  const validOverlayGroups = overlayGroups.filter((group) => (
+    group.variables.length >= 2
+    && group.layerOrder.length === group.variables.length
+    && group.variables.every((variable) => {
+      const viewKind = normalizedVariableConfigs[variable]?.viewKind;
+      return viewKind === "line" || viewKind === "scatter";
+    })
+  ));
 
   return {
     step_limit: normalizedGlobalConfig.stepLimit,
@@ -36,6 +46,11 @@ export const buildVisualizationRuntimeConfig = ({
     type_view_defaults: normalizedGlobalConfig.typeViewDefaults,
     runtime_packages: splitCsv(normalizedGlobalConfig.runtimePackages),
     runtime_wheels: [...splitCsv(normalizedGlobalConfig.runtimeWheels), ...sessionRuntimeWheels],
+    overlay_groups: validOverlayGroups.map((group) => ({
+      id: group.id,
+      variables: [...group.variables],
+      layer_order: [...group.layerOrder],
+    })),
     variable_configs: Object.fromEntries(
       Object.entries(normalizedVariableConfigs).map(([variableName, config]) => [
         variableName,

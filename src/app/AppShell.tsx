@@ -39,7 +39,7 @@ import { useActionBoundary } from "../shared/hooks/useActionBoundary";
 import { TOP_MENU_LIBRARY } from "../features/navigation/navigationState";
 import { TOP_MENU_VISUALIZATION, VIZ_MENU_MAIN } from "../features/navigation/navigationState";
 import FeatureBoundary from "../shared/ui/FeatureBoundary";
-import type { CollectionRecord, ExampleRecord, VariableConfig, ViewKind } from "../shared/types/visualization";
+import type { CollectionRecord, ExampleRecord, OverlayGroup, VariableConfig, ViewKind } from "../shared/types/visualization";
 import "antd/dist/reset.css";
 import "../App.css";
 
@@ -201,6 +201,7 @@ function App() {
     sourceCode,
     variableConfigs: configState.variableConfigs,
     watchVariables: watchList.watchVariables,
+    layoutState: layoutState.layoutState,
   });
 
   const timelineState = useTimelinePlayback(manifest);
@@ -210,14 +211,19 @@ function App() {
     variableConfigs: configState.variableConfigs,
     globalConfig,
     sessionRuntimeWheels: sessionRuntimeWheels.map((wheel) => wheel.name),
-  }), [configState.variableConfigs, globalConfig, sessionRuntimeWheels, sourceCode, watchList.watchVariables]);
-  const buildRunSignature = useCallback((variableConfigs: Record<string, VariableConfig>) => JSON.stringify({
+    overlayGroups: layoutState.layoutState.overlayGroups,
+  }), [configState.variableConfigs, globalConfig, layoutState.layoutState.overlayGroups, sessionRuntimeWheels, sourceCode, watchList.watchVariables]);
+  const buildRunSignature = useCallback((
+    variableConfigs: Record<string, VariableConfig>,
+    overlayGroups: OverlayGroup[] = layoutState.layoutState.overlayGroups,
+  ) => JSON.stringify({
     sourceCode,
     watchVariables: watchList.watchVariables,
     variableConfigs,
     globalConfig,
     sessionRuntimeWheels: sessionRuntimeWheels.map((wheel) => wheel.name),
-  }), [globalConfig, sessionRuntimeWheels, sourceCode, watchList.watchVariables]);
+    overlayGroups,
+  }), [globalConfig, layoutState.layoutState.overlayGroups, sessionRuntimeWheels, sourceCode, watchList.watchVariables]);
 
   const manifestVariables = useMemo(() => manifest.map((entry) => entry.variable), [manifest]);
   const activeExecutionLine = useMemo(() => {
@@ -353,13 +359,17 @@ function App() {
     });
   }, [modal, openSaveModal]);
 
-  const handleRunVisualization = useCallback(async () => {
+  const handleRunVisualization = useCallback(async (overlayGroups?: OverlayGroup[]) => {
     configState.closeConfigDrawer();
     setExportSources({});
     try {
-      const succeeded = await runVisualization();
+      const succeeded = overlayGroups
+        ? await runVisualization(undefined, overlayGroups)
+        : await runVisualization();
       if (succeeded) {
-        setLastRunSignature(runSignature);
+        setLastRunSignature(overlayGroups
+          ? buildRunSignature(configState.variableConfigs, overlayGroups)
+          : runSignature);
       }
       return Boolean(succeeded);
     } catch (error) {
@@ -372,9 +382,11 @@ function App() {
       if (fallbackVariableConfigs) {
         configState.setVariableConfigs(fallbackVariableConfigs);
         try {
-          const succeeded = await runVisualization(fallbackVariableConfigs);
+          const succeeded = overlayGroups
+            ? await runVisualization(fallbackVariableConfigs, overlayGroups)
+            : await runVisualization(fallbackVariableConfigs);
           if (succeeded) {
-            setLastRunSignature(buildRunSignature(fallbackVariableConfigs));
+            setLastRunSignature(buildRunSignature(fallbackVariableConfigs, overlayGroups));
             messageApi.success("Display mode reset to auto for the updated variable type.");
           }
           return Boolean(succeeded);
@@ -488,6 +500,7 @@ function App() {
 
   const handleRemoveWatchVariable = useCallback((variableName: string) => {
     watchList.removeWatchVariable(variableName);
+    layoutState.removeVariableFromOverlayGroups(variableName);
     configState.clearPendingWatchConfig(variableName);
     setExportSources((prev) => {
       if (!(variableName in prev)) {
@@ -497,7 +510,7 @@ function App() {
       delete next[variableName];
       return next;
     });
-  }, [configState, watchList]);
+  }, [configState, layoutState, watchList]);
 
   const watchUiState = useMemo(() => ({
     advancedSelectionState,
@@ -674,6 +687,8 @@ function App() {
         };
       }),
       setMasonryOrder: layoutState.setMasonryOrder,
+      createOverlayGroup: layoutState.createOverlayGroup,
+      removeOverlayGroup: layoutState.removeOverlayGroup,
       setWindowLayout: layoutState.setWindowLayout,
       setWindowZIndex: layoutState.setWindowZIndex,
     },

@@ -4,6 +4,7 @@ import type { editor } from "monaco-editor";
 
 import type {
   ManifestEntry,
+  OverlayGroup,
   VariableConfig,
   VisualizationLayoutMode,
   VisualizationLayoutState,
@@ -12,6 +13,7 @@ import type {
 import type { EditorMountHandler } from "../editor/useEditorDecorations";
 import type { TimelineFrame } from "../../shared/lib/timeline";
 import type { ExportScope, ExportSourceCache } from "../visualization/useExportState";
+import type { PlaybackSpeed } from "../visualization/useTimelinePlayback";
 
 export type WatchState = {
   advancedSelectionState: {
@@ -51,14 +53,16 @@ export type TimelineState = {
   activeTimelineIndex: number;
   activeTimelineKey: string;
   isPlaying: boolean;
+  playbackSpeed: PlaybackSpeed;
   setActiveTimelineKey: Dispatch<SetStateAction<string>>;
   setIsPlaying: Dispatch<SetStateAction<boolean>>;
+  setPlaybackSpeed: Dispatch<SetStateAction<PlaybackSpeed>>;
   stepTo: (offset: number) => void;
   timelineFrames: TimelineFrame[];
 };
 
 export type PageActions = {
-  runVisualization: () => Promise<boolean>;
+  runVisualization: (overlayGroups?: OverlayGroup[]) => Promise<boolean>;
   openSettings: () => void;
   openCollections: () => void;
   openSaveModal: () => void;
@@ -73,6 +77,8 @@ export type VisualState = {
   layoutState: VisualizationLayoutState;
   setLayoutMode: (mode: VisualizationLayoutMode) => void;
   setMasonryOrder: (order: string[]) => void;
+  createOverlayGroup: (variables: string[]) => void;
+  removeOverlayGroup: (groupId: string) => void;
   setExportSource: (variable: string, svg: string | null) => void;
   setWindowLayout: (variable: string, layout: VisualizationWindowLayout) => void;
   setWindowZIndex: (variable: string, zIndex: number) => void;

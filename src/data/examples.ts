@@ -301,7 +301,7 @@ log.append(f"remove front value {removed}")
   },
   { key: "array-cells", title: "Array Cells", description: "Array view with simple indexed updates.", snippet: arrayCellsSnippet, watchVariables: ["data"], variableConfigs: variable("array_cells", 2), tags: ["array", "data structure", "intro"] },
   { key: "bar", title: "Bar", description: "Bar view for numeric sequences.", snippet: `data = [7, 3, 5, 1, 9]\n`, watchVariables: ["data"], variableConfigs: variable("bar", 1), tags: ["array", "bar", "intro"] },
-  { key: "plot", title: "Plot", description: "Plot view for numeric sequences.", snippet: `data = [1, 4, 2, 5, 3]\n`, watchVariables: ["data"], variableConfigs: variable("plot", 1), tags: ["array", "plot", "intro"] },
+  { key: "line", title: "Line", description: "Line view for numeric sequences.", snippet: `data = [1, 4, 2, 5, 3]\n`, watchVariables: ["data"], variableConfigs: variable("line", 1), tags: ["array", "line", "intro"] },
   { key: "matrix", title: "Matrix", description: "Matrix view with aligned cells.", snippet: `data = [[2, 5, 6], [9, 0, 2], [7, 3, 1]]\nfor i in range(3):\n    data[i][i] = i + 1\n`, watchVariables: ["data"], variableConfigs: variable("matrix", 2), tags: ["matrix", "array", "intro"] },
 
   // Linear structures and maps
@@ -372,7 +372,7 @@ for key in [22, 1, 13, 11, 24, 33]:
     key: "bfs-queue",
     title: "Breadth-First Search (BFS)",
     description: "Breadth-first tree search with an adjacency graph, an expanding search tree, and a FIFO frontier.",
-    snippet: `from code_visualizer.structures import Graph, Tree
+    snippet: `from code_visualizer.structures import Graph, SearchNode, Tree
 
 # Breadth-first search: frontier is a FIFO queue.
 graph = Graph({
@@ -389,34 +389,36 @@ graph = Graph({
     "B": "Bucharest",
 })
 search_tree = Tree("S")
-frontier = ["S"]
-state_nodes = {"S": "t0"}
+frontier = [SearchNode("S").with_node_id(search_tree.root_id)]
 visited = {"S"}
 goal = "B"
+path = []
 
 
 while frontier:
     with step():
-        current_state = frontier.pop(0)
-        current_tree = state_nodes[current_state]
-        graph = graph.highlight(current_state)
-        search_tree = search_tree.highlight(current_tree)
-    if current_state == goal:
+        current = frontier.pop(0)
+        graph = graph.highlight(current.state)
+        search_tree = search_tree.highlight(current.node_id)
+    if current.state == goal:
+        path = current.path()
         break
 
-    for nxt in graph[current_state]:
+    for nxt in graph[current.state]:
         if nxt in visited:
             continue
         visited.add(nxt)
-        search_tree, child_id = search_tree.add(current_tree, nxt)
-        state_nodes[nxt] = child_id
-        frontier.append(nxt)
+        child = current.child(nxt)
+        with step():
+            search_tree, child_id = search_tree.add(current.node_id, child.state)
+            frontier.append(child.with_node_id(child_id))
 `,
-    watchVariables: ["graph", "search_tree", "frontier"],
+    watchVariables: ["graph", "search_tree", "frontier", "path"],
     variableConfigs: {
       graph: { viewKind: "graph", depth: 3, viewOptions: { color } },
       search_tree: { viewKind: "graph", depth: 3, viewOptions: { color, graphDirection: "TB" } },
       frontier: { viewKind: "array_cells", depth: 2, viewOptions: { color } },
+      path: { viewKind: "array_cells", depth: 1, viewOptions: { color } },
     },
     tags: ["algorithm", "graph", "queue", "traversal", "curriculum"],
   },
@@ -1049,7 +1051,7 @@ for value in range(1, amount + 1):
     key: "dfs-stack",
     title: "Depth-First Search (DFS)",
     description: "Depth-first search with a Graph problem, an expanding Tree, and a LIFO frontier.",
-    snippet: `from code_visualizer.structures import Graph, Tree
+    snippet: `from code_visualizer.structures import Graph, SearchNode, Tree
 
 graph = Graph({
     "S": ["R", "F"],
@@ -1065,33 +1067,35 @@ graph = Graph({
     "B": "Bucharest",
 })
 search_tree = Tree("S")
-frontier = ["S"]
-state_nodes = {"S": "t0"}
+frontier = [SearchNode("S").with_node_id(search_tree.root_id)]
 visited = {"S"}
 goal = "B"
+path = []
 
 while frontier:
     with step():
-        current_state = frontier.pop()
-        current_tree = state_nodes[current_state]
-        graph = graph.highlight(current_state)
-        search_tree = search_tree.highlight(current_tree)
-    if current_state == goal:
+        current = frontier.pop()
+        graph = graph.highlight(current.state)
+        search_tree = search_tree.highlight(current.node_id)
+    if current.state == goal:
+        path = current.path()
         break
 
-    for nxt in reversed(graph[current_state]):
+    for nxt in reversed(graph[current.state]):
         if nxt in visited:
             continue
         visited.add(nxt)
-        search_tree, child_id = search_tree.add(current_tree, nxt)
-        state_nodes[nxt] = child_id
-        frontier.append(nxt)
+        child = current.child(nxt)
+        with step():
+            search_tree, child_id = search_tree.add(current.node_id, child.state)
+            frontier.append(child.with_node_id(child_id))
 `,
-    watchVariables: ["graph", "search_tree", "frontier"],
+    watchVariables: ["graph", "search_tree", "frontier", "path"],
     variableConfigs: {
       graph: { viewKind: "graph", depth: 3, viewOptions: { color } },
       search_tree: { viewKind: "graph", depth: 3, viewOptions: { color, graphDirection: "TB" } },
       frontier: { viewKind: "array_cells", depth: 2, viewOptions: { color } },
+      path: { viewKind: "array_cells", depth: 1, viewOptions: { color } },
     },
     tags: ["graph", "dfs", "stack", "traversal", "curriculum"],
   },
@@ -1176,8 +1180,8 @@ for start in graph:
   {
     key: "a-star-search",
     title: "A* Search",
-    description: "A* tree search on the lecture's Romania problem graph, with a priority-queue frontier ordered by f(n) = g(n) + h(n).",
-    snippet: `from code_visualizer.structures import Graph, Tree
+    description: "A* graph search on the lecture's Romania problem graph, ordered by f(n) = g(n) + h(n).",
+    snippet: `from code_visualizer.structures import Graph, ScoredSearchNode, Tree
 
 heuristic = {"S": 3, "R": 2, "F": 2, "P": 1, "B": 0}
 graph = Graph({
@@ -1194,51 +1198,40 @@ graph = Graph({
     "B": "Bucharest (h=0)",
 })
 search_tree = Tree("S")
-open_set = [("S", 0)]
-frontier = {"S": "g=0, h=3, f=3"}
-state_nodes = {"S": "t0"}
-best_cost = {"S": 0}
-visited = set()
+frontier = [ScoredSearchNode("S", h=heuristic["S"]).with_node_id(search_tree.root_id)]
 goal = "B"
+path = []
+best_cost = {"S": 0}
 
-while open_set:
-    open_set.sort(key=lambda item: item[1] + heuristic[item[0]])
+while frontier:
+    frontier.sort(key=lambda node: node.f)
     with step():
-        current_state, current_cost = open_set.pop(0)
-        frontier = {
-            state: f"g={cost}, h={heuristic[state]}, f={cost + heuristic[state]}"
-            for state, cost in open_set
-        }
-        current_tree = state_nodes[current_state]
-        graph = graph.highlight(current_state)
-        search_tree = search_tree.highlight(current_tree)
-    if current_state in visited:
+        current = frontier.pop(0)
+        graph = graph.highlight(current.state)
+        search_tree = search_tree.highlight(current.node_id)
+    if current.g != best_cost[current.state]:
         continue
-    if current_state == goal:
+    if current.state == goal:
+        path = current.path()
         break
-    visited.add(current_state)
-    for nxt, cost in graph[current_state].items():
-        next_cost = current_cost + cost
-        if nxt in visited or next_cost >= best_cost.get(nxt, float("inf")):
-            continue
-        best_cost[nxt] = next_cost
-        search_tree, child_id = search_tree.add(
-            current_tree,
-            nxt,
-            str(cost),
-        )
-        state_nodes[nxt] = child_id
-        open_set.append((nxt, next_cost))
-    frontier = {
-        state: f"g={cost}, h={heuristic[state]}, f={cost + heuristic[state]}"
-        for state, cost in open_set
-    }
+    for nxt, edge_cost in graph[current.state].items():
+        child = current.extend(nxt, edge_cost, heuristic[nxt])
+        if child.g < best_cost.get(nxt, float("inf")):
+            best_cost[nxt] = child.g
+            with step():
+                search_tree, child_id = search_tree.add(
+                    current.node_id,
+                    child.state,
+                    str(edge_cost),
+                )
+                frontier.append(child.with_node_id(child_id))
 `,
-    watchVariables: ["graph", "search_tree", "frontier"],
+    watchVariables: ["graph", "search_tree", "frontier", "path"],
     variableConfigs: {
       graph: { viewKind: "graph", depth: 3, viewOptions: { color } },
       search_tree: { viewKind: "graph", depth: 3, viewOptions: { color, graphDirection: "TB" } },
-      frontier: { viewKind: "table", depth: 2, viewOptions: { color } },
+      frontier: { viewKind: "array_cells", depth: 2, viewOptions: { color } },
+      path: { viewKind: "array_cells", depth: 1, viewOptions: { color } },
     },
     tags: ["search", "heuristic", "graph", "algorithm", "curriculum"],
   },
@@ -1246,7 +1239,7 @@ while open_set:
     key: "uniform-cost-search",
     title: "Uniform-Cost Search",
     description: "Uniform-cost tree search on the lecture's Romania problem graph, with a priority-queue frontier ordered by path cost g(n).",
-    snippet: `from code_visualizer.structures import Graph, Tree
+    snippet: `from code_visualizer.structures import Graph, ScoredSearchNode, Tree
 
 graph = Graph({
     "S": {"F": 2, "R": 1},
@@ -1262,37 +1255,40 @@ graph = Graph({
     "B": "Bucharest",
 })
 search_tree = Tree("S")
-frontier = [("S", 0)]
-state_nodes = {"S": "t0"}
+frontier = [ScoredSearchNode("S").with_node_id(search_tree.root_id)]
 best_cost = {"S": 0}
 goal = "B"
+path = []
 
 while frontier:
-    frontier.sort(key=lambda item: item[1])
+    frontier.sort(key=lambda node: node.g)
     with step():
-        current_state, current_cost = frontier.pop(0)
-        current_tree = state_nodes[current_state]
-        graph = graph.highlight(current_state)
-        search_tree = search_tree.highlight(current_tree)
-    if current_cost != best_cost[current_state]:
+        current = frontier.pop(0)
+        graph = graph.highlight(current.state)
+        search_tree = search_tree.highlight(current.node_id)
+    if current.g != best_cost[current.state]:
         continue
-    if current_state == goal:
+    if current.state == goal:
+        path = current.path()
         break
 
-    for nxt, cost in graph[current_state].items():
-        next_cost = current_cost + cost
-        if next_cost >= best_cost.get(nxt, float("inf")):
+    for nxt, edge_cost in graph[current.state].items():
+        child = current.extend(nxt, edge_cost)
+        if child.g >= best_cost.get(nxt, float("inf")):
             continue
-        best_cost[nxt] = next_cost
-        search_tree, child_id = search_tree.add(current_tree, nxt, str(cost))
-        state_nodes[nxt] = child_id
-        frontier.append((nxt, next_cost))
+        best_cost[nxt] = child.g
+        with step():
+            search_tree, child_id = search_tree.add(
+                current.node_id, child.state, str(edge_cost)
+            )
+            frontier.append(child.with_node_id(child_id))
 `,
-    watchVariables: ["graph", "search_tree", "frontier"],
+    watchVariables: ["graph", "search_tree", "frontier", "path"],
     variableConfigs: {
       graph: { viewKind: "graph", depth: 3, viewOptions: { color } },
       search_tree: { viewKind: "graph", depth: 3, viewOptions: { color, graphDirection: "TB" } },
       frontier: { viewKind: "array_cells", depth: 2, viewOptions: { color } },
+      path: { viewKind: "array_cells", depth: 1, viewOptions: { color } },
     },
     tags: ["search", "uniform cost", "graph", "algorithm", "curriculum"],
   },
@@ -1300,7 +1296,7 @@ while frontier:
     key: "greedy-best-first-search",
     title: "Greedy Best-First Search",
     description: "Greedy best-first tree search on the lecture's Romania problem graph, ordered by h(n) only.",
-    snippet: `from code_visualizer.structures import Graph, Tree
+    snippet: `from code_visualizer.structures import Graph, ScoredSearchNode, Tree
 
 heuristic = {"S": 3, "R": 2, "F": 2, "P": 1, "B": 0}
 graph = Graph({
@@ -1317,113 +1313,46 @@ graph = Graph({
     "B": "Bucharest (h=0)",
 })
 search_tree = Tree("S")
-frontier = ["S"]
-state_nodes = {"S": "t0"}
+frontier = [ScoredSearchNode("S", h=heuristic["S"]).with_node_id(search_tree.root_id)]
 visited = {"S"}
 goal = "B"
+path = []
 
 while frontier:
-    frontier.sort(key=lambda node: heuristic[node])
+    frontier.sort(key=lambda node: node.h)
     with step():
-        current_state = frontier.pop(0)
-        current_tree = state_nodes[current_state]
-        graph = graph.highlight(current_state)
-        search_tree = search_tree.highlight(current_tree)
-    if current_state == goal:
+        current = frontier.pop(0)
+        graph = graph.highlight(current.state)
+        search_tree = search_tree.highlight(current.node_id)
+    if current.state == goal:
+        path = current.path()
         break
 
-    for nxt in graph[current_state]:
+    for nxt in graph[current.state]:
         if nxt in visited:
             continue
         visited.add(nxt)
-        search_tree, child_id = search_tree.add(current_tree, nxt, f"h={heuristic[nxt]}")
-        state_nodes[nxt] = child_id
-        frontier.append(nxt)
+        child = current.extend(nxt, 1, heuristic[nxt])
+        with step():
+            search_tree, child_id = search_tree.add(
+                current.node_id, child.state, f"h={child.h}"
+            )
+            frontier.append(child.with_node_id(child_id))
 `,
-    watchVariables: ["graph", "search_tree", "frontier"],
+    watchVariables: ["graph", "search_tree", "frontier", "path"],
     variableConfigs: {
       graph: { viewKind: "graph", depth: 3, viewOptions: { color } },
       search_tree: { viewKind: "graph", depth: 3, viewOptions: { color, graphDirection: "TB" } },
       frontier: { viewKind: "array_cells", depth: 2, viewOptions: { color } },
+      path: { viewKind: "array_cells", depth: 1, viewOptions: { color } },
     },
     tags: ["search", "greedy", "heuristic", "graph", "algorithm", "curriculum"],
-  },
-  {
-    key: "a-star-with-visited-memory",
-    title: "A* Search (Graph Search)",
-    description: "A* graph search on the lecture's Romania problem graph, using a closed set to avoid re-expanding explored states.",
-    snippet: `from code_visualizer.structures import Graph, Tree
-
-heuristic = {"S": 3, "R": 2, "F": 2, "P": 1, "B": 0}
-graph = Graph({
-    "S": {"R": 1, "F": 2},
-    "R": {"P": 2, "S": 1},
-    "F": {"B": 3, "S": 2},
-    "P": {"R": 2, "B": 1},
-    "B": {"F": 3, "P": 1},
-}, labels={
-    "S": "Sibiu (h=3)",
-    "R": "Rimnicu Vilcea (h=2)",
-    "F": "Fagaras (h=2)",
-    "P": "Pitesti (h=1)",
-    "B": "Bucharest (h=0)",
-})
-search_tree = Tree("S")
-open_set = [("S", 0)]
-frontier = {"S": "g=0, h=3, f=3"}
-state_nodes = {"S": "t0"}
-g_score = {"S": 0}
-closed_set = []
-
-while open_set:
-    open_set.sort(key=lambda item: item[1] + heuristic[item[0]])
-    with step():
-        current, current_cost = open_set.pop(0)
-        frontier = {
-            state: f"g={cost}, h={heuristic[state]}, f={cost + heuristic[state]}"
-            for state, cost in open_set
-        }
-        current_tree = state_nodes[current]
-        graph = graph.highlight(current)
-        search_tree = search_tree.highlight(current_tree)
-    if current in closed_set:
-        continue
-    closed_set.append(current)
-    if current == "B":
-        break
-    for nxt, weight in graph[current].items():
-        if nxt in closed_set:
-            continue
-        next_cost = current_cost + weight
-        if nxt not in g_score or next_cost < g_score[nxt]:
-            g_score[nxt] = next_cost
-            open_set.append((nxt, next_cost))
-            search_tree, child_id = search_tree.add(
-                current_tree,
-                nxt,
-                str(weight),
-            )
-            state_nodes[nxt] = child_id
-    frontier = {
-        state: f"g={cost}, h={heuristic[state]}, f={cost + heuristic[state]}"
-        for state, cost in open_set
-    }
-`,
-    watchVariables: ["graph", "search_tree", "frontier", "closed_set"],
-    variableConfigs: {
-      graph: { viewKind: "graph", depth: 3, viewOptions: { color } },
-      search_tree: { viewKind: "graph", depth: 3, viewOptions: { color, graphDirection: "TB" } },
-      frontier: { viewKind: "table", depth: 2, viewOptions: { color } },
-      g_score: { viewKind: "table", depth: 2, viewOptions: { color } },
-      closed_set: { viewKind: "array_cells", depth: 2, viewOptions: { color } },
-    },
-    tags: ["search", "heuristic", "a*", "graph", "algorithm", "curriculum"],
   },
   {
     key: "depth-limited-search",
     title: "Depth-Limited Search (DLS)",
     description: "Depth-limited tree search on the lecture's Romania problem graph, with depth limit l = 2.",
-    snippet: `from code_visualizer.structures import Graph, Tree
+    snippet: `from code_visualizer.structures import Graph, SearchNode, Tree
 
 graph = Graph({
     "S": ["R", "F"],
@@ -1439,30 +1368,33 @@ graph = Graph({
     "B": "Bucharest",
 })
 search_tree = Tree("S")
-frontier = [(["S"], 0)]
-state_nodes = {("S",): "t0"}
+frontier = [SearchNode("S").with_node_id(search_tree.root_id)]
 depth_limit = 2
+goal = "B"
+path = []
 
 while frontier:
     with step():
-        current_path, depth = frontier.pop()
-        current_state = current_path[-1]
-        current_tree = state_nodes[tuple(current_path)]
-        graph = graph.highlight(current_state)
-        search_tree = search_tree.highlight(current_tree)
-    if depth == depth_limit:
+        current = frontier.pop()
+        graph = graph.highlight(current.state)
+        search_tree = search_tree.highlight(current.node_id)
+    if current.state == goal:
+        path = current.path()
+        break
+    if current.depth == depth_limit:
         continue
-    for nxt in graph[current_state]:
-        child_path = current_path + [nxt]
-        search_tree, child_id = search_tree.add(current_tree, nxt)
-        state_nodes[tuple(child_path)] = child_id
-        frontier.append((child_path, depth + 1))
+    for nxt in graph[current.state]:
+        child = current.child(nxt)
+        with step():
+            search_tree, child_id = search_tree.add(current.node_id, child.state)
+            frontier.append(child.with_node_id(child_id))
 `,
-    watchVariables: ["graph", "search_tree", "frontier", "depth_limit"],
+    watchVariables: ["graph", "search_tree", "frontier", "path", "depth_limit"],
     variableConfigs: {
       graph: { viewKind: "graph", depth: 3, viewOptions: { color } },
       search_tree: { viewKind: "graph", depth: 3, viewOptions: { color, graphDirection: "TB" } },
       frontier: { viewKind: "array_cells", depth: 2, viewOptions: { color } },
+      path: { viewKind: "array_cells", depth: 1, viewOptions: { color } },
       depth_limit: { viewKind: "auto", depth: null, viewOptions: { color } },
     },
     tags: ["search", "depth-limited", "dfs", "algorithm", "curriculum"],
@@ -1471,7 +1403,7 @@ while frontier:
     key: "iterative-deepening-search",
     title: "Iterative Deepening Search (IDS)",
     description: "Iterative deepening tree search on the lecture's Romania problem graph, trying depth limits 0, 1, and 2.",
-    snippet: `from code_visualizer.structures import Graph, Tree
+    snippet: `from code_visualizer.structures import Graph, SearchNode, Tree
 
 graph = Graph({
     "S": ["R", "F"],
@@ -1490,36 +1422,36 @@ search_tree = Tree("S")
 frontier = []
 goal = "B"
 depth_limit = 0
+path = []
 
 for depth_limit in range(3):
-    frontier = [(["S"], 0)]
     search_tree = Tree("S")
-    state_nodes = {("S",): "t0"}
+    frontier = [SearchNode("S").with_node_id(search_tree.root_id)]
     while frontier:
         with step():
-            current_path, depth = frontier.pop()
-            current_state = current_path[-1]
-            current_tree = state_nodes[tuple(current_path)]
-            graph = graph.highlight(current_state)
-            search_tree = search_tree.highlight(current_tree)
-        if current_state == goal:
+            current = frontier.pop()
+            graph = graph.highlight(current.state)
+            search_tree = search_tree.highlight(current.node_id)
+        if current.state == goal:
+            path = current.path()
             frontier = []
             break
-        if depth == depth_limit:
+        if current.depth == depth_limit:
             continue
-        for nxt in graph[current_state]:
-            child_path = current_path + [nxt]
-            search_tree, child_id = search_tree.add(current_tree, nxt)
-            state_nodes[tuple(child_path)] = child_id
-            frontier.append((child_path, depth + 1))
-    if current_state == goal:
+        for nxt in graph[current.state]:
+            child = current.child(nxt)
+            with step():
+                search_tree, child_id = search_tree.add(current.node_id, child.state)
+                frontier.append(child.with_node_id(child_id))
+    if path:
         break
 `,
-    watchVariables: ["graph", "search_tree", "frontier", "depth_limit"],
+    watchVariables: ["graph", "search_tree", "frontier", "path", "depth_limit"],
     variableConfigs: {
       graph: { viewKind: "graph", depth: 3, viewOptions: { color } },
       search_tree: { viewKind: "graph", depth: 3, viewOptions: { color, graphDirection: "TB" } },
       frontier: { viewKind: "array_cells", depth: 2, viewOptions: { color } },
+      path: { viewKind: "array_cells", depth: 1, viewOptions: { color } },
       depth_limit: { viewKind: "auto", depth: null, viewOptions: { color } },
     },
     tags: ["search", "iterative deepening", "dfs", "algorithm", "curriculum"],
@@ -1527,76 +1459,74 @@ for depth_limit in range(3):
   {
     key: "hill-climbing-trace",
     title: "Hill Climbing Algorithm",
-    description: "Steepest-ascent hill climbing on representative 4-Queens states: choose the highest-eval neighbor and stop at a local maximum.",
-    snippet: `from code_visualizer.structures import Graph
+    description: "Steepest-ascent hill climbing for 4-Queens: retain a growing tree while showing the three strongest moves from each expanded state.",
+    snippet: `from code_visualizer.structures import Tree
+
+# The visualization keeps every expanded level, but shows only the top three
+# highest-evaluation neighbors of the current board at each depth.
+size = 4
+branch_limit = 3
+
+
+def evaluate(positions):
+    return sum(
+        positions[left] != positions[right]
+        and abs(positions[left] - positions[right]) != right - left
+        for left in range(size)
+        for right in range(left + 1, size)
+    )
 
 
 def board(positions):
-    return [["Q" if positions[column] == row else "." for column in range(4)] for row in range(4)]
+    return [["Q" if positions[column] == row else "." for column in range(size)] for row in range(size)]
 
 
-states = {
-    "A": {"board": board([1, 1, 1, 1]), "eval": 0},
-    "B": {"board": board([0, 1, 1, 1]), "eval": 2},
-    "C": {"board": board([1, 0, 1, 1]), "eval": 1},
-    "D": {"board": board([1, 1, 0, 1]), "eval": 1},
-    "E": {"board": board([0, 2, 1, 1]), "eval": 4},
-    "F": {"board": board([0, 1, 0, 1]), "eval": 1},
-    "K": {"board": board([0, 1, 3, 1]), "eval": 4},
-    "G": {"board": board([0, 2, 3, 1]), "eval": 5},
-    "H": {"board": board([0, 2, 0, 1]), "eval": 4},
-    "L": {"board": board([0, 2, 1, 3]), "eval": 4},
-    "I": {"board": board([0, 2, 2, 1]), "eval": 3},
-    "J": {"board": board([0, 3, 3, 1]), "eval": 4},
-    "M": {"board": board([0, 2, 3, 0]), "eval": 3},
-}
-neighbors = {
-    "A": ["B", "C", "D"], "B": ["E", "F", "K"],
-    "E": ["G", "H", "L"], "G": ["I", "J", "M"],
-}
-visible_states = {
-    "A": ["A", "B", "C", "D"],
-    "B": ["A", "B", "C", "D", "E", "F", "K"],
-    "E": ["A", "B", "C", "D", "E", "F", "K", "G", "H", "L"],
-    "G": ["A", "B", "C", "D", "E", "F", "K", "G", "H", "L", "I", "J", "M"],
-}
-current_state = "A"
+def successors(positions):
+    for column, current_row in enumerate(positions):
+        for row in range(size):
+            if row != current_row:
+                yield positions[:column] + (row,) + positions[column + 1:]
+
+
+def node_label(positions):
+    return {"board": board(positions), "eval": evaluate(positions)}
+
+
+current_state = (1, 1, 1, 1)
+state_space = Tree(node_label(current_state))
+current_node_id = state_space.root_id
 decision = "start"
 
-
-def make_state_space(current, best_successor):
-    visible = visible_states[current]
-    adjacency = {}
-    labels = {}
-    for state in visible:
-        adjacency[state] = {
-            target: "best" if state == current and target == best_successor else ""
-            for target in neighbors.get(state, [])
-            if target in visible
-        }
-        labels[state] = {"board": states[state]["board"], "eval": states[state]["eval"]}
-    return Graph(adjacency, labels=labels, directed=True).highlight(current)
-
-
 while True:
-    candidates = neighbors[current_state]
-    best_successor = max(candidates, key=lambda state: states[state]["eval"])
-    current_eval = states[current_state]["eval"]
-    best_eval = states[best_successor]["eval"]
+    candidates = sorted(successors(current_state), key=lambda state: (-evaluate(state), state))[:branch_limit]
+    best_successor = candidates[0]
+    current_eval = evaluate(current_state)
+    best_eval = evaluate(best_successor)
     with step():
-        state_space = make_state_space(current_state, best_successor)
+        state_space = state_space.highlight(current_node_id)
+        for rank, candidate in enumerate(candidates, start=1):
+            state_space, child_id = state_space.add(
+                current_node_id,
+                node_label(candidate),
+                "best" if rank == 1 else f"#{rank}",
+                annotation="best" if rank == 1 else f"candidate #{rank}",
+            )
+            if rank == 1:
+                best_node_id = child_id
         decision = f"best neighbor: {current_eval} -> {best_eval}"
 
     if best_eval <= current_eval:
         with step():
+            state_space = state_space.highlight(current_node_id)
             decision = "stop: no higher-eval successor"
         break
 
     current_state = best_successor
+    current_node_id = best_node_id
 `,
     watchVariables: ["state_space", "decision"],
     variableConfigs: {
-      state_space: { viewKind: "graph", depth: 4, viewOptions: { color } },
+      state_space: { viewKind: "graph", depth: 4, viewOptions: { color, graphDirection: "TB" } },
       decision: { viewKind: "auto", depth: null, viewOptions: { color } },
     },
     tags: ["local search", "hill climbing", "algorithm", "curriculum"],
@@ -1605,7 +1535,9 @@ while True:
     key: "bidirectional-search",
     title: "Bidirectional Search",
     description: "Bidirectional search with two frontiers over a problem graph and a merged search tree.",
-    snippet: `graph = {
+    snippet: `from code_visualizer.structures import SearchNode
+
+graph = {
     "A": ["B", "C"],
     "B": ["A", "D"],
     "C": ["A", "E"],
@@ -1625,18 +1557,19 @@ problem_graph = {
     "directed": False,
 }
 search_tree = {"nodes": ["A", "G"], "edges": [], "directed": False}
-frontier_forward = ["A"]
-frontier_backward = ["G"]
-parent_start = {"A": None}
-parent_goal = {"G": None}
+frontier_forward = [SearchNode("A")]
+frontier_backward = [SearchNode("G")]
+forward_nodes = {"A": frontier_forward[0]}
+backward_nodes = {"G": frontier_backward[0]}
 meet = None
+path = []
 current = "A"
 current_side = "forward"
 
 
 def mark():
-    forward_nodes = set(frontier_forward)
-    backward_nodes = set(frontier_backward)
+    forward_states = {node.state for node in frontier_forward}
+    backward_states = {node.state for node in frontier_backward}
     problem_graph["nodes"] = [
         {
             "id": node,
@@ -1648,9 +1581,9 @@ def mark():
                 else f"<{node}"
                 if node == current and current_side == "backward"
                 else f"F:{node}"
-                if node in forward_nodes and node not in backward_nodes
+                if node in forward_states and node not in backward_states
                 else f"B:{node}"
-                if node in backward_nodes and node not in forward_nodes
+                if node in backward_states and node not in forward_states
                 else node
             ),
         }
@@ -1660,40 +1593,42 @@ def mark():
 
 def grow_tree():
     nodes = []
-    for node in sorted(set(parent_start) | set(parent_goal)):
+    for node in sorted(set(forward_nodes) | set(backward_nodes)):
         label = node
         if node == meet:
             label = f"[{node}]"
-        elif node in parent_start and node in parent_goal:
+        elif node in forward_nodes and node in backward_nodes:
             label = f"FB:{node}"
-        elif node in parent_start:
+        elif node in forward_nodes:
             label = f"F:{node}"
-        elif node in parent_goal:
+        elif node in backward_nodes:
             label = f"B:{node}"
         nodes.append({"id": node, "label": label})
     search_tree["nodes"] = nodes
     search_tree["edges"] = [
-        {"source": source, "target": node, "color": "#2563eb"}
-        for node, source in parent_start.items()
-        if source is not None
+        {"source": node.parent.state, "target": node.state, "color": "#2563eb"}
+        for node in forward_nodes.values()
+        if node.parent is not None
     ] + [
-        {"source": source, "target": node, "color": "#dc2626"}
-        for node, source in parent_goal.items()
-        if source is not None
+        {"source": node.parent.state, "target": node.state, "color": "#dc2626"}
+        for node in backward_nodes.values()
+        if node.parent is not None
     ]
 
 
 mark()
 while frontier_forward and frontier_backward and meet is None:
     current_side = "forward"
-    current = frontier_forward.pop(0)
+    current_node = frontier_forward.pop(0)
+    current = current_node.state
     mark()
     for nxt in graph[current]:
-        if nxt not in parent_start:
-            parent_start[nxt] = current
-            frontier_forward.append(nxt)
+        if nxt not in forward_nodes:
+            child = current_node.child(nxt)
+            forward_nodes[nxt] = child
+            frontier_forward.append(child)
             grow_tree()
-        if nxt in parent_goal:
+        if nxt in backward_nodes:
             meet = nxt
             mark()
             break
@@ -1701,24 +1636,30 @@ while frontier_forward and frontier_backward and meet is None:
         break
 
     current_side = "backward"
-    current = frontier_backward.pop(0)
+    current_node = frontier_backward.pop(0)
+    current = current_node.state
     mark()
     for nxt in graph[current]:
-        if nxt not in parent_goal:
-            parent_goal[nxt] = current
-            frontier_backward.append(nxt)
+        if nxt not in backward_nodes:
+            child = current_node.child(nxt)
+            backward_nodes[nxt] = child
+            frontier_backward.append(child)
             grow_tree()
-        if nxt in parent_start:
+        if nxt in forward_nodes:
             meet = nxt
             mark()
             break
+
+if meet is not None:
+    path = forward_nodes[meet].path() + list(reversed(backward_nodes[meet].path()))[1:]
 `,
-    watchVariables: ["problem_graph", "search_tree", "frontier_forward", "frontier_backward"],
+    watchVariables: ["problem_graph", "search_tree", "frontier_forward", "frontier_backward", "path"],
     variableConfigs: {
       problem_graph: { viewKind: "graph", depth: 3, viewOptions: { color } },
       search_tree: { viewKind: "graph", depth: 3, viewOptions: { color, graphDirection: "TB" } },
       frontier_forward: { viewKind: "array_cells", depth: 2, viewOptions: { color } },
       frontier_backward: { viewKind: "array_cells", depth: 2, viewOptions: { color } },
+      path: { viewKind: "array_cells", depth: 1, viewOptions: { color } },
     },
     tags: ["search", "bidirectional", "graph", "algorithm", "curriculum"],
   },
@@ -1726,7 +1667,9 @@ while frontier_forward and frontier_backward and meet is None:
     key: "beam-search",
     title: "Beam Search",
     description: "Beam search with a problem graph, an evolving search tree, and a frontier capped by beam width.",
-    snippet: `graph = {
+    snippet: `from code_visualizer.structures import ScoredSearchNode
+
+graph = {
     "S": ["A", "B", "C"],
     "A": ["D", "E"],
     "B": ["F", "G"],
@@ -1749,21 +1692,22 @@ problem_graph = {
     "directed": True,
 }
 search_tree = {"nodes": ["S"], "edges": [], "directed": True}
-frontier = ["S"]
+frontier = [ScoredSearchNode("S", h=heuristic["S"])]
 candidates = []
 selected = []
 rejected = []
-parent = {"S": None}
+nodes = {"S": frontier[0]}
 beam_width = 2
 current = "S"
 decision = "start"
+path = []
 
 
 def mark():
-    frontier_nodes = set(frontier)
-    candidate_nodes = set(candidates)
-    selected_nodes = set(selected)
-    rejected_nodes = set(rejected)
+    frontier_states = {node.state for node in frontier}
+    candidate_states = {node.state for node in candidates}
+    selected_states = {node.state for node in selected}
+    rejected_states = {node.state for node in rejected}
     problem_graph["nodes"] = [
         {
             "id": node,
@@ -1771,13 +1715,13 @@ def mark():
                 f"[{node}]"
                 if node == current
                 else f"K:{node}"
-                if node in selected_nodes
+                if node in selected_states
                 else f"X:{node}"
-                if node in rejected_nodes
+                if node in rejected_states
                 else f"F:{node}"
-                if node in frontier_nodes
+                if node in frontier_states
                 else f"N:{node}"
-                if node in candidate_nodes
+                if node in candidate_states
                 else node
             ),
         }
@@ -1786,10 +1730,10 @@ def mark():
 
 
 def grow_tree():
-    frontier_nodes = set(frontier)
-    candidate_nodes = set(candidates)
-    selected_nodes = set(selected)
-    rejected_nodes = set(rejected)
+    frontier_states = {node.state for node in frontier}
+    candidate_states = {node.state for node in candidates}
+    selected_states = {node.state for node in selected}
+    rejected_states = {node.state for node in rejected}
     search_tree["nodes"] = [
         {
             "id": node,
@@ -1797,55 +1741,64 @@ def grow_tree():
                 f"[{node}]"
                 if node == current
                 else f"K:{node}"
-                if node in selected_nodes
+                if node in selected_states
                 else f"X:{node}"
-                if node in rejected_nodes
+                if node in rejected_states
                 else f"F:{node}"
-                if node in frontier_nodes
+                if node in frontier_states
                 else f"N:{node}"
-                if node in candidate_nodes
+                if node in candidate_states
                 else node
             ),
         }
-        for node in parent
+        for node in nodes
     ]
     search_tree["edges"] = [
-        {"source": source, "target": node, "label": str(heuristic[node])}
-        for node, source in parent.items()
-        if source is not None
+        {"source": node.parent.state, "target": node.state, "label": str(node.h)}
+        for node in nodes.values()
+        if node.parent is not None
     ]
 
 
 mark()
 while frontier:
-    if "Goal" in frontier:
+    if any(node.state == "Goal" for node in frontier):
         break
     candidates = []
     selected = []
     rejected = []
-    for current in frontier:
+    candidate_states = set()
+    for current_node in frontier:
+        current = current_node.state
         mark()
         for nxt in graph[current]:
-            if nxt not in candidates:
-                if nxt not in parent:
-                    parent[nxt] = current
+            if nxt not in candidate_states:
+                child = nodes.get(nxt)
+                if child is None:
+                    child = current_node.extend(nxt, 1, heuristic[nxt])
+                    nodes[nxt] = child
                     grow_tree()
-                candidates.append(nxt)
+                candidates.append(child)
+                candidate_states.add(nxt)
                 decision = f"expand {current} -> {nxt} (h={heuristic[nxt]})"
                 mark()
-    candidates.sort(key=lambda node: heuristic[node])
+    candidates.sort(key=lambda node: node.h)
     selected = candidates[:beam_width]
     rejected = candidates[beam_width:]
     decision = f"keep {selected} drop {rejected}"
     frontier = selected
     grow_tree()
     mark()
+
+if "Goal" in nodes:
+    path = nodes["Goal"].path()
 `,
-    watchVariables: ["problem_graph", "search_tree", "frontier", "decision"],
+    watchVariables: ["problem_graph", "search_tree", "frontier", "path", "decision"],
     variableConfigs: {
       problem_graph: { viewKind: "graph", depth: 3, viewOptions: { color } },
       search_tree: { viewKind: "graph", depth: 3, viewOptions: { color, graphDirection: "TB" } },
       frontier: { viewKind: "array_cells", depth: 2, viewOptions: { color } },
+      path: { viewKind: "array_cells", depth: 1, viewOptions: { color } },
       decision: { viewKind: "auto", depth: null, viewOptions: { color } },
     },
     tags: ["search", "beam search", "heuristic", "graph", "algorithm", "curriculum"],
@@ -3017,7 +2970,6 @@ m = 0.0
 b = 0.0
 learning_rate = 0.1
 fit_points = [[0.5, m * 0.5 + b], [4.5, m * 4.5 + b]]
-fit = Plot(x_domain=[0.5, 4.5], y_domain=[0, 9]).scatter(points, color="#475569").line(fit_points, color="#dc2626")
 loss = sum((m * x + b - y) ** 2 for x, y in points) / len(points)
 
 for _ in range(4):
@@ -3028,13 +2980,19 @@ for _ in range(4):
     m = round(m - learning_rate * grad_m, 3)
     b = round(b - learning_rate * grad_b, 3)
     fit_points = [[0.5, m * 0.5 + b], [4.5, m * 4.5 + b]]
-    fit = Plot(x_domain=[0.5, 4.5], y_domain=[0, 9]).scatter(points, color="#475569").line(fit_points, color="#dc2626")
     loss = round(sum((m * x + b - y) ** 2 for x, y in points) / len(points), 3)
 `,
-    watchVariables: ["fit", "loss"],
+    watchVariables: ["points", "fit_points", "loss"],
     variableConfigs: {
-      fit: { viewKind: "plot", depth: 1, viewOptions: { color } },
+      points: { viewKind: "scatter", depth: 1, viewOptions: { color } },
+      fit_points: { viewKind: "line", depth: 1, viewOptions: { color: "#dc2626" } },
       loss: { viewKind: "auto", depth: null, viewOptions: { color } },
+    },
+    layoutState: {
+      mode: "masonry",
+      masonryOrder: ["fit_points", "loss"],
+      overlayGroups: [{ id: "regression-fit", variables: ["fit_points", "points"], layerOrder: ["fit_points", "points"] }],
+      windows: { layouts: {}, zIndices: {} },
     },
     tags: ["machine learning", "linear regression", "regression", "algorithm", "curriculum"],
   },
@@ -3053,20 +3011,13 @@ features = [temperature / 100 for temperature in temperatures]
 w0 = 0.0
 w1 = 0.0
 learning_rate = 1.0
-safe_points = [[temperature, 0] for temperature, label in zip(temperatures, labels) if label == 0]
-failure_points = [[temperature, 1] for temperature, label in zip(temperatures, labels) if label == 1]
+observations = [[temperature, label] for temperature, label in zip(temperatures, labels)]
 curve_x = [index * 5 for index in range(41)]
 
 def sigmoid(score):
     return 1 / (1 + 2.71828 ** -score)
 
 curve_points = [[temperature, sigmoid(w0 + w1 * temperature / 100)] for temperature in curve_x]
-fit = Plot(
-    x_domain=[0, 200],
-    y_domain=[0, 1],
-    x_label="temperature (x1)",
-    y_label="failure probability",
-).scatter(safe_points, color="#65a30d").scatter(failure_points, color="#dc2626").line(curve_points, color="#2563eb")
 loss = round(-sum(label * log(probability) + (1 - label) * log(1 - probability) for label, probability in zip(labels, [sigmoid(w0 + w1 * x) for x in features])) / len(labels), 3)
 
 for epoch in range(5):
@@ -3079,18 +3030,19 @@ for epoch in range(5):
         w0 = round(w0 - learning_rate * grad_w0, 3)
         w1 = round(w1 - learning_rate * grad_w1, 3)
     curve_points = [[temperature, sigmoid(w0 + w1 * temperature / 100)] for temperature in curve_x]
-    fit = Plot(
-        x_domain=[0, 200],
-        y_domain=[0, 1],
-        x_label="temperature (x1)",
-        y_label="failure probability",
-    ).scatter(safe_points, color="#65a30d").scatter(failure_points, color="#dc2626").line(curve_points, color="#2563eb")
     loss = round(-sum(label * log(probability) + (1 - label) * log(1 - probability) for label, probability in zip(labels, [sigmoid(w0 + w1 * x) for x in features])) / len(labels), 3)
 `,
-    watchVariables: ["fit", "loss"],
+    watchVariables: ["observations", "curve_points", "loss"],
     variableConfigs: {
-      fit: { viewKind: "plot", depth: 1, viewOptions: { color } },
+      observations: { viewKind: "scatter", depth: 1, viewOptions: { color } },
+      curve_points: { viewKind: "line", depth: 1, viewOptions: { color: "#dc2626" } },
       loss: { viewKind: "auto", depth: null, viewOptions: { color } },
+    },
+    layoutState: {
+      mode: "masonry",
+      masonryOrder: ["curve_points", "loss"],
+      overlayGroups: [{ id: "failure-curve", variables: ["curve_points", "observations"], layerOrder: ["curve_points", "observations"] }],
+      windows: { layouts: {}, zIndices: {} },
     },
     tags: ["machine learning", "logistic regression", "binary classification", "gradient descent", "curriculum"],
   },
@@ -3106,7 +3058,7 @@ for epoch in range(5):
 cats = [[2.0, 4.4], [2.5, 3.1], [3.0, 5.3], [3.4, 4.0], [3.8, 2.4]]
 dogs = [[5.8, 5.9], [6.5, 6.8], [7.1, 5.2], [7.8, 7.9], [8.4, 6.0]]
 rabbits = [[5.2, 1.8], [5.8, 2.8], [6.3, 1.2], [6.8, 3.1], [7.4, 2.0], [8.0, 3.4]]
-candidate = [6.7, 2.1]
+candidate = [[6.7, 2.1]]
 points = cats + dogs + rabbits
 labels = [0] * (len(cats) + len(dogs)) + [1] * len(rabbits)
 
@@ -3129,9 +3081,9 @@ def draw_boundary(w0, w1, w2):
 
 gradients = {}
 loss = 0.0
-for epoch in range(5):
-    # Twelve updates per displayed step keep the trace short.
-    for _ in range(12):
+for epoch in range(6):
+    # Keep each displayed boundary move large enough to inspect.
+    for _ in range(3):
         probabilities = [sigmoid(w0 + w1 * x1 + w2 * x2) for x1, x2 in features]
         errors = [probability - label for probability, label in zip(probabilities, labels)]
         grad_w0 = sum(errors) / len(labels)
@@ -3141,30 +3093,40 @@ for epoch in range(5):
         w1 = w1 - learning_rate * grad_w1
         w2 = w2 - learning_rate * grad_w2
 
-    probabilities = [sigmoid(w0 + w1 * x1 + w2 * x2) for x1, x2 in features]
-    loss = round(-sum(label * log(probability) + (1 - label) * log(1 - probability) for label, probability in zip(labels, probabilities)) / len(labels), 3)
-    gradients = {"dL/dw0": round(grad_w0, 3), "dL/dw1": round(grad_w1, 3), "dL/dw2": round(grad_w2, 3)}
-    boundary = draw_boundary(w0, w1, w2)
-    feature_space = Plot(
-        x_domain=[1, 9],
-        y_domain=[0.5, 9],
-        x_label="weight (x1)",
-        y_label="height (x2)",
-    ).line(boundary, color="#0f172a").scatter(cats, color="#2563eb").scatter(dogs, color="#16a34a").scatter(rabbits, color="#dc2626").scatter([candidate], color="#f59e0b")
+    with step():
+        probabilities = [sigmoid(w0 + w1 * x1 + w2 * x2) for x1, x2 in features]
+        loss = round(-sum(label * log(probability) + (1 - label) * log(1 - probability) for label, probability in zip(labels, probabilities)) / len(labels), 3)
+        gradients = {"dL/dw0": round(grad_w0, 3), "dL/dw1": round(grad_w1, 3), "dL/dw2": round(grad_w2, 3)}
+        boundary = draw_boundary(w0, w1, w2)
 
-candidate_x1 = (candidate[0] - 5) / 4
-candidate_x2 = (candidate[1] - 4.75) / 4.25
-rabbit_probability = round(sigmoid(w0 + w1 * candidate_x1 + w2 * candidate_x2), 3)
-prediction = "Rabbit" if rabbit_probability >= 0.5 else "Not rabbit"
+with step():
+    candidate_x1 = (candidate[0][0] - 5) / 4
+    candidate_x2 = (candidate[0][1] - 4.75) / 4.25
+    rabbit_probability = round(sigmoid(w0 + w1 * candidate_x1 + w2 * candidate_x2), 3)
+    prediction = "Rabbit" if rabbit_probability >= 0.5 else "Not rabbit"
 
 `,
-    watchVariables: ["feature_space", "loss", "gradients", "rabbit_probability", "prediction"],
+    watchVariables: ["boundary", "cats", "dogs", "rabbits", "candidate", "loss", "gradients", "rabbit_probability", "prediction"],
     variableConfigs: {
-      feature_space: { viewKind: "plot", depth: 1, viewOptions: { color } },
+      boundary: { viewKind: "line", depth: 1, viewOptions: { color: "#0f172a" } },
+      cats: { viewKind: "scatter", depth: 1, viewOptions: { color: "#2563eb" } },
+      dogs: { viewKind: "scatter", depth: 1, viewOptions: { color: "#16a34a" } },
+      rabbits: { viewKind: "scatter", depth: 1, viewOptions: { color: "#dc2626" } },
+      candidate: { viewKind: "scatter", depth: 1, viewOptions: { color: "#f59e0b" } },
       loss: { viewKind: "auto", depth: null, viewOptions: { color } },
       gradients: { viewKind: "table", depth: 2, viewOptions: { color } },
       rabbit_probability: { viewKind: "auto", depth: null, viewOptions: { color } },
       prediction: { viewKind: "auto", depth: null, viewOptions: { color } },
+    },
+    layoutState: {
+      mode: "masonry",
+      masonryOrder: ["boundary", "loss", "gradients", "rabbit_probability", "prediction"],
+      overlayGroups: [{
+        id: "animal-boundary",
+        variables: ["boundary", "cats", "dogs", "rabbits", "candidate"],
+        layerOrder: ["boundary", "cats", "dogs", "rabbits", "candidate"],
+      }],
+      windows: { layouts: {}, zIndices: {} },
     },
     tags: ["machine learning", "logistic regression", "binary classification", "gradient descent", "curriculum"],
   },

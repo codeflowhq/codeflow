@@ -12,7 +12,8 @@ export const VIEW_KIND_OPTIONS: ViewKind[] = [
   "linked_list",
   "heap_dual",
   "bar",
-  "plot",
+  "line",
+  "scatter",
   "tree",
   "graph",
   "image",
@@ -20,7 +21,7 @@ export const VIEW_KIND_OPTIONS: ViewKind[] = [
 
 export const DEFAULT_TYPE_VIEW_DEFAULTS: GlobalConfig["typeViewDefaults"] = {
   "list[any]": "array_cells",
-  "tuple[list]": "matrix",
+  "list[list]": "matrix",
   "dict[str, any]": "table",
   linked_list: "linked_list",
   tree: "tree",
@@ -49,8 +50,8 @@ export const defaultVariableConfig: VariableConfig = {
 };
 
 export const TYPE_VIEW_DEFAULT_ROWS: Array<{ key: string; label: string; viewKindOptions: Array<ViewKind | "auto"> }> = [
-  { key: "list[any]", label: "List / array", viewKindOptions: ["auto", "array_cells", "bar", "plot", "table"] },
-  { key: "tuple[list]", label: "Matrix", viewKindOptions: ["auto", "matrix", "table"] },
+  { key: "list[any]", label: "List / array", viewKindOptions: ["auto", "array_cells", "bar", "table"] },
+  { key: "list[list]", label: "Matrix / points", viewKindOptions: ["auto", "matrix", "line", "scatter", "table"] },
   { key: "dict[str, any]", label: "Dictionary / object", viewKindOptions: ["auto", "table", "hash_table"] },
   { key: "linked_list", label: "Linked list", viewKindOptions: ["auto", "linked_list"] },
   { key: "tree", label: "Tree", viewKindOptions: ["auto", "tree"] },

@@ -3,8 +3,9 @@ import { useCallback, useState } from "react";
 import { runVisualizationInBrowser } from "../../runtime/python-bridge";
 import { buildVisualizationRuntimeConfig } from "../../runtime/runtime-config";
 import { normalizeRuntimeError } from "../../runtime/runtime-errors";
+import { EMPTY_LAYOUT_STATE } from "./layout-state";
 
-import type { GlobalConfig, ManifestEntry, VariableConfig } from "../../shared/types/visualization";
+import type { GlobalConfig, ManifestEntry, OverlayGroup, VariableConfig, VisualizationLayoutState } from "../../shared/types/visualization";
 
 const DEFINITION_ONLY_HINT = "You defined a function or class, but nothing called it. Call the function and assign the result to a watched variable, for example: data = bubble_sort([5, 1, 4, 2, 8])";
 const MISSING_WATCH_HINT = "Choose variables to observe with + Add or Select variables, then run again.";
@@ -53,18 +54,23 @@ export const useVisualizationRun = ({
   sourceCode,
   variableConfigs,
   watchVariables,
+  layoutState = EMPTY_LAYOUT_STATE,
 }: {
   globalConfig: GlobalConfig;
   sessionRuntimeWheels?: string[];
   sourceCode: string;
   variableConfigs: Record<string, VariableConfig>;
   watchVariables: string[];
+  layoutState?: VisualizationLayoutState;
 }) => {
   const [manifest, setManifest] = useState<ManifestEntry[]>([]);
   const [status, setStatus] = useState("idle");
   const [statusMessage, setStatusMessage] = useState("");
 
-  const runVisualization = useCallback(async (overrideVariableConfigs?: Record<string, VariableConfig>) => {
+  const runVisualization = useCallback(async (
+    overrideVariableConfigs?: Record<string, VariableConfig>,
+    overrideOverlayGroups?: OverlayGroup[],
+  ) => {
     setStatus("loading");
     setStatusMessage("Loading browser runtime…");
     try {
@@ -75,6 +81,7 @@ export const useVisualizationRun = ({
           globalConfig,
           sessionRuntimeWheels,
           variableConfigs: overrideVariableConfigs ?? variableConfigs,
+          overlayGroups: overrideOverlayGroups ?? layoutState.overlayGroups,
         }),
       });
       setManifest(data.manifest ?? []);
@@ -98,7 +105,7 @@ export const useVisualizationRun = ({
       setStatusMessage(message);
       throw error;
     }
-  }, [globalConfig, sessionRuntimeWheels, sourceCode, variableConfigs, watchVariables]);
+  }, [globalConfig, layoutState.overlayGroups, sessionRuntimeWheels, sourceCode, variableConfigs, watchVariables]);
 
   return { manifest, runVisualization, setManifest, setStatusMessage, status, statusMessage };
 };

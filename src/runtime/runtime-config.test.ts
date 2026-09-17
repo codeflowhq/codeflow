@@ -155,6 +155,49 @@ describe("buildVisualizationRuntimeConfig", () => {
     });
   });
 
+  it("serializes overlay groups separately from variable display options", () => {
+    const config = buildVisualizationRuntimeConfig({
+      globalConfig: defaultGlobalConfig,
+      variableConfigs: {
+        points: {
+          viewKind: "scatter",
+          depth: null,
+          viewOptions: { color: "#123456" },
+        },
+        fit: {
+          viewKind: "line",
+          depth: null,
+          viewOptions: { color: "#dc2626" },
+        },
+      },
+      overlayGroups: [{ id: "fit", variables: ["points", "fit"], layerOrder: ["fit", "points"] }],
+    });
+
+    expect(config.variable_configs.points).toMatchObject({
+      view_kind: "scatter",
+      view_options: { color: "#123456" },
+    });
+    expect(config.overlay_groups).toEqual([
+      { id: "fit", variables: ["points", "fit"], layer_order: ["fit", "points"] },
+    ]);
+  });
+
+  it("omits overlay groups containing missing or incompatible layers", () => {
+    const config = buildVisualizationRuntimeConfig({
+      globalConfig: defaultGlobalConfig,
+      variableConfigs: {
+        points: { ...defaultVariableConfig, viewKind: "scatter" },
+        table: { ...defaultVariableConfig, viewKind: "table" },
+      },
+      overlayGroups: [
+        { id: "missing", variables: ["points", "fit"], layerOrder: ["points", "fit"] },
+        { id: "incompatible", variables: ["points", "table"], layerOrder: ["points", "table"] },
+      ],
+    });
+
+    expect(config.overlay_groups).toEqual([]);
+  });
+
   it("normalizes invalid global and variable boundary values before building the payload", () => {
     const config = buildVisualizationRuntimeConfig({
       globalConfig: {

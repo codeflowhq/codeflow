@@ -50,10 +50,23 @@ const WorkspacePage = ({
   const hasTimeline = timelineState.timelineFrames.length > 0;
   const isAtLastStep = hasTimeline && timelineState.activeTimelineIndex >= timelineState.timelineFrames.length - 1;
   const shouldRunPrimaryAction = !hasTimeline || editorState.hasPendingRunChanges;
-  const visibleManifest = useMemo(
-    () => visualState.manifest.filter((entry) => watchState.watchVariables.includes(entry.variable)),
-    [visualState.manifest, watchState.watchVariables],
-  );
+  const visibleManifest = useMemo(() => {
+    const overlayCandidates = new Set(Object.entries(variableConfigs)
+      .filter(([, config]) => config.viewKind === "line" || config.viewKind === "scatter")
+      .map(([variable]) => variable));
+    const validGroups = (visualState.layoutState.overlayGroups ?? []).filter((group) => (
+      group.variables.length >= 2
+      && group.variables.every((variable) => (
+        watchState.watchVariables.includes(variable) && overlayCandidates.has(variable)
+      ))
+    ));
+    const groupedSources = new Set(
+      validGroups.flatMap((group) => group.variables.slice(1)),
+    );
+    return visualState.manifest.filter((entry) => (
+      watchState.watchVariables.includes(entry.variable) && !groupedSources.has(entry.variable)
+    ));
+  }, [variableConfigs, visualState.layoutState.overlayGroups, visualState.manifest, watchState.watchVariables]);
   const guideSteps = useMemo(() => [
     {
       title: "Write code",
@@ -317,6 +330,8 @@ const WorkspacePage = ({
                 layoutState={visualState.layoutState}
                 setExportSource={visualState.setExportSource}
                 setMasonryOrder={visualState.setMasonryOrder}
+                createOverlayGroup={visualState.createOverlayGroup}
+                removeOverlayGroup={visualState.removeOverlayGroup}
                 setWindowLayout={visualState.setWindowLayout}
                 setWindowZIndex={visualState.setWindowZIndex}
               />
